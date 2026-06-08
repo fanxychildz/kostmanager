@@ -56,5 +56,11 @@
     "tsx": "^4.22.3",
     "typescript": "^5.8.3",
     "vite": "^6.3.5"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "esbuild"
+    ]
   }
 }
