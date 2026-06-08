@@ -34,7 +34,6 @@
     "@tanstack/react-start": "^1.168.16",
     "@tanstack/router-devtools": "^1.121.2",
     "better-auth": "^1.6.11",
-    "better-sqlite3": "^12.10.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
@@ -48,7 +47,6 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.8",
     "@tanstack/router-plugin": "^1.168.12",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.9.1",
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.6",
