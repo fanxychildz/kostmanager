@@ -1,0 +1,200 @@
+import { createFileRoute } from '@tanstack/react-router'
+import { useState, useEffect } from 'react'
+import { Loader2 } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
+import { Button } from '~/components/ui/button'
+import { Input } from '~/components/ui/input'
+import { Label } from '~/components/ui/label'
+import { Separator } from '~/components/ui/separator'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs'
+import { Avatar, AvatarFallback } from '~/components/ui/avatar'
+import { Badge } from '~/components/ui/badge'
+import { api } from '~/lib/api'
+import { useAuth } from '~/lib/auth-context'
+import { useMutation } from '~/lib/hooks'
+
+export const Route = createFileRoute('/dashboard/settings')({
+  component: SettingsPage,
+})
+
+function getInitials(name?: string | null) {
+  if (!name) return 'KM'
+  return name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
+}
+
+function SettingsPage() {
+  const { user, refreshSession } = useAuth()
+
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [profileMsg, setProfileMsg] = useState('')
+
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordMsg, setPasswordMsg] = useState('')
+
+  useEffect(() => {
+    setName(user?.name ?? '')
+    setPhone((user as any)?.phone ?? '')
+  }, [user])
+
+  const profileMutation = useMutation({
+    mutationFn: () => api.auth.updateProfile({ name, phone }),
+    onSuccess: async () => {
+      setProfileMsg('Profil berhasil disimpan')
+      await refreshSession()
+    },
+    onError: (err) => setProfileMsg(`Gagal: ${err}`),
+  })
+
+  const passwordMutation = useMutation({
+    mutationFn: () => api.auth.changePassword({ currentPassword, newPassword }),
+    onSuccess: () => {
+      setPasswordMsg('Password berhasil diganti')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    },
+    onError: (err) => setPasswordMsg(`Gagal: ${err}`),
+  })
+
+  const handleChangePassword = () => {
+    setPasswordMsg('')
+    if (newPassword.length < 8) {
+      setPasswordMsg('Password baru minimal 8 karakter')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordMsg('Konfirmasi password tidak cocok')
+      return
+    }
+    passwordMutation.mutate()
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Pengaturan</h1>
+        <p className="text-muted-foreground">Kelola akun dan preferensi Anda</p>
+      </div>
+
+      <Tabs defaultValue="profile" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="profile">Profil</TabsTrigger>
+          <TabsTrigger value="business">Bisnis</TabsTrigger>
+          <TabsTrigger value="notifications">Notifikasi</TabsTrigger>
+          <TabsTrigger value="security">Keamanan</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="profile">
+          <Card>
+            <CardHeader><CardTitle>Profil Akun</CardTitle><CardDescription>Informasi pribadi Anda</CardDescription></CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-16 w-16"><AvatarFallback className="text-lg bg-primary text-primary-foreground">{getInitials(user?.name)}</AvatarFallback></Avatar>
+                <Button variant="outline" size="sm" disabled>Ganti Foto</Button>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2"><Label>Nama Lengkap</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
+                <div className="space-y-2"><Label>Email</Label><Input value={user?.email ?? ''} type="email" disabled /></div>
+                <div className="space-y-2"><Label>No. HP</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="08xxxxxxxxxx" /></div>
+                <div className="space-y-2"><Label>Role</Label><Input value={(user as any)?.role === 'manager' ? 'Manager' : 'Owner'} disabled /></div>
+              </div>
+              {profileMsg && <p className="text-sm text-muted-foreground">{profileMsg}</p>}
+              <Button onClick={() => { setProfileMsg(''); profileMutation.mutate() }} disabled={profileMutation.loading}>
+                {profileMutation.loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Simpan Perubahan
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="business">
+          <Card>
+            <CardHeader><CardTitle>Informasi Bisnis</CardTitle><CardDescription>Detail bisnis properti Anda</CardDescription></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2"><Label>Nama Bisnis</Label><Input defaultValue="Kost Melati Group" /></div>
+                <div className="space-y-2"><Label>Tipe Bisnis</Label><Input defaultValue="Pemilik Kost" disabled /></div>
+              </div>
+              <Button disabled>Simpan</Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="notifications">
+          <Card>
+            <CardHeader><CardTitle>Preferensi Notifikasi</CardTitle><CardDescription>Atur notifikasi yang ingin Anda terima</CardDescription></CardHeader>
+            <CardContent className="space-y-4">
+              {[
+                { label: 'Notifikasi pembayaran baru', desc: 'Dapatkan notifikasi saat pembayaran dicatat' },
+                { label: 'Reminder tagihan', desc: 'Reminder H-5 sebelum jatuh tempo' },
+                { label: 'Laporan mingguan', desc: 'Ringkasan mingguan via email' },
+                { label: 'Pengumuman produk', desc: 'Update fitur baru dan perbaikan' },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center justify-between p-3 rounded-lg border">
+                  <div><p className="text-sm font-medium">{item.label}</p><p className="text-xs text-muted-foreground">{item.desc}</p></div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                  </label>
+                </div>
+              ))}
+              <Button disabled>Simpan Preferensi</Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="security">
+          <Card>
+            <CardHeader><CardTitle>Keamanan</CardTitle><CardDescription>Kelola password dan keamanan akun</CardDescription></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2"><Label>Password Lama</Label><Input type="password" placeholder="Masukkan password lama" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} /></div>
+              <div className="space-y-2"><Label>Password Baru</Label><Input type="password" placeholder="Minimal 8 karakter" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} /></div>
+              <div className="space-y-2"><Label>Konfirmasi Password Baru</Label><Input type="password" placeholder="Ulangi password baru" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} /></div>
+              {passwordMsg && <p className="text-sm text-muted-foreground">{passwordMsg}</p>}
+              <Button onClick={handleChangePassword} disabled={passwordMutation.loading}>
+                {passwordMutation.loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Ganti Password
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="billing">
+          <Card>
+            <CardHeader><CardTitle>Langganan</CardTitle><CardDescription>Kelola paket langganan Anda</CardDescription></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-4 rounded-lg border-2 border-primary">
+                <div>
+                  <div className="flex items-center gap-2"><p className="font-bold">Paket Pro</p><Badge>Aktif</Badge></div>
+                  <p className="text-sm text-muted-foreground">Rp 99.000/bulan &middot; Hingga 100 unit</p>
+                  <p className="text-xs text-muted-foreground mt-1">Perpanjangan berikutnya: 1 Juli 2026</p>
+                </div>
+                <Button variant="outline">Kelola</Button>
+              </div>
+              <Separator />
+              <div>
+                <h4 className="font-medium mb-2">Riwayat Pembayaran</h4>
+                <div className="space-y-2">
+                  {[
+                    { date: '1 Juni 2026', amount: 'Rp 99.000', status: 'Akan datang' },
+                    { date: '1 Mei 2026', amount: 'Rp 99.000', status: 'Lunas' },
+                    { date: '1 April 2026', amount: 'Rp 99.000', status: 'Lunas' },
+                  ].map((item) => (
+                    <div key={item.date} className="flex items-center justify-between text-sm p-2 rounded border">
+                      <span>{item.date}</span><span className="font-medium">{item.amount}</span>
+                      <Badge variant={item.status === 'Lunas' ? 'success' : 'warning'}>{item.status}</Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
+}
