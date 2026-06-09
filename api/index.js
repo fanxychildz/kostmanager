@@ -37,6 +37,14 @@ export default async function handler(req, res) {
 
     const response = await serverEntry.fetch(request)
 
+    console.log('[vercel-server] response status:', response.status)
+    console.log('[vercel-server] response headers:', JSON.stringify(Array.from(response.headers.entries())))
+    if (typeof response.headers.getSetCookie === 'function') {
+      console.log('[vercel-server] getSetCookie output:', response.headers.getSetCookie())
+    } else {
+      console.log('[vercel-server] getSetCookie is NOT a function')
+    }
+
     res.statusCode = response.status
     const setCookies =
       typeof response.headers.getSetCookie === 'function' ? response.headers.getSetCookie() : []
@@ -44,7 +52,10 @@ export default async function handler(req, res) {
       if (key.toLowerCase() === 'set-cookie') return
       res.setHeader(key, value)
     })
-    if (setCookies.length > 0) res.setHeader('set-cookie', setCookies)
+    if (setCookies.length > 0) {
+      console.log('[vercel-server] setting cookies on response:', setCookies)
+      res.setHeader('set-cookie', setCookies)
+    }
 
     if (response.body) {
       Readable.fromWeb(response.body).pipe(res)
