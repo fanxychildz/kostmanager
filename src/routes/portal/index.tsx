@@ -3,7 +3,7 @@ import {
   Home, FileText, Wrench, MessageSquare, CreditCard, Camera, Info, 
   Sparkles, CheckCircle2, AlertCircle, Clock, Send, Mail, Phone, Calendar, ArrowUpRight, HelpCircle, Loader2
 } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 import { Badge } from '~/components/ui/badge'
@@ -19,12 +19,43 @@ export const Route = createFileRoute('/portal/')({
 
 type TenantTab = 'lease' | 'billing' | 'maintenance' | 'chat'
 
-interface LocalMaintenanceRequest {
+interface PortalProfile {
+  tenant: {
+    id: string
+    fullName: string
+    email: string
+    phone: string
+    checkInDate: string
+    checkOutDate?: string | null
+    depositAmount: number
+    unitNumber?: string
+    unitId?: string
+    propertyId?: string
+  } | null
+  unit: {
+    id: string
+    unitNumber?: string
+    priceMonthly?: number
+  } | null
+  property: {
+    id: string
+    name?: string
+  } | null
+}
+
+interface PortalBill {
+  id: string
+  periodMonth: number
+  periodYear: number
+  totalAmount: number
+  status: string
+  dueDate: string
+}
+
+type PortalMaintenanceRequest = {
   id: string
   tenantId: string
-  tenantName: string
-  unitNumber: string
-  propertyName: string
+  propertyId: string
   title: string
   description: string
   category: string
@@ -34,7 +65,7 @@ interface LocalMaintenanceRequest {
   updates: Array<{ id: string; date: string; author: string; text: string }>
 }
 
-interface LocalChatMessage {
+type PortalChatMessage = {
   id: string
   sender: 'Tenant' | 'Landlord'
   senderName: string
@@ -44,12 +75,12 @@ interface LocalChatMessage {
   read: boolean
 }
 
+type PortalTab = 'lease' | 'billing' | 'maintenance' | 'chat'
+
 // Client-side dynamic AI suggestion writing assistant (heuristic engine in Indonesian)
-function generateAISuggestion(messages: LocalChatMessage[], respondent: 'Tenant' | 'Landlord', tenantName: string) {
+function generateAISuggestion(messages: PortalChatMessage[], respondent: 'Tenant', tenantName: string) {
   if (messages.length === 0) {
-    return respondent === 'Tenant' 
-      ? `Halo Pak/Bu, saya ingin menginfokan mengenai sewa unit saya.`
-      : `Halo ${tenantName}, ada yang bisa saya bantu hari ini?`
+    return `Halo Pak/Bu, saya ingin menginfokan mengenai sewa unit saya.`
   }
 
   const lastMsg = messages[messages.length - 1]
@@ -66,35 +97,48 @@ function generateAISuggestion(messages: LocalChatMessage[], respondent: 'Tenant'
       return `Halo juga Pak/Bu, saya ingin menanyakan perihal perpanjangan kontrak sewa kamar saya.`
     }
     return `Baik Pak/Bu, terima kasih banyak atas informasinya. Saya mengerti.`
-  } else {
-    // Landlord suggestions
-    if (text.includes('bayar') || text.includes('sewa') || text.includes('tagihan') || text.includes('transfer')) {
-      return `Halo ${tenantName}, baik pembayaran sewa Anda sudah saya terima dan verifikasi di mutasi bank. Terima kasih ya.`
-    }
-    if (text.includes('rusak') || text.includes('bocor') || text.includes('mati') || text.includes('perbaiki')) {
-      return `Halo ${tenantName}, laporan kerusakannya sudah saya terima. Saya akan kirim teknisi untuk memeriksa kondisinya besok pagi jam 10.`
-    }
-    if (text.includes('halo') || text.includes('pagi') || text.includes('siang') || text.includes('sore')) {
-      return `Halo juga ${tenantName}, ada yang bisa saya bantu terkait unit sewa Anda?`
-    }
-    return `Baik, terima kasih atas informasinya. Akan segera kami tindak lanjuti.`
   }
+  return `Baik Pak/Bu, terima kasih banyak atas responnya.`
 }
 
 function PortalDashboard() {
   const [activeTab, setActiveTab] = useState<TenantTab>('lease')
-  
-  // Real DB profile & bills queries
-  const { data: profile, loading: loadingProfile } = useQuery({ queryFn: () => api.portal.profile() })
-  const { data: bills, loading: loadingBills } = useQuery({ queryFn: () => api.portal.bills() })
 
-  // Local Storage states for Repairs and Chat
-  const [maintenance, setMaintenance] = useState<LocalMaintenanceRequest[]>([])
-  const [messages, setMessages] = useState<LocalChatMessage[]>([])
-  
-  // Local forms states
-  const [payingBill, setPayingBill] = useState<any | null>(null)
-  const [paymentMethod, setPaymentMethod] = useState('bank_transfer')
+  const {
+    data: profile,
+    loading: loadingProfile,
+    refetch: refetchProfile,
+  } = useQuery<PortalProfile>({ queryFn: () => api.portal.profile() })
+
+  const {
+    data: bills,
+    loading: loadingBills,
+    refetch: refetchBills,
+  } = useQuery<PortalBill[]>({ queryFn: () => api.portal.bills() })
+
+  const saveMaintenance = async (data: PortalMaintenanceRequest[]) => {
+    await api.portal.maintenance.save(data)
+  }
+
+  const loadMaintenance = async (): Promise<PortalMaintenanceRequest[]> => {
+    const all = await api.portal.maintenance.list()
+    const tenantId = profile?.tenant?.id
+    if (!tenantId) return []
+    return all.filter((item: PortalMaintenanceRequest) => item.tenantId === tenantId)
+  }
+
+  const saveMessages = async (data: PortalChatMessage[]) => {
+    await api.portal.chat.save(data)
+  }
+
+  const loadMessages = async (): Promise<PortalChatMessage[]> => {
+    return (await api.portal.chat.list()) as PortalChatMessage[]
+  }
+  const [maintenance, setMaintenance] = useState<PortalMaintenanceRequest[]>([])
+  const [messages, setMessages] = useState<PortalChatMessage[]>([])
+
+  const [payingBill, setPayingBill] = useState<PortalBill | null>(null)
+  const [paymentMethod, setPaymentMethod] = useState<string>('bank_transfer')
   const [customReceiptUrl, setCustomReceiptUrl] = useState('')
   const [paymentMemo, setPaymentMemo] = useState('')
 
@@ -112,26 +156,19 @@ function PortalDashboard() {
   const unit = profile?.unit
   const property = profile?.property
 
-  // Load from localStorage on mount
   useEffect(() => {
-    if (tenant?.id) {
-      const storedMaint = localStorage.getItem('km_maintenance')
-      const storedMsgs = localStorage.getItem('km_messages')
-      if (storedMaint) setMaintenance(JSON.parse(storedMaint))
-      if (storedMsgs) setMessages(JSON.parse(storedMsgs))
+    if (!tenant?.id) return
+    let cancelled = false
+    ;(async () => {
+      const [maint, chat] = await Promise.all([loadMaintenance(), loadMessages()])
+      if (cancelled) return
+      setMaintenance(maint)
+      setMessages(chat)
+    })()
+    return () => {
+      cancelled = true
     }
   }, [tenant?.id])
-
-  // Save to localStorage when state changes
-  const saveMaintenance = (data: LocalMaintenanceRequest[]) => {
-    setMaintenance(data)
-    localStorage.setItem('km_maintenance', JSON.stringify(data))
-  }
-
-  const saveMessages = (data: LocalChatMessage[]) => {
-    setMessages(data)
-    localStorage.setItem('km_messages', JSON.stringify(data))
-  }
 
   if (loadingProfile || loadingBills) {
     return (
@@ -142,12 +179,12 @@ function PortalDashboard() {
   }
 
   const allBills = bills ?? []
-  const pendingBills = allBills.filter((b: any) => b.status !== 'paid')
-  const myRequests = maintenance.filter(m => m.tenantId === tenant?.id)
-  const myMessages = messages.filter(m => m.tenantId === tenant?.id)
+  const pendingBills = allBills.filter((b: PortalBill) => b.status !== 'paid')
+  const myRequests = maintenance.filter((m) => m.tenantId === tenant?.id)
+  const myMessages = messages.filter((m) => m.tenantId === tenant?.id)
 
   const pendingBillsCount = pendingBills.length
-  const activeRequestsCount = myRequests.filter(m => m.status !== 'Resolved').length
+  const activeRequestsCount = myRequests.filter((m) => m.status !== 'Resolved').length
 
   // Lease Progress calculation
   let leasePercent = 0
@@ -163,38 +200,40 @@ function PortalDashboard() {
   // Handle Payment proof submission (Mocked client-side overlay)
   const handlePaymentSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!payingBill) return
+    if (!payingBill || !tenant?.id) return
 
-    // Auto append alert message to secure chat so owner is notified
-    const transactionAlert: LocalChatMessage = {
-      id: `pay-alert-${Date.now()}`,
-      sender: 'Tenant',
-      senderName: tenant?.fullName || 'Penghuni',
-      tenantId: tenant?.id || '',
-      message: `🔔 PEMBERITAHUAN BAYAR: Saya telah mengirim bukti transfer untuk sewa periode ${payingBill.periodMonth}/${payingBill.periodYear} sebesar ${formatRupiah(payingBill.totalAmount)}. Metode: ${paymentMethod === 'bank_transfer' ? 'Transfer Bank' : paymentMethod === 'qris_manual' ? 'QRIS Manual' : 'Metode Lain'}.`,
-      timestamp: new Date().toISOString(),
-      read: false
+    const updatedBills = allBills.map((bill: PortalBill) => {
+      if (bill.id !== payingBill.id) {
+        return bill
+      }
+      return {
+        ...bill,
+        status: 'paid',
+      }
+    })
+
+    const updatedTenant = {
+      ...tenant,
+      status: 'active',
     }
-    
-    saveMessages([...messages, transactionAlert])
-    
+
+    saveMessages([...messages, alertMessage])
     alert('Bukti pembayaran sewa Anda berhasil diunggah! Pemilik kost akan segera melakukan pengecekan mutasi bank dan mengubah status sewa Anda menjadi lunas.')
     setPayingBill(null)
     setCustomReceiptUrl('')
     setPaymentMemo('')
+    refetchBills()
   }
 
   // Handle new repair ticket submission
-  const handleMaintenanceRequestSubmit = (e: React.FormEvent) => {
+  const handleMaintenanceRequestSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newReqTitle || !newReqDesc || !tenant?.id) return
 
-    const newTicket: LocalMaintenanceRequest = {
+    const newTicket: PortalMaintenanceRequest = {
       id: `ticket-${Date.now()}`,
       tenantId: tenant.id,
-      tenantName: tenant.fullName,
-      unitNumber: unit?.unitNumber || '-',
-      propertyName: property?.name || '-',
+      propertyId: property?.id || '',
       title: newReqTitle,
       description: newReqDesc,
       category: newReqCategory,
@@ -206,28 +245,33 @@ function PortalDashboard() {
           id: `update-${Date.now()}`,
           date: new Date().toISOString(),
           author: 'Penghuni',
-          text: `Tiket keluhan berhasil dibuat. Pelapor: ${tenant.fullName}.`
-        }
-      ]
+          text: `Tiket keluhan berhasil dibuat. Pelapor: ${tenant.fullName}.`,
+        },
+      ],
     }
 
-    saveMaintenance([...maintenance, newTicket])
+    const updatedMaintenance = [...maintenance, newTicket]
+    setMaintenance(updatedMaintenance)
+    await saveMaintenance(updatedMaintenance)
 
-    // Auto post message alert to secure chat
-    const alertMsg: LocalChatMessage = {
+    const alertMessage: PortalChatMessage = {
       id: `maint-alert-${Date.now()}`,
       sender: 'Tenant',
       senderName: tenant.fullName,
       tenantId: tenant.id,
       message: `🛠️ PEMBERITAHUAN PERBAIKAN: Saya membuka tiket perbaikan baru ("${newReqTitle}") kategori ${newReqCategory} dengan prioritas ${newReqPriority}.`,
       timestamp: new Date().toISOString(),
-      read: false
+      read: false,
     }
-    saveMessages([...messages, alertMsg])
+
+    const updatedMessages = [...messages, alertMessage]
+    setMessages(updatedMessages)
+    await saveMessages(updatedMessages)
 
     setNewReqTitle('')
     setNewReqDesc('')
     setShowSubmitRequest(false)
+    refetchProfile()
   }
 
   // Smart Draft writer suggestion triggers
@@ -241,21 +285,23 @@ function PortalDashboard() {
   }
 
   // Send message
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!chatText.trim() || !tenant?.id) return
 
-    const newMsg: LocalChatMessage = {
+    const newMsg: PortalChatMessage = {
       id: `msg-${Date.now()}`,
       sender: 'Tenant',
       senderName: tenant.fullName,
       tenantId: tenant.id,
       message: chatText,
       timestamp: new Date().toISOString(),
-      read: false
+      read: false,
     }
 
-    saveMessages([...messages, newMsg])
+    const updatedMessages = [...messages, newMsg]
+    setMessages(updatedMessages)
+    await saveMessages(updatedMessages)
     setChatText('')
     setAiSuggestion('')
   }
