@@ -73,7 +73,7 @@ export const api = {
     checkOverdue: () => billingActions.checkOverdueBills(),
   },
   chat: {
-    listConversations: () => chatActions.listChatConversations(),
+    listConversations: () => chatActions.listTenantChatSummaries(),
     listMessages: (data: { tenantId: string }) => chatActions.listChatMessages({ data }),
     sendMessage: (data: { tenantId: string; message: string; sender: 'Tenant' | 'Landlord'; senderName: string }) => chatActions.sendChatMessage({ data }),
     markRead: (data: { tenantId: string }) => chatActions.markChatRead({ data }),
@@ -84,8 +84,6 @@ export const api = {
         params?.tenantId
           ? chatActions.listChatMessages({ data: { tenantId: params.tenantId } })
           : Promise.resolve([]),
-      save: (messages: any[]) =>
-        Promise.resolve({ ok: true, count: messages.length }),
       sendMessage: (data: {
         tenantId: string
         message: string

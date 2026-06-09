@@ -127,12 +127,10 @@ function PortalDashboard() {
     return all.filter((item: PortalMaintenanceRequest) => item.tenantId === tenantId)
   }
 
-  const saveMessages = async (data: PortalChatMessage[]) => {
-    await api.portal.chat.save(data)
-  }
-
   const loadMessages = async (): Promise<PortalChatMessage[]> => {
-    const list = await api.portal.chat.list()
+    const tenantId = profile?.tenant?.id
+    if (!tenantId) return []
+    const list = await api.portal.chat.list({ tenantId })
     return (list as any[]).map((item) => ({
       ...item,
       timestamp: item.createdAt instanceof Date ? item.createdAt.toISOString() : (item.createdAt || item.timestamp || new Date().toISOString())
@@ -206,34 +204,15 @@ function PortalDashboard() {
     e.preventDefault()
     if (!payingBill || !tenant?.id) return
 
-    const updatedBills = allBills.map((bill: PortalBill) => {
-      if (bill.id !== payingBill.id) {
-        return bill
-      }
-      return {
-        ...bill,
-        status: 'paid',
-      }
+    await api.portal.chat.sendMessage({
+      tenantId: tenant.id,
+      message: `🔔 PEMBERITAHUAN BAYAR: Saya telah mengirim bukti transfer untuk sewa periode ${payingBill.periodMonth}/${payingBill.periodYear} sebesar ${formatRupiah(payingBill.totalAmount)}. Metode: ${paymentMethod === 'bank_transfer' ? 'Transfer Bank' : paymentMethod === 'qris_manual' ? 'QRIS Manual' : 'Metode Lain'}.`,
+      sender: 'Tenant',
+      senderName: tenant.fullName || 'Penghuni',
     })
 
-    const updatedTenant = {
-      ...tenant,
-      status: 'active',
-    }
-
-    const alertMessage: PortalChatMessage = {
-      id: `pay-alert-${Date.now()}`,
-      sender: 'Tenant',
-      senderName: tenant?.fullName || 'Penghuni',
-      tenantId: tenant?.id || '',
-      message: `🔔 PEMBERITAHUAN BAYAR: Saya telah mengirim bukti transfer untuk sewa periode ${payingBill.periodMonth}/${payingBill.periodYear} sebesar ${formatRupiah(payingBill.totalAmount)}. Metode: ${paymentMethod === 'bank_transfer' ? 'Transfer Bank' : paymentMethod === 'qris_manual' ? 'QRIS Manual' : 'Metode Lain'}.`,
-      timestamp: new Date().toISOString(),
-      read: false,
-    }
-
-    const updatedMessages = [...messages, alertMessage]
-    setMessages(updatedMessages)
-    await saveMessages(updatedMessages)
+    const chat = await loadMessages()
+    setMessages(chat)
 
     alert('Bukti pembayaran sewa Anda berhasil diunggah! Pemilik kost akan segera melakukan pengecekan mutasi bank dan mengubah status sewa Anda menjadi lunas.')
     setPayingBill(null)
@@ -271,19 +250,15 @@ function PortalDashboard() {
     setMaintenance(updatedMaintenance)
     await saveMaintenance(updatedMaintenance)
 
-    const alertMessage: PortalChatMessage = {
-      id: `maint-alert-${Date.now()}`,
-      sender: 'Tenant',
-      senderName: tenant.fullName,
+    await api.portal.chat.sendMessage({
       tenantId: tenant.id,
       message: `🛠️ PEMBERITAHUAN PERBAIKAN: Saya membuka tiket perbaikan baru ("${newReqTitle}") kategori ${newReqCategory} dengan prioritas ${newReqPriority}.`,
-      timestamp: new Date().toISOString(),
-      read: false,
-    }
+      sender: 'Tenant',
+      senderName: tenant.fullName,
+    })
 
-    const updatedMessages = [...messages, alertMessage]
-    setMessages(updatedMessages)
-    await saveMessages(updatedMessages)
+    const chat = await loadMessages()
+    setMessages(chat)
 
     setNewReqTitle('')
     setNewReqDesc('')
@@ -306,19 +281,15 @@ function PortalDashboard() {
     e.preventDefault()
     if (!chatText.trim() || !tenant?.id) return
 
-    const newMsg: PortalChatMessage = {
-      id: `msg-${Date.now()}`,
+    await api.portal.chat.sendMessage({
+      tenantId: tenant.id,
+      message: chatText.trim(),
       sender: 'Tenant',
       senderName: tenant.fullName,
-      tenantId: tenant.id,
-      message: chatText,
-      timestamp: new Date().toISOString(),
-      read: false,
-    }
+    })
 
-    const updatedMessages = [...messages, newMsg]
-    setMessages(updatedMessages)
-    await saveMessages(updatedMessages)
+    const chat = await loadMessages()
+    setMessages(chat)
     setChatText('')
     setAiSuggestion('')
   }

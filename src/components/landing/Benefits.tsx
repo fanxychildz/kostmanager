@@ -39,16 +39,13 @@ export default function Benefits() {
   ];
 
   return (
-    <section id="manfaat" className="py-20 bg-slate-50 relative overflow-hidden border-t border-slate-100">
+    <section id="manfaat" className="py-24 bg-slate-50 relative overflow-hidden border-t border-slate-100">
       {/* Background patterns */}
       <div className="absolute inset-0 bg-radial from-slate-100/50 via-slate-50 to-slate-50 -z-10" />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Heading */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="text-xs font-extrabold text-blue-600 uppercase tracking-widest bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-full inline-block mb-3">
-            Mengapa KostManager?
-          </span>
           <h2 className="text-3xl md:text-5xl font-extrabold text-slate-950 tracking-tight mb-4">
             Mengapa Pemilik Kost Memilih Kami?
           </h2>
