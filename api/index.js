@@ -44,9 +44,35 @@ async function tryServeStatic(res, pathname) {
   }
 }
 
+const getRawBody = (req) => {
+  return new Promise((resolve, reject) => {
+    // If req.body is already parsed/provided by Vercel
+    if (req.body !== undefined) {
+      if (typeof req.body === 'string') {
+        return resolve(Buffer.from(req.body))
+      }
+      if (Buffer.isBuffer(req.body)) {
+        return resolve(req.body)
+      }
+      return resolve(Buffer.from(JSON.stringify(req.body)))
+    }
+
+    // If stream is already ended
+    if (req.readableEnded) {
+      return resolve(Buffer.alloc(0))
+    }
+
+    const chunks = []
+    req.on('data', (chunk) => { chunks.push(chunk) })
+    req.on('end', () => { resolve(Buffer.concat(chunks)) })
+    req.on('error', reject)
+  })
+}
+
 export default async function handler(req, res) {
   try {
-    const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`)
+    const proto = req.headers['x-forwarded-proto'] || 'http'
+    const url = new URL(req.url, `${proto}://${req.headers.host || 'localhost'}`)
 
     if (req.method === 'GET' && url.pathname.startsWith('/assets/')) {
       if (await tryServeStatic(res, url.pathname)) return
@@ -55,22 +81,26 @@ export default async function handler(req, res) {
     const method = req.method || 'GET'
     const headers = new Headers()
     for (const [key, value] of Object.entries(req.headers)) {
-      if (Array.isArray(value)) for (const v of value) headers.append(key, v)
-      else if (value != null) headers.set(key, value)
+      if (Array.isArray(value)) {
+        for (const v of value) headers.append(key, v)
+      } else if (value != null) {
+        headers.set(key, value)
+      }
     }
 
     const hasBody = method !== 'GET' && method !== 'HEAD'
+    const body = hasBody ? await getRawBody(req) : undefined
     const request = new Request(url, {
       method,
       headers,
-      body: hasBody ? Readable.toWeb(req) : undefined,
-      duplex: hasBody ? 'half' : undefined,
+      body,
     })
 
     const response = await serverEntry.fetch(request)
 
     res.statusCode = response.status
-    const setCookies = typeof response.headers.getSetCookie === 'function' ? response.headers.getSetCookie() : []
+    const setCookies =
+      typeof response.headers.getSetCookie === 'function' ? response.headers.getSetCookie() : []
     response.headers.forEach((value, key) => {
       if (key.toLowerCase() === 'set-cookie') return
       res.setHeader(key, value)

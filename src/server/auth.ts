@@ -3,7 +3,11 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { db } from '../db'
 import * as schema from '../db/schema'
 
-const baseURL = process.env.BETTER_AUTH_URL || 'http://localhost:3000'
+const baseURL =
+  process.env.BETTER_AUTH_URL ||
+  (typeof process.env.VERCEL_URL === 'string'
+    ? `https://${process.env.VERCEL_URL}`
+    : 'http://localhost:3000')
 
 export const auth = betterAuth({
   baseURL,
