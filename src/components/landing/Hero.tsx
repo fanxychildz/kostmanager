@@ -1,5 +1,5 @@
 import { motion, Variants } from "motion/react";
-import { ArrowRight, Play, CheckCircle, Shield, Award } from "lucide-react";
+import { ArrowRight, CheckCircle, Shield, Award } from "lucide-react";
 
 export default function Hero() {
   const containerVariants: Variants = {
@@ -99,18 +99,6 @@ export default function Hero() {
             >
               Mulai Gratis Sekarang
               <ArrowRight className="w-5 h-5" />
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => handleScrollTo("demo")}
-              className="w-full sm:w-auto flex items-center justify-center gap-2.5 bg-white hover:bg-slate-50 text-slate-700 font-bold px-6 py-4 rounded-xl border border-slate-200 hover:border-slate-300 shadow-sm transition-all cursor-pointer"
-              id="hero-btn-secondary"
-            >
-              <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-blue-600 shrink-0">
-                <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
-              </div>
-              Coba Live Demo
             </motion.button>
           </motion.div>
 
