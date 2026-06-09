@@ -59,11 +59,13 @@ export function Sidebar() {
     <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 lg:border-r bg-white">
       {/* Brand logo */}
       <div className="flex items-center gap-2.5 h-16 px-6 border-b border-slate-100">
-        <div className="p-2 bg-slate-900 rounded-xl text-white">
+        <div className="p-2 bg-blue-600 rounded-xl text-white">
           <Building2 className="w-5 h-5" />
         </div>
         <div>
-          <span className="text-lg font-extrabold text-slate-900 tracking-tight leading-none">KostManager</span>
+          <span className="text-lg font-extrabold text-slate-900 tracking-tight leading-none">
+            Kost<span className="text-blue-600 font-semibold">Manager</span>
+          </span>
           <span className="text-[10px] text-slate-400 font-bold tracking-wider uppercase block mt-0.5">Admin Hub</span>
         </div>
       </div>
@@ -71,31 +73,31 @@ export function Sidebar() {
       <div className="flex-1 flex flex-col justify-between p-4 overflow-y-auto">
         <div className="space-y-4">
           {/* User Account Details Card */}
-          <div className="bg-slate-900 text-white rounded-2xl p-4 shadow-sm">
+          <div className="bg-slate-50 text-slate-900 rounded-2xl p-4 shadow-sm border border-slate-200/60">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-600 rounded-lg">
-                <Building2 className="w-4 h-4 text-white" />
+              <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                <Building2 className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="font-bold text-xs leading-none text-white">Akun Pemilik</h4>
-                <span className="text-[9px] text-blue-200 mt-1 block">KostManager Administrator</span>
+                <h4 className="font-bold text-xs leading-none text-slate-900">Akun Pemilik</h4>
+                <span className="text-[9px] text-blue-600 font-semibold mt-1 block">KostManager Administrator</span>
               </div>
             </div>
             
-            <div className="border-t border-slate-800 my-3"></div>
+            <div className="border-t border-slate-200 my-3"></div>
             
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-slate-400">Total Properti</span>
-                <span className="font-semibold text-white">{propertiesCount}</span>
+              <div className="flex items-center justify-between text-[11px] font-medium">
+                <span className="text-slate-500">Total Properti</span>
+                <span className="font-bold text-slate-900">{propertiesCount}</span>
               </div>
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-slate-400">Penghuni Aktif</span>
-                <span className="font-semibold text-white">{activeTenantsCount}</span>
+              <div className="flex items-center justify-between text-[11px] font-medium">
+                <span className="text-slate-500">Penghuni Aktif</span>
+                <span className="font-bold text-slate-900">{activeTenantsCount}</span>
               </div>
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-slate-400">Tingkat Hunian</span>
-                <span className="font-semibold text-emerald-400">{occupancyRate}%</span>
+              <div className="flex items-center justify-between text-[11px] font-medium">
+                <span className="text-slate-500">Tingkat Hunian</span>
+                <span className="font-bold text-emerald-600">{occupancyRate}%</span>
               </div>
             </div>
           </div>

@@ -114,11 +114,13 @@ export function Header() {
             <div className="space-y-6">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 bg-slate-900 rounded-xl text-white">
+                  <div className="p-2 bg-blue-600 rounded-xl text-white">
                     <Building2 className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="text-sm font-extrabold text-slate-900 tracking-tight leading-none">KostManager</span>
+                    <span className="text-sm font-extrabold text-slate-900 tracking-tight leading-none">
+                      Kost<span className="text-blue-600 font-semibold">Manager</span>
+                    </span>
                     <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block mt-0.5">Admin Hub</span>
                   </div>
                 </div>
