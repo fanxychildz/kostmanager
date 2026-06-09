@@ -72,7 +72,7 @@ export const listChatMessages = createServerFn({ method: 'GET' })
   })
 
 export const sendChatMessage = createServerFn({ method: 'POST' })
-  .inputValidator((d: { body: { tenantId: string; message: string; sender: 'Tenant' | 'Landlord'; senderName: string } }) => d)
+  .inputValidator((d: { tenantId: string; message: string; sender: 'Tenant' | 'Landlord'; senderName: string }) => d)
   .handler(async ({ data }) => {
     const request = getRequest()
     const session = await auth.api.getSession({ headers: request.headers })
