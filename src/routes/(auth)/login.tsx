@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/com
 import { Separator } from '~/components/ui/separator'
 import { useAuth } from '~/lib/auth-context'
 import { api } from '~/lib/api'
+import { authClient } from '~/lib/auth-client'
 
 export const Route = createFileRoute('/(auth)/login')({
   component: LoginPage,
@@ -32,6 +33,14 @@ function LoginPage() {
       setError('Email atau password salah')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleGoogleLogin = async () => {
+    try {
+      await authClient.signIn.social({ provider: 'google' })
+    } catch (err) {
+      setError('Login Google gagal')
     }
   }
 
@@ -100,6 +109,15 @@ function LoginPage() {
                   Masuk
                 </Button>
               </form>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleGoogleLogin}
+              >
+                Masuk dengan Google
+              </Button>
 
               <p className="text-center text-sm text-muted-foreground">
                 Belum punya akun?{' '}
