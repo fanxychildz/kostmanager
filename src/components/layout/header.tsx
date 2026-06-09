@@ -13,7 +13,6 @@ import {
   Home,
   Menu,
   X,
-  Clock,
   Wrench,
   MessageSquare,
 } from 'lucide-react'
@@ -41,18 +40,9 @@ const navItems = [
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [currentTime, setCurrentTime] = useState<string>('')
   const location = useLocation()
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
-
-  useEffect(() => {
-    setCurrentTime(new Date().toUTCString())
-    const interval = setInterval(() => {
-      setCurrentTime(new Date().toUTCString())
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [])
 
   const handleSignOut = async () => {
     await signOut()
@@ -71,17 +61,6 @@ export function Header() {
           >
             <Menu className="h-5 w-5 text-slate-700" />
           </Button>
-
-          {/* System Sync Clock Indicators */}
-          <div className="hidden md:flex items-center gap-3 text-xs font-semibold text-slate-400">
-            <div className="flex items-center gap-1.5 border-r pr-3 border-slate-100">
-              <Clock className="w-3.5 h-3.5 text-slate-400" />
-              <span>{currentTime || 'Syncing System Time...'}</span>
-            </div>
-            <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md text-[10px] font-bold border border-emerald-100">
-              ● LIVE LEDGER
-            </span>
-          </div>
         </div>
 
         <div className="flex items-center gap-3">

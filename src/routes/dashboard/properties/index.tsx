@@ -94,7 +94,7 @@ function PropertiesPage() {
             const occupancyRate = property.totalUnits > 0 
               ? Math.round((property.occupiedUnits / property.totalUnits) * 100)
               : 0
-            const coverImage = PLACEHOLDER_IMAGES[index % PLACEHOLDER_IMAGES.length]
+            const coverImage = property.image || PLACEHOLDER_IMAGES[index % PLACEHOLDER_IMAGES.length]
 
             return (
               <motion.div key={property.id} variants={cardVariants}>

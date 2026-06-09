@@ -54,7 +54,7 @@ export const getProperty = createServerFn({ method: 'GET' })
   })
 
 export const createProperty = createServerFn({ method: 'POST' })
-  .inputValidator((d: { name: string; address: string; city: string; province: string; type: string }) => d)
+  .inputValidator((d: { name: string; address: string; city: string; province: string; type: string; image?: string }) => d)
   .handler(async ({ data }) => {
     const request = getRequest()
     const session = await auth.api.getSession({ headers: request.headers })
@@ -70,6 +70,7 @@ export const createProperty = createServerFn({ method: 'POST' })
       city: data.city,
       province: data.province,
       type: data.type as 'kost' | 'kontrakan' | 'apartemen',
+      image: data.image,
       createdAt: now,
       updatedAt: now,
     }).returning()
@@ -78,7 +79,7 @@ export const createProperty = createServerFn({ method: 'POST' })
   })
 
 export const updateProperty = createServerFn({ method: 'POST' })
-  .inputValidator((d: { id: string; name?: string; address?: string; city?: string; province?: string; type?: string }) => d)
+  .inputValidator((d: { id: string; name?: string; address?: string; city?: string; province?: string; type?: string; image?: string }) => d)
   .handler(async ({ data }) => {
     const request = getRequest()
     const session = await auth.api.getSession({ headers: request.headers })

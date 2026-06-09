@@ -21,7 +21,9 @@ function NewPropertyPage() {
     address: '',
     city: '',
     province: '',
+    image: '',
   })
+  const [imageError, setImageError] = useState('')
 
   const { mutate: createProperty, loading, error } = useMutation({
     mutationFn: (data: typeof formData) => api.properties.create(data),
@@ -29,6 +31,21 @@ function NewPropertyPage() {
       navigate({ to: '/dashboard/properties' })
     },
   })
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    setImageError('')
+    if (!file) return
+    if (file.size > 2 * 1024 * 1024) {
+      setImageError('Ukuran file foto maksimal 2MB')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      setFormData((prev) => ({ ...prev, image: reader.result as string }))
+    }
+    reader.readAsDataURL(file)
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -112,6 +129,33 @@ function NewPropertyPage() {
                     <SelectItem value="Bali">Bali</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <Label>Foto Properti (Kost / Kontrakan)</Label>
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                {formData.image ? (
+                  <div className="relative w-44 h-28 rounded-xl overflow-hidden border bg-slate-50">
+                    <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
+                    <button 
+                      type="button" 
+                      onClick={() => setFormData({ ...formData, image: '' })}
+                      className="absolute top-1.5 right-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-full p-1 text-[10px] font-bold px-2.5 transition border-0 cursor-pointer"
+                    >
+                      Hapus
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-44 h-28 bg-slate-50 border border-dashed border-slate-250 rounded-xl flex items-center justify-center text-slate-400 text-xs font-semibold">
+                    Belum ada foto
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <Input type="file" accept="image/*" onChange={handleImageChange} className="w-auto text-xs" />
+                  <p className="text-[10px] text-slate-400 font-medium">Format: JPG, PNG, WEBP. Maksimal 2MB.</p>
+                  {imageError && <p className="text-xs text-destructive">{imageError}</p>}
+                </div>
               </div>
             </div>
             

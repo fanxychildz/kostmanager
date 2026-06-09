@@ -1,12 +1,13 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, Plus, MapPin, Users, BedDouble, Wrench, Loader2 } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowLeft, Plus, MapPin, Users, BedDouble, Wrench, Loader2, Camera, Building2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
 import { Badge } from '~/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table'
 import { formatRupiah } from '~/lib/utils'
 import { api } from '~/lib/api'
-import { useQuery } from '~/lib/hooks'
+import { useQuery, useMutation } from '~/lib/hooks'
 
 export const Route = createFileRoute('/dashboard/properties/$propertyId')({
   component: PropertyDetailPage,
@@ -15,8 +16,10 @@ export const Route = createFileRoute('/dashboard/properties/$propertyId')({
 function PropertyDetailPage() {
   const { propertyId } = Route.useParams()
   const navigate = useNavigate()
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
 
-  const { data: property, loading: loadingProperty } = useQuery({
+  const { data: property, loading: loadingProperty, refetch: refetchProperty } = useQuery({
     queryFn: () => api.properties.get(propertyId),
   })
 
@@ -27,6 +30,37 @@ function PropertyDetailPage() {
   const { data: tenants } = useQuery({
     queryFn: () => api.tenants.list(),
   })
+
+  const { mutate: updateProperty } = useMutation({
+    mutationFn: (data: { image: string }) => api.properties.update(propertyId, data),
+    onSuccess: () => {
+      refetchProperty()
+    },
+  })
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    setUploadError('')
+    if (!file) return
+
+    if (file.size > 2 * 1024 * 1024) {
+      setUploadError('Ukuran file foto maksimal 2MB')
+      return
+    }
+
+    setUploading(true)
+    const reader = new FileReader()
+    reader.onload = async () => {
+      try {
+        await updateProperty({ image: reader.result as string })
+      } catch (err: any) {
+        setUploadError(err.message || 'Gagal mengupload foto')
+      } finally {
+        setUploading(false)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
 
   if (loadingProperty || loadingUnits) {
     return (
@@ -63,6 +97,50 @@ function PropertyDetailPage() {
         <Badge variant={property.type === 'kost' ? 'default' : 'secondary'}>
           {property.type.charAt(0).toUpperCase() + property.type.slice(1)}
         </Badge>
+      </div>
+
+      {/* Property Cover Image Banner */}
+      <div className="relative h-64 w-full rounded-2xl overflow-hidden border bg-slate-100 group shadow-sm flex items-center justify-center">
+        {property.image ? (
+          <img src={property.image} alt={property.name} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50 gap-2">
+            <Building2 className="h-12 w-12 text-slate-300" />
+            <p className="text-sm font-semibold text-slate-400">Belum ada foto properti</p>
+          </div>
+        )}
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+          <label className="cursor-pointer bg-white/90 hover:bg-white text-slate-900 px-4 py-2.5 rounded-xl text-sm font-bold shadow-md transition flex items-center gap-2">
+            <Camera className="h-4 w-4 text-slate-700" />
+            {uploading ? 'Mengupload...' : 'Ganti Foto Properti'}
+            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
+          </label>
+          {property.image && (
+            <button
+              type="button"
+              onClick={async () => {
+                if (confirm('Apakah Anda yakin ingin menghapus foto properti ini?')) {
+                  setUploading(true)
+                  try {
+                    await updateProperty({ image: '' })
+                  } catch (err: any) {
+                    setUploadError(err.message || 'Gagal menghapus foto')
+                  } finally {
+                    setUploading(false)
+                  }
+                }
+              }}
+              className="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-md border-0 cursor-pointer"
+            >
+              Hapus Foto
+            </button>
+          )}
+        </div>
+        {uploadError && (
+          <div className="absolute bottom-4 left-4 bg-destructive text-destructive-foreground px-3 py-1.5 rounded-lg text-xs font-medium shadow-md">
+            {uploadError}
+          </div>
+        )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">

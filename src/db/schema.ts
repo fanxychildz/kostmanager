@@ -55,6 +55,7 @@ export const properties = sqliteTable('properties', {
   city: text('city').notNull(),
   province: text('province').notNull(),
   type: text('type', { enum: ['kost', 'kontrakan', 'apartemen'] }).notNull(),
+  image: text('image'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 })
