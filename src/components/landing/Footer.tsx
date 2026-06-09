@@ -78,22 +78,6 @@ export default function Footer() {
               </li>
               <li>
                 <button
-                  onClick={() => handleScrollTo("demo")}
-                  className="hover:text-white transition-colors cursor-pointer text-xs border-0 bg-transparent text-slate-400 p-0 text-left"
-                >
-                  Simulator Live Dashboard
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => handleScrollTo("kalkulator")}
-                  className="hover:text-white transition-colors cursor-pointer text-xs border-0 bg-transparent text-slate-400 p-0 text-left"
-                >
-                  Kalkulasi Peluang Pendapatan
-                </button>
-              </li>
-              <li>
-                <button
                   onClick={() => handleScrollTo("cara-kerja")}
                   className="hover:text-white transition-colors cursor-pointer text-xs border-0 bg-transparent text-slate-400 p-0 text-left"
                 >

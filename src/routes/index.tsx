@@ -4,7 +4,6 @@ import { api } from '~/lib/api'
 import Navigation from '~/components/landing/Navigation'
 import Hero from '~/components/landing/Hero'
 import Features from '~/components/landing/Features'
-import RevenueCalculator from '~/components/landing/RevenueCalculator'
 import HowItWorks from '~/components/landing/HowItWorks'
 import Pricing from '~/components/landing/Pricing'
 import FAQ from '~/components/landing/FAQ'
@@ -40,7 +39,7 @@ function LandingPage() {
     if (!ready) return
 
     const handleScroll = () => {
-      const sections = ["fitur", "kalkulator", "cara-kerja", "harga", "faq"]
+      const sections = ["fitur", "cara-kerja", "harga", "faq"]
       const scrollPosition = window.scrollY + 220 
 
       for (let i = sections.length - 1; i >= 0; i--) {
@@ -70,7 +69,6 @@ function LandingPage() {
       <Navigation activeSection={activeSection} />
       <Hero />
       <Features />
-      <RevenueCalculator />
       <HowItWorks />
       <Pricing />
       <FAQ />
