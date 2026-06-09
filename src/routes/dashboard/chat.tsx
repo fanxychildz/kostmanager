@@ -1,206 +1,166 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { MessageSquare, Sparkles, Send, Loader2, User } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { api } from '~/lib/api'
 import { useQuery } from '~/lib/hooks'
 
+type Sender = 'owner' | 'tenant'
+
+interface ChatMessage {
+  id: string
+  sender: Sender
+  senderName: string
+  message: string
+  read: boolean
+  timestamp: string
+}
+
 export const Route = createFileRoute('/dashboard/chat')({
-  component: LandlordChatPage,
+  component: ChatPage,
 })
 
-interface LocalChatMessage {
-  id: string
-  sender: 'Tenant' | 'Landlord'
-  senderName: string
-  tenantId: string
-  message: string
-  timestamp: string
-  read: boolean
-}
-
-// Client-side dynamic AI suggestion writing assistant (heuristic engine in Indonesian)
-function generateAISuggestion(messages: LocalChatMessage[], respondent: 'Tenant' | 'Landlord', tenantName: string) {
-  if (messages.length === 0) {
-    return respondent === 'Tenant' 
-      ? `Halo Pak/Bu, saya ingin menginfokan mengenai sewa unit saya.`
-      : `Halo ${tenantName}, ada yang bisa saya bantu hari ini?`
-  }
-
-  const lastMsg = messages[messages.length - 1]
-  const text = lastMsg.message.toLowerCase()
-
-  if (respondent === 'Landlord') {
-    if (text.includes('bayar') || text.includes('sewa') || text.includes('tagihan') || text.includes('transfer')) {
-      return `Halo ${tenantName}, baik pembayaran sewa Anda sudah saya terima dan verifikasi di mutasi bank. Terima kasih ya.`
-    }
-    if (text.includes('rusak') || text.includes('bocok') || text.includes('bocor') || text.includes('mati') || text.includes('perbaiki')) {
-      return `Halo ${tenantName}, laporan kerusakannya sudah saya terima. Saya akan kirim teknisi untuk memeriksa kondisinya besok pagi jam 10.`
-    }
-    if (text.includes('halo') || text.includes('pagi') || text.includes('siang') || text.includes('sore')) {
-      return `Halo juga ${tenantName}, ada yang bisa saya bantu terkait unit sewa Anda?`
-    }
-    return `Baik, terima kasih atas informasinya. Akan segera kami tindak lanjuti.`
-  }
-  return `Baik Pak/Bu, terima kasih banyak atas responnya.`
-}
-
-function LandlordChatPage() {
+function ChatPage() {
   const { data: tenants, loading: loadingTenants } = useQuery({ queryFn: () => api.tenants.list() })
-  
-  const [messages, setMessages] = useState<LocalChatMessage[]>([])
-  const [selectedTenantId, setSelectedTenantId] = useState<string>('')
+  const [selectedTenantId, setSelectedTenantId] = useState<string>(tenants?.[0]?.id ?? '')
+  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [chatInputText, setChatInputText] = useState('')
-  const [aiSuggestion, setAiSuggestion] = useState('')
-  const [isSuggestingAI, setIsSuggestingAI] = useState(false)
+  const [sending, setSending] = useState(false)
+  const listRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  // Load messages from localStorage
   useEffect(() => {
-    const storedMsgs = localStorage.getItem('km_messages')
-    if (storedMsgs) {
-      setMessages(JSON.parse(storedMsgs))
+    if (tenants?.length) {
+      setSelectedTenantId((current) => current || tenants[0].id)
     }
-  }, [])
+  }, [tenants])
 
-  // Auto-select first tenant when tenants load
+  const loadMessages = async (tenantId: string) => {
+    const data = await api.chat.listMessages({ tenantId });
+    const normalized = (data as any[]).map((item) => ({
+      ...item,
+      timestamp: item.createdAt || item.timestamp,
+    }))
+    setMessages(normalized)
+    await api.chat.markRead({ tenantId })
+  }
+
   useEffect(() => {
-    if (tenants && tenants.length > 0 && !selectedTenantId) {
-      setSelectedTenantId(tenants[0].id)
+    if (selectedTenantId) {
+      loadMessages(selectedTenantId)
     }
-  }, [tenants, selectedTenantId])
+  }, [selectedTenantId])
 
-  const saveMessages = (data: LocalChatMessage[]) => {
-    setMessages(data)
-    localStorage.setItem('km_messages', JSON.stringify(data))
-  }
+  useEffect(() => {
+    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
+  }, [messages])
 
-  const sendLandlordMessage = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!chatInputText.trim() || !selectedTenantId) return
-
-    const newMessage: LocalChatMessage = {
-      id: `msg-${Date.now()}`,
-      sender: 'Landlord',
-      senderName: 'Pemilik Kost',
-      tenantId: selectedTenantId,
-      message: chatInputText,
-      timestamp: new Date().toISOString(),
-      read: true
+  const sendMessage = async (message: string, sender: Sender) => {
+    if (!selectedTenantId || !message.trim()) return
+    setSending(true)
+    try {
+      const saved = await api.chat.sendMessage({
+        tenantId: selectedTenantId,
+        message: message.trim(),
+        sender,
+        senderName: 'Pemilik Kost',
+      })
+      const next = [...messages, { ...saved, timestamp: saved.createdAt || new Date().toISOString() } as ChatMessage]
+      setMessages(next)
+      setChatInputText('')
+      inputRef.current?.focus()
+    } finally {
+      setSending(false)
     }
-
-    const updated = [...messages, newMessage]
-    saveMessages(updated)
-    setChatInputText('')
-    setAiSuggestion('')
   }
 
-  const triggerSmartAISuggestion = () => {
-    setIsSuggestingAI(true)
-    setTimeout(() => {
-      const activeTenantName = tenants?.find((t: any) => t.id === selectedTenantId)?.fullName || 'Penghuni'
-      const suggest = generateAISuggestion(chatThreadMessages, 'Landlord', activeTenantName)
-      setAiSuggestion(suggest)
-      setIsSuggestingAI(false)
-    }, 400)
-  }
-
-  if (loadingTenants) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
-  }
-
-  const currentTenant = tenants?.find((t: any) => t.id === selectedTenantId)
-  const chatThreadMessages = messages.filter(m => m.tenantId === selectedTenantId)
+  const unreadTotal = messages.filter((m) => m.sender === 'tenant' && !m.read).length
 
   return (
-    <div className="space-y-8">
-      {/* Title section */}
-      <div className="border-b border-slate-100 pb-5">
-        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight leading-none">Chat Messenger</h1>
-        <p className="text-xs text-slate-400 font-semibold mt-1">Komunikasi dua arah secara personal dengan penghuni kost Anda.</p>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight leading-none">Chat Penghuni</h1>
+        <p className="text-xs text-slate-400 font-semibold">Balas pesan penghuni secara langsung. Pesan masuk otomatis ditandai sudah dibaca.</p>
       </div>
 
-      <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-xs flex flex-col md:flex-row min-h-[500px]">
-        
-        {/* Left hand Sidebar: list of tenants */}
-        <div className="md:w-1/3 border-r border-slate-200 flex flex-col bg-slate-50/50">
-          <div className="p-3 bg-slate-50 border-b border-slate-200">
-            <span className="text-[10px] font-extrabold text-slate-400 tracking-wider uppercase">Daftar Kontak Penghuni</span>
+      <div className="border border-slate-200 rounded-2xl bg-white shadow-sm flex flex-col md:flex-row min-h-[520px]">
+        <div className="md:w-72 border-r border-slate-200 bg-slate-50/70">
+          <div className="p-3 border-b border-slate-200">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Daftar Kontak</p>
           </div>
-          
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
-            {!tenants || tenants.length === 0 ? (
-              <div className="p-6 text-center text-slate-400 text-xs font-semibold">Belum ada penghuni kost terdaftar.</div>
-            ) : (
-              tenants.map((t: any) => {
-                const isSelected = selectedTenantId === t.id
-                const unreadCount = messages.filter(m => m.tenantId === t.id && !m.read && m.sender === 'Tenant').length
-                
+          <div className="overflow-y-auto max-h-[460px] divide-y divide-slate-100">
+            {loadingTenants ? (
+              <div className="p-4 text-xs text-slate-500 font-semibold">Memuat daftar penghuni...</div>
+            ) : tenants?.length ? (
+              tenants.map((tenant) => {
+                const isSelected = selectedTenantId === tenant.id
+                const lastMessage = messages
+                  .filter((m) => m.senderName === tenant.fullName)
+                  .slice(-1)[0]
                 return (
                   <button
-                    key={t.id}
-                    onClick={() => {
-                      setSelectedTenantId(t.id)
-                      setAiSuggestion('')
-                      // Mark messages as read
-                      const readMessages = messages.map(m => m.tenantId === t.id ? { ...m, read: true } : m)
-                      saveMessages(readMessages)
-                    }}
+                    key={tenant.id}
+                    onClick={() => setSelectedTenantId(tenant.id)}
                     className={`w-full text-left p-4 flex items-center justify-between transition border-l-3 ${
-                      isSelected 
-                        ? 'bg-white border-blue-600 shadow-2xs' 
+                      isSelected
+                        ? 'bg-white border-blue-600 shadow-2xs'
                         : 'border-transparent hover:bg-slate-50'
                     }`}
                   >
                     <div>
-                      <span className="font-bold text-slate-950 block text-xs md:text-sm">{t.fullName}</span>
-                      <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">Kamar {t.unitId ? 'Aktif' : '-'} &middot; {t.phone}</span>
+                      <span className="font-bold text-slate-950 block text-xs md:text-sm">{tenant.fullName}</span>
+                      <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">Kamar {tenant.unitId ? 'Aktif' : '-'} · {tenant.phone}</span>
                     </div>
-                    {unreadCount > 0 && (
-                      <span className="bg-blue-600 text-white rounded-full text-[9px] font-black h-5 w-5 flex items-center justify-center animate-pulse">
-                        {unreadCount}
-                      </span>
-                    )}
+                    <span className="text-[10px] text-slate-500 font-medium max-w-[140px] truncate">
+                      {lastMessage ? lastMessage.message : 'Belum ada pesan'}
+                    </span>
                   </button>
                 )
               })
+            ) : (
+              <div className="p-4 text-xs text-slate-500 font-semibold">Belum ada penghuni.</div>
             )}
           </div>
         </div>
 
-        {/* Right hand Content Panel: Chat details */}
-        <div className="flex-1 flex flex-col bg-slate-50 justify-between">
-          {currentTenant ? (
+        <div className="flex-1 flex flex-col">
+          {selectedTenantId ? (
             <>
-              {/* Header Profile Bar */}
-              <div className="p-4 bg-white border-b border-slate-200 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-slate-900 text-white font-bold flex items-center justify-center text-xs uppercase">
-                  {currentTenant.fullName.substring(0, 2)}
-                </div>
+              <div className="p-4 border-b border-slate-200 flex items-center justify-between gap-3 overflow-x-hidden">
                 <div>
-                  <h3 className="font-extrabold text-slate-900 text-xs md:text-sm leading-none">{currentTenant.fullName}</h3>
-                  <p className="text-[10px] text-slate-400 font-semibold mt-1">Status Sewa Aktif &middot; Kontak: {currentTenant.email}</p>
+                  <p className="text-xs font-extrabold text-slate-900">Percakapan dengan Penghuni</p>
+                  {currentTenantLabel && (
+                    <p className="text-[11px] text-slate-500 font-medium">{currentTenantLabel}</p>
+                  )}
                 </div>
+                {unreadTotal > 0 ? (
+                  <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-1 rounded-lg">
+                    {unreadTotal} pesan baru
+                  </span>
+                ) : null}
               </div>
 
-              {/* Chat Thread logs */}
-              <div className="flex-1 p-4 overflow-y-auto space-y-4 max-h-[350px]">
-                {chatThreadMessages.length === 0 ? (
-                  <div className="text-center py-20 text-xs text-slate-400 font-semibold">Belum ada riwayat percakapan. Mulai percakapan pertama Anda.</div>
+              <div ref={listRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+                {messages.length === 0 ? (
+                  <p className="text-center text-xs text-slate-400 font-semibold">Belum ada pesan.</p>
                 ) : (
-                  chatThreadMessages.map(msg => (
-                    <div key={msg.id} className={`flex flex-col ${msg.sender === 'Landlord' ? 'items-end' : 'items-start'}`}>
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <span className="text-[9px] text-slate-400 font-semibold">{msg.senderName}</span>
-                        <span className="text-[8px] text-slate-350">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  messages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`flex flex-col ${msg.sender === 'owner' ? 'items-end' : 'items-start'}`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] text-slate-400 font-semibold">{msg.senderName}</span>
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
                       </div>
-                      <div className={`p-3 rounded-2xl text-xs max-w-[85%] shadow-xs leading-relaxed ${
-                        msg.sender === 'Landlord' 
-                          ? 'bg-slate-900 text-white rounded-tr-none' 
-                          : 'bg-white text-slate-800 rounded-tl-none border border-slate-200'
-                      }`}>
+                      <div
+                        className={`px-3 py-2 rounded-2xl text-xs font-semibold shadow-sm ${
+                          msg.sender === 'owner'
+                            ? 'bg-slate-900 text-white rounded-br-none'
+                            : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'
+                        }`}
+                      >
                         {msg.message}
                       </div>
                     </div>
@@ -208,66 +168,39 @@ function LandlordChatPage() {
                 )}
               </div>
 
-              {/* Bottom input board & AI draft */}
-              <div className="p-3 bg-white border-t border-slate-200 space-y-2">
-                {/* Gemini smart draft */}
-                <div className="bg-blue-50 border border-blue-100 p-2.5 rounded-xl">
-                  <div className="flex items-center justify-between pb-1.5 font-bold">
-                    <span className="text-[10px] text-blue-800 flex items-center gap-1">
-                      <Sparkles className="w-3.5 h-3.5 text-blue-600 animate-pulse" />
-                      Gemini Smart Draft menulis balasan
-                    </span>
-                    <button
-                      onClick={triggerSmartAISuggestion}
-                      disabled={isSuggestingAI}
-                      className="bg-blue-600 hover:bg-blue-700 text-white text-[9px] font-bold px-2 py-1 rounded-md transition cursor-pointer disabled:opacity-50"
-                    >
-                      {isSuggestingAI ? 'Drafting...' : 'Dapatkan Draf'}
-                    </button>
-                  </div>
-
-                  {aiSuggestion && (
-                    <div className="text-[11px] text-slate-700 bg-white p-2.5 rounded-lg border border-blue-100 space-y-1.5 font-semibold">
-                      <p className="leading-relaxed italic">"{aiSuggestion}"</p>
-                      <button
-                        onClick={() => {
-                          setChatInputText(aiSuggestion)
-                          setAiSuggestion('')
-                        }}
-                        className="text-[10px] text-blue-600 hover:underline flex items-center gap-0.5"
-                      >
-                        Gunakan draf pesan ini
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Form submit */}
-                <form onSubmit={sendLandlordMessage} className="flex gap-2">
-                  <input
-                    type="text"
-                    className="flex-1 border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-slate-350 bg-slate-50 text-slate-800 font-semibold"
-                    placeholder="Tulis balasan Anda..."
-                    value={chatInputText}
-                    onChange={(e) => setChatInputText(e.target.value)}
-                  />
-                  <button
-                    type="submit"
-                    className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold px-4 rounded-xl transition cursor-pointer"
-                  >
-                    Kirim
-                  </button>
-                </form>
-              </div>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  if (!chatInputText.trim()) return
+                  sendMessage(chatInputText, 'owner')
+                }}
+                className="p-3 border-t border-slate-200 flex gap-2"
+              >
+                <input
+                  ref={inputRef}
+                  value={chatInputText}
+                  onChange={(e) => setChatInputText(e.target.value)}
+                  placeholder="Tulis balasan..."
+                  className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-slate-200"
+                />
+                <button
+                  type="submit"
+                  disabled={sending || !chatInputText.trim()}
+                  className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-slate-800 disabled:opacity-60"
+                >
+                  {sending ? 'Mengirim...' : 'Kirim'}
+                </button>
+              </form>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-slate-400 font-bold text-xs">
-              <MessageSquare className="w-8 h-8 text-slate-300 mb-2" /> Silakan pilih kontak penghuni di sebelah kiri untuk melihat pesan.
+            <div className="flex-1 flex items-center justify-center text-xs text-slate-400 font-semibold">
+              Pilih kontak terlebih dahulu
             </div>
           )}
         </div>
-
       </div>
     </div>
   )
 }
+
+export default ChatPage
