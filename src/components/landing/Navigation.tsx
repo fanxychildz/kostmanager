@@ -14,7 +14,6 @@ export default function Navigation({ activeSection }: NavigationProps) {
 
   const navItems = [
     { id: "fitur", label: "Fitur" },
-    { id: "demo", label: "Demo" },
     { id: "kalkulator", label: "Kalkulator" },
     { id: "cara-kerja", label: "Cara Kerja" },
     { id: "harga", label: "Harga" },
