@@ -72,7 +72,33 @@ export const api = {
     generate: () => billingActions.generateMonthlyBills(),
     checkOverdue: () => billingActions.checkOverdueBills(),
   },
+  chat: {
+    listConversations: () => chatActions.listChatConversations(),
+    listMessages: (data: { tenantId: string }) => chatActions.listChatMessages({ data }),
+    sendMessage: (data: { tenantId: string; message: string; sender: 'Tenant' | 'Landlord'; senderName: string }) => chatActions.sendChatMessage({ data }),
+    markRead: (data: { tenantId: string }) => chatActions.markChatRead({ data }),
+  },
   portal: {
+    chat: {
+      list: (params?: { tenantId?: string }) =>
+        params?.tenantId
+          ? chatActions.listChatMessages({ data: { tenantId: params.tenantId } })
+          : Promise.resolve([]),
+      save: (messages: any[]) =>
+        Promise.resolve({ ok: true, count: messages.length }),
+      sendMessage: (data: {
+        tenantId: string
+        message: string
+        sender: 'Tenant' | 'Landlord'
+        senderName: string
+      }) => chatActions.sendChatMessage({ data }),
+      markRead: (data: { tenantId: string }) =>
+        chatActions.markChatRead({ data }),
+    },
+    maintenance: {
+      list: () => Promise.resolve([]),
+      save: (data: any[]) => Promise.resolve({ ok: true, count: data.length }),
+    },
     register: (data: { email: string; password: string }) =>
       portalActions.portalRegister({ data }),
     profile: () => portalActions.getPortalProfile(),

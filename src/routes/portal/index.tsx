@@ -25,8 +25,8 @@ interface PortalProfile {
     fullName: string
     email: string
     phone: string
-    checkInDate: string
-    checkOutDate?: string | null
+    checkInDate: string | Date
+    checkOutDate?: string | Date | null
     depositAmount: number
     unitNumber?: string
     unitId?: string
@@ -49,7 +49,7 @@ interface PortalBill {
   periodYear: number
   totalAmount: number
   status: string
-  dueDate: string
+  dueDate: string | Date
 }
 
 type PortalMaintenanceRequest = {
@@ -132,7 +132,11 @@ function PortalDashboard() {
   }
 
   const loadMessages = async (): Promise<PortalChatMessage[]> => {
-    return (await api.portal.chat.list()) as PortalChatMessage[]
+    const list = await api.portal.chat.list()
+    return (list as any[]).map((item) => ({
+      ...item,
+      timestamp: item.createdAt instanceof Date ? item.createdAt.toISOString() : (item.createdAt || item.timestamp || new Date().toISOString())
+    })) as PortalChatMessage[]
   }
   const [maintenance, setMaintenance] = useState<PortalMaintenanceRequest[]>([])
   const [messages, setMessages] = useState<PortalChatMessage[]>([])
@@ -198,7 +202,7 @@ function PortalDashboard() {
   }
 
   // Handle Payment proof submission (Mocked client-side overlay)
-  const handlePaymentSubmit = (e: React.FormEvent) => {
+  const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!payingBill || !tenant?.id) return
 
@@ -217,7 +221,20 @@ function PortalDashboard() {
       status: 'active',
     }
 
-    saveMessages([...messages, alertMessage])
+    const alertMessage: PortalChatMessage = {
+      id: `pay-alert-${Date.now()}`,
+      sender: 'Tenant',
+      senderName: tenant?.fullName || 'Penghuni',
+      tenantId: tenant?.id || '',
+      message: `🔔 PEMBERITAHUAN BAYAR: Saya telah mengirim bukti transfer untuk sewa periode ${payingBill.periodMonth}/${payingBill.periodYear} sebesar ${formatRupiah(payingBill.totalAmount)}. Metode: ${paymentMethod === 'bank_transfer' ? 'Transfer Bank' : paymentMethod === 'qris_manual' ? 'QRIS Manual' : 'Metode Lain'}.`,
+      timestamp: new Date().toISOString(),
+      read: false,
+    }
+
+    const updatedMessages = [...messages, alertMessage]
+    setMessages(updatedMessages)
+    await saveMessages(updatedMessages)
+
     alert('Bukti pembayaran sewa Anda berhasil diunggah! Pemilik kost akan segera melakukan pengecekan mutasi bank dan mengubah status sewa Anda menjadi lunas.')
     setPayingBill(null)
     setCustomReceiptUrl('')

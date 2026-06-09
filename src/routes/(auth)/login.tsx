@@ -48,10 +48,10 @@ function LoginPage() {
     <div className="min-h-screen flex">
       <div className="hidden lg:flex lg:w-1/2 bg-primary items-center justify-center p-12">
         <div className="max-w-md text-primary-foreground">
-          <div className="flex items-center gap-2 mb-8">
+          <Link to="/" className="flex items-center gap-2 mb-8 hover:opacity-90 transition-opacity">
             <Building2 className="h-8 w-8" />
             <span className="text-2xl font-bold">KostManager</span>
-          </div>
+          </Link>
           <h2 className="text-3xl font-bold mb-4">Kelola properti Anda dengan lebih baik</h2>
           <p className="text-primary-foreground/80">
             Bergabung dengan 500+ pemilik kost yang sudah mengotomasi pengelolaan properti mereka.
@@ -61,10 +61,10 @@ function LoginPage() {
 
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
-          <div className="lg:hidden flex items-center gap-2 mb-8 justify-center">
+          <Link to="/" className="lg:hidden flex items-center gap-2 mb-8 justify-center hover:opacity-90 transition-opacity">
             <Building2 className="h-6 w-6 text-primary" />
             <span className="text-xl font-bold">KostManager</span>
-          </div>
+          </Link>
 
           <Card>
             <CardHeader>

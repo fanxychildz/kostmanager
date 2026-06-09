@@ -28,6 +28,9 @@ function ChatPage() {
   const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  const selectedTenant = tenants?.find((t: any) => t.id === selectedTenantId)
+  const currentTenantLabel = selectedTenant ? `${selectedTenant.fullName} (${selectedTenant.phone})` : ''
+
   useEffect(() => {
     if (tenants?.length) {
       setSelectedTenantId((current) => current || tenants[0].id)
@@ -38,9 +41,10 @@ function ChatPage() {
     const data = await api.chat.listMessages({ tenantId });
     const normalized = (data as any[]).map((item) => ({
       ...item,
-      timestamp: item.createdAt || item.timestamp,
+      sender: item.sender === 'Landlord' ? 'owner' : 'tenant',
+      timestamp: item.createdAt instanceof Date ? item.createdAt.toISOString() : (item.createdAt || item.timestamp),
     }))
-    setMessages(normalized)
+    setMessages(normalized as ChatMessage[])
     await api.chat.markRead({ tenantId })
   }
 
@@ -61,10 +65,14 @@ function ChatPage() {
       const saved = await api.chat.sendMessage({
         tenantId: selectedTenantId,
         message: message.trim(),
-        sender,
+        sender: sender === 'owner' ? 'Landlord' : 'Tenant',
         senderName: 'Pemilik Kost',
       })
-      const next = [...messages, { ...saved, timestamp: saved.createdAt || new Date().toISOString() } as ChatMessage]
+      const next = [...messages, { 
+        ...saved, 
+        sender: saved.sender === 'Landlord' ? 'owner' : 'tenant',
+        timestamp: saved.createdAt instanceof Date ? saved.createdAt.toISOString() : (saved.createdAt || new Date().toISOString()) 
+      } as ChatMessage]
       setMessages(next)
       setChatInputText('')
       inputRef.current?.focus()
