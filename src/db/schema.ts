@@ -135,3 +135,13 @@ export const notifications = sqliteTable('notifications', {
   sentAt: integer('sent_at', { mode: 'timestamp' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 })
+
+export const chatMessages = sqliteTable('chat_messages', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  sender: text('sender').notNull(),
+  senderName: text('sender_name').notNull(),
+  message: text('message').notNull(),
+  read: integer('read', { mode: 'boolean' }).notNull().default(false),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+})
