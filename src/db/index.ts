@@ -8,3 +8,8 @@ const client = createClient({
 })
 
 export const db = drizzle(client, { schema })
+
+export function isTurso() {
+  const url = process.env.DATABASE_URL || ''
+  return url.includes('turso.io')
+}
