@@ -14,22 +14,18 @@ function DashboardLayout() {
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    let cancelled = false
-    api.auth.getSession().then((session) => {
-      if (cancelled) return
-      if (!session) {
-        navigate({ to: '/login' })
-        return
-      }
-      if ((session.user as { role?: string }).role === 'tenant') {
-        navigate({ to: '/portal' })
-        return
-      }
-      setChecking(false)
-    })
-    return () => {
-      cancelled = true
+  let cancelled = false
+  api.auth.getSession().then((session) => {
+    if (cancelled) return
+    if (!session) {
+      navigate({ to: '/login' })
+      return
     }
+    setChecking(false)
+  })
+  return () => {
+    cancelled = true
+  }
   }, [navigate])
 
   if (checking) {

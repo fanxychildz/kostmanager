@@ -21,9 +21,11 @@ import { Button } from '~/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '~/components/ui/avatar'
 import { useAuth } from '~/lib/auth-context'
 
-function getInitials(name?: string | null) {
-  if (!name) return 'KM'
-  return name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
+function getInitials(nameOrEmail?: string | null) {
+  const source = nameOrEmail || 'KostManager'
+  const parts = source.split(' ').filter(Boolean)
+  if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.slice(0, 2).toUpperCase()
+  return source.slice(0, 2).toUpperCase()
 }
 
 const navItems = [
@@ -42,7 +44,9 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, signOut } = useAuth()
+  const name = user?.name || user?.email || 'KostManager'
+  const initials = getInitials(name)
+  const displayLabel = name === 'KostManager' ? '' : name
 
   const handleSignOut = async () => {
     await signOut()
@@ -73,16 +77,16 @@ export function Header() {
           <div className="h-6 w-px bg-slate-150" />
 
           <div className="flex items-center gap-2">
-            <Avatar className="h-8 w-8 ring-2 ring-slate-100">
-              {user?.image && <AvatarImage src={user.image} alt={user.name} className="object-cover" />}
-              <AvatarFallback className="text-xs bg-slate-900 text-white font-bold">
-                {getInitials(user?.name)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="hidden sm:block text-left">
-              <p className="text-xs font-bold text-slate-900 leading-none">{user?.name}</p>
-              <span className="text-[9px] text-slate-400 font-medium block mt-0.5">Pemilik Kost</span>
-            </div>
+              <Avatar className="h-8 w-8 ring-2 ring-slate-100">
+                {user?.image && <AvatarImage src={user.image} alt={name} className="object-cover" />}
+                <AvatarFallback className="text-xs bg-slate-900 text-white font-bold">{initials}</AvatarFallback>
+              </Avatar>
+              <div className="hidden sm:block text-left">
+                <p className="text-xs font-bold text-slate-900 leading-none">{displayLabel}</p>
+                <span className="text-[9px] text-slate-400 font-medium block mt-0.5">
+                  {(user as any)?.role === 'tenant' ? 'Penghuni' : 'Pemilik Kost'}
+                </span>
+              </div>
           </div>
         </div>
       </header>

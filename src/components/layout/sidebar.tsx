@@ -38,7 +38,10 @@ const bottomItems = [
 export function Sidebar() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { signOut } = useAuth()
+  const { user, signOut } = useAuth()
+  const displayName = user?.name || user?.email || 'KostManager'
+  const initials = getInitials(displayName)
+  const roleLabel = (user as any)?.role === 'tenant' ? 'Penghuni' : 'Pemilik Kost'
 
   // Real-time stats dynamically queried from DB
   const { data: properties } = useQuery({ queryFn: () => api.properties.list() })
