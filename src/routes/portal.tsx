@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useNavigate, redirect } from '@tanstack/react-router'
+import { createFileRoute, Outlet, useNavigate, redirect, useLocation } from '@tanstack/react-router'
 import { LogOut, Building2, Clock } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { Button } from '~/components/ui/button'
@@ -35,15 +35,16 @@ function PortalLayout() {
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
   const [currentTime, setCurrentTime] = useState<string>('')
+  const location = useLocation()
 
   useEffect(() => {
-    if (isAuthPath(window.location.pathname)) return
+    if (isAuthPath(location.pathname)) return
     setCurrentTime(new Date().toUTCString())
     const interval = setInterval(() => {
       setCurrentTime(new Date().toUTCString())
     }, 1000)
     return () => clearInterval(interval)
-  }, [])
+  }, [location.pathname])
 
   const handleSignOut = async () => {
     await signOut()
@@ -51,7 +52,7 @@ function PortalLayout() {
   }
 
   // If on login/register page, bypass layout wrapper
-  const path = window.location.pathname
+  const path = location.pathname
   if (isAuthPath(path)) {
     return <Outlet />
   }

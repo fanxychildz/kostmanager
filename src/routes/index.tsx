@@ -30,7 +30,7 @@ function LandingPage() {
     api.auth.getSession()
       .then((session) => {
         if (!cancelled && session?.user) {
-          navigate('/dashboard', { replace: true })
+          navigate({ to: '/dashboard', replace: true })
         }
       })
       .catch(() => {})
