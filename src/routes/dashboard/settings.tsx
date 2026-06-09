@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
@@ -7,7 +7,7 @@ import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import { Separator } from '~/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs'
-import { Avatar, AvatarFallback } from '~/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Badge } from '~/components/ui/badge'
 import { api } from '~/lib/api'
 import { useAuth } from '~/lib/auth-context'
@@ -29,6 +29,8 @@ function SettingsPage() {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [profileMsg, setProfileMsg] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -39,6 +41,36 @@ function SettingsPage() {
     setName(user?.name ?? '')
     setPhone((user as any)?.phone ?? '')
   }, [user])
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 2 * 1024 * 1024) {
+      setProfileMsg('Gagal: Ukuran file foto maksimal 2MB')
+      return
+    }
+
+    setUploading(true)
+    setProfileMsg('')
+    const reader = new FileReader()
+    reader.onload = async () => {
+      try {
+        const base64 = reader.result as string
+        const res = await authClient.updateUser({
+          image: base64,
+        } as any)
+        if (res.error) throw new Error(res.error.message || 'Gagal mengupload foto')
+        setProfileMsg('Foto profil berhasil diperbarui')
+        await refreshSession()
+      } catch (err: any) {
+        setProfileMsg(`Gagal: ${err.message || err}`)
+      } finally {
+        setUploading(false)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
 
   const profileMutation = useMutation({
     mutationFn: async () => {
@@ -103,8 +135,31 @@ function SettingsPage() {
             <CardHeader><CardTitle>Profil Akun</CardTitle><CardDescription>Informasi pribadi Anda</CardDescription></CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16"><AvatarFallback className="text-lg bg-primary text-primary-foreground">{getInitials(user?.name)}</AvatarFallback></Avatar>
-                <Button variant="outline" size="sm" disabled>Ganti Foto</Button>
+                <Avatar 
+                  className="h-16 w-16 cursor-pointer hover:opacity-90 transition-opacity ring-2 ring-offset-2 ring-slate-100"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {user?.image && <AvatarImage src={user.image} alt={user.name} className="object-cover" />}
+                  <AvatarFallback className="text-lg bg-primary text-primary-foreground">
+                    {getInitials(user?.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleFileChange} 
+                  accept="image/*" 
+                  className="hidden" 
+                />
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Ganti Foto
+                </Button>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2"><Label>Nama Lengkap</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>

@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 import { cn } from '~/lib/utils'
 import { Button } from '~/components/ui/button'
-import { Avatar, AvatarFallback } from '~/components/ui/avatar'
+import { Avatar, AvatarImage, AvatarFallback } from '~/components/ui/avatar'
 import { useAuth } from '~/lib/auth-context'
 
 function getInitials(name?: string | null) {
@@ -95,6 +95,7 @@ export function Header() {
 
           <div className="flex items-center gap-2">
             <Avatar className="h-8 w-8 ring-2 ring-slate-100">
+              {user?.image && <AvatarImage src={user.image} alt={user.name} className="object-cover" />}
               <AvatarFallback className="text-xs bg-slate-900 text-white font-bold">
                 {getInitials(user?.name)}
               </AvatarFallback>

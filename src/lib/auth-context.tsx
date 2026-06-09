@@ -6,6 +6,7 @@ interface User {
   email: string
   name: string
   emailVerified: boolean
+  image?: string | null
   createdAt: Date | string
   updatedAt: Date | string
 }
