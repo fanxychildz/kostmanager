@@ -3,7 +3,8 @@ import serverEntry from '../dist/server/server.js'
 
 export default async function handler(req, res) {
   try {
-    const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`)
+    const proto = req.headers['x-forwarded-proto'] || 'http'
+    const url = new URL(req.url, `${proto}://${req.headers.host || 'localhost'}`)
     const method = req.method || 'GET'
 
     const headers = new Headers()
