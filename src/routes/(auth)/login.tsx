@@ -80,7 +80,7 @@ function LoginPage() {
               <CardDescription>Masuk ke akun KostManager Anda</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <form action="/api/auth/login/social" method="POST" className="w-full">
+              <form action="/api/auth/sign-in/social" method="POST" className="w-full">
                 <input type="hidden" name="provider" value="google" />
                 <input type="hidden" name="callbackURL" value="/dashboard" />
                 <Button
