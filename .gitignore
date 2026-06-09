@@ -26,3 +26,5 @@ data/
 # logs / os
 *.log
 .DS_Store
+
+.vercel
