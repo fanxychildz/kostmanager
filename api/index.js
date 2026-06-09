@@ -7,6 +7,8 @@ export default async function handler(req, res) {
     const url = new URL(req.url, `${proto}://${req.headers.host || 'localhost'}`)
     const method = req.method || 'GET'
 
+    console.log('[vercel-server] handling request:', method, url.pathname)
+
     const headers = new Headers()
     for (const [key, value] of Object.entries(req.headers)) {
       if (Array.isArray(value)) {
