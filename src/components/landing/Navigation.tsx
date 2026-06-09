@@ -14,8 +14,8 @@ export default function Navigation({ activeSection }: NavigationProps) {
 
   const navItems = [
     { id: "fitur", label: "Fitur" },
-    { id: "demo", label: "Interactive Demo" },
-    { id: "kalkulator", label: "Peluang Pendapatan" },
+    { id: "demo", label: "Demo" },
+    { id: "kalkulator", label: "Kalkulator" },
     { id: "cara-kerja", label: "Cara Kerja" },
     { id: "harga", label: "Harga" },
     { id: "faq", label: "FAQ" },
@@ -78,7 +78,7 @@ export default function Navigation({ activeSection }: NavigationProps) {
             </button>
 
             {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center gap-1 bg-slate-100/60 p-1 rounded-full border border-slate-200/50">
+            <nav className="hidden lg:flex items-center gap-0.5 bg-slate-100/60 p-1 rounded-full border border-slate-200/50">
               {navItems.map((item, idx) => {
                 const isActive = activeSection === item.id;
                 return (
@@ -87,7 +87,7 @@ export default function Navigation({ activeSection }: NavigationProps) {
                     onClick={() => handleScrollTo(item.id)}
                     onMouseEnter={() => setHoveredIndex(idx)}
                     onMouseLeave={() => setHoveredIndex(null)}
-                    className={`relative px-4 py-1.5 text-sm font-semibold rounded-full transition-colors duration-200 cursor-pointer border-0 bg-transparent ${
+                    className={`relative px-3.5 py-1.5 text-xs font-semibold rounded-full transition-colors duration-200 cursor-pointer border-0 bg-transparent whitespace-nowrap ${
                       isActive ? "text-blue-600" : "text-slate-600 hover:text-slate-900"
                     }`}
                     id={`nav-item-${item.id}`}
@@ -116,35 +116,35 @@ export default function Navigation({ activeSection }: NavigationProps) {
             </nav>
 
             {/* Action Buttons */}
-            <div className="hidden lg:flex items-center gap-3">
+            <div className="hidden lg:flex items-center gap-1.5 xl:gap-3">
               <button
                 onClick={() => handleScrollTo("faq")}
-                className="text-slate-600 hover:text-slate-900 text-sm font-semibold px-4 py-2 transition-colors cursor-pointer flex items-center gap-1 border-0 bg-transparent"
+                className="text-slate-600 hover:text-slate-900 text-xs font-semibold px-2.5 py-2 transition-colors cursor-pointer flex items-center gap-1 border-0 bg-transparent whitespace-nowrap"
                 id="btn-nav-support"
               >
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                 Support Aktif
               </button>
               <Link
                 to="/login"
-                className="text-slate-700 hover:text-blue-600 text-sm font-semibold px-4 py-2 hover:bg-slate-50 rounded-xl transition-all flex items-center gap-2 border border-transparent hover:border-slate-100 cursor-pointer"
+                className="text-slate-700 hover:text-blue-600 text-xs font-semibold px-3 py-2 hover:bg-slate-50 rounded-xl transition-all flex items-center gap-1.5 border border-transparent hover:border-slate-100 cursor-pointer whitespace-nowrap"
                 id="btn-nav-login"
               >
-                <User className="w-4 h-4" />
+                <User className="w-3.5 h-3.5" />
                 Masuk
               </Link>
               <Link
                 to="/register"
-                className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg hover:shadow-blue-500/15 transition-all flex items-center gap-1.5 cursor-pointer decoration-none"
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-md hover:shadow-lg hover:shadow-blue-500/15 transition-all flex items-center gap-1 cursor-pointer decoration-none"
                 id="btn-nav-cta"
               >
                 <motion.span
                   whileHover={{ scale: 1.02, y: -0.5 }}
                   whileTap={{ scale: 0.98 }}
-                  className="flex items-center gap-1.5"
+                  className="flex items-center gap-1.5 whitespace-nowrap"
                 >
                   Coba Gratis
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </motion.span>
               </Link>
             </div>
