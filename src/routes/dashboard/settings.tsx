@@ -12,6 +12,7 @@ import { Badge } from '~/components/ui/badge'
 import { api } from '~/lib/api'
 import { useAuth } from '~/lib/auth-context'
 import { useMutation } from '~/lib/hooks'
+import { authClient } from '~/lib/auth-client'
 
 export const Route = createFileRoute('/dashboard/settings')({
   component: SettingsPage,
@@ -40,12 +41,21 @@ function SettingsPage() {
   }, [user])
 
   const profileMutation = useMutation({
-    mutationFn: () => api.auth.updateProfile({ name, phone }),
+    mutationFn: async () => {
+      const res = await authClient.updateUser({
+        name,
+        phone,
+      } as any)
+      if (res.error) {
+        throw new Error(res.error.message || 'Gagal mengubah profil')
+      }
+      return res.data
+    },
     onSuccess: async () => {
       setProfileMsg('Profil berhasil disimpan')
       await refreshSession()
     },
-    onError: (err) => setProfileMsg(`Gagal: ${err}`),
+    onError: (err: any) => setProfileMsg(`Gagal: ${err.message || err}`),
   })
 
   const passwordMutation = useMutation({
