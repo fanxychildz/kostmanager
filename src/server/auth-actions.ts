@@ -64,12 +64,14 @@ export const signInSocial = createServerFn({ method: 'POST' })
   .inputValidator((d: { provider: 'google'; callbackURL?: string }) => d)
   .handler(async ({ data }) => {
     const request = getRequest()
-    const response = await auth.api.signInSocial({
+    const { headers, response } = await auth.api.signInSocial({
       body: {
         provider: data.provider,
         callbackURL: data.callbackURL,
       },
       headers: request.headers,
+      returnHeaders: true,
     })
+    forwardAuthCookies(headers)
     return response
   })
