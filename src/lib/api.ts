@@ -1,4 +1,5 @@
 import * as authActions from '~/server/auth-actions'
+import * as chatActions from '~/server/chat'
 import * as propertiesActions from '~/server/properties'
 import * as unitsActions from '~/server/units'
 import * as tenantsActions from '~/server/tenants'

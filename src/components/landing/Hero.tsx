@@ -54,16 +54,7 @@ export default function Hero() {
           animate="visible"
           className="max-w-4xl mx-auto flex flex-col items-center"
         >
-          {/* Badge */}
-          <motion.div
-            variants={itemVariants}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100/80 shadow-xs mb-6"
-          >
-            <span className="flex h-2 w-2 rounded-full bg-blue-600 animate-pulse" />
-            <span className="text-[11px] md:text-xs font-semibold text-blue-700 tracking-wide uppercase">
-              Platform #1 Manajemen Kost & Kontrakan di Indonesia
-            </span>
-          </motion.div>
+
 
           {/* Heading */}
           <motion.h1
