@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { useEffect, useState } from 'react'
 import {
   Building2,
   Users,
@@ -17,20 +18,31 @@ import { Badge } from '~/components/ui/badge'
 import { api } from '~/lib/api'
 
 export const Route = createFileRoute('/')({
-  beforeLoad: async () => {
-    try {
-      const session = await api.auth.getSession()
-      if (session?.user) {
-        throw redirect({ to: '/dashboard' })
-      }
-    } catch {
-      // jika gagal cek session, tampilkan landing page biasa
-    }
-  },
   component: LandingPage,
 })
 
 function LandingPage() {
+  const navigate = useNavigate()
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    api.auth.getSession()
+      .then((session) => {
+        if (!cancelled && session?.user) {
+          navigate('/dashboard', { replace: true })
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setReady(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [navigate])
+
+  if (!ready) return null
   return (
     <div className="min-h-screen bg-background">
       <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b">
