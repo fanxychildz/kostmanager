@@ -6,7 +6,12 @@ import {
   TrendingUp,
   AlertCircle,
   Loader2,
+  TrendingDown,
+  Clock,
+  ArrowRight,
+  ChevronRight,
 } from 'lucide-react'
+import { motion } from 'motion/react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
@@ -58,155 +63,213 @@ function DashboardPage() {
 
   const recentBills = bills?.slice(0, 5) || []
 
+  // Animation variants for card loading
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05,
+      },
+    },
+  }
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 12 },
+    show: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } },
+  }
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">Ringkasan bisnis properti Anda</p>
+    <div className="space-y-8">
+      {/* Title section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+        <div>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight leading-none">Ringkasan Portofolio</h1>
+          <p className="text-xs text-slate-400 font-semibold mt-1">Status real-time dan kontrol manajemen properti Anda.</p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <Button variant="outline" className="text-xs font-semibold rounded-xl" asChild>
+            <Link to="/dashboard/bills">Kelola Tagihan</Link>
+          </Button>
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition" asChild>
+            <Link to="/dashboard/properties">Kelola Properti</Link>
+          </Button>
+        </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Pemasukan</CardTitle>
-            <TrendingUp className="h-4 w-4 text-success" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatRupiah(totalIncome)}</div>
-            <p className="text-xs text-muted-foreground">Bulan ini</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tunggakan</CardTitle>
-            <AlertCircle className="h-4 w-4 text-destructive" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatRupiah(totalOverdue)}</div>
-            <p className="text-xs text-muted-foreground">{overdueCount} tagihan jatuh tempo</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Belum Dibayar</CardTitle>
-            <FileText className="h-4 w-4 text-warning" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatRupiah(totalPending)}</div>
-            <p className="text-xs text-muted-foreground">{pendingCount} tagihan pending</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Okupansi</CardTitle>
-            <Building2 className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{occupancyRate}%</div>
-            <Progress value={occupancyRate} className="mt-2" />
-            <p className="text-xs text-muted-foreground mt-1">
-              {occupiedUnits}/{totalUnits} unit terisi
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-7">
-        <Card className="lg:col-span-4">
-          <CardHeader>
-            <CardTitle>Pemasukan Bulanan</CardTitle>
-            <CardDescription>Grafik pemasukan 6 bulan terakhir</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-center h-48 text-muted-foreground">
-              <p>Grafik akan tersedia setelah ada data pembayaran</p>
+      {/* Metrics Grid */}
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
+      >
+        <motion.div variants={itemVariants} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Total Pendapatan</p>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-extrabold text-slate-900">{formatRupiah(totalIncome)}</span>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="text-[10px] text-emerald-600 font-semibold mt-4 flex items-center gap-1">
+            <TrendingUp className="w-3 h-3 text-emerald-500" />
+            <span>Terverifikasi dari transfer & tunai</span>
+          </div>
+        </motion.div>
 
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Status Unit</CardTitle>
-            <CardDescription>Distribusi unit properti Anda</CardDescription>
+        <motion.div variants={itemVariants} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Tagihan Tunggakan</p>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-extrabold text-rose-600">{formatRupiah(totalOverdue)}</span>
+            </div>
+          </div>
+          <div className="text-[10px] text-rose-600 font-semibold mt-4 flex items-center gap-1">
+            <AlertCircle className="w-3 h-3 text-rose-500" />
+            <span>{overdueCount} tagihan lewat jatuh tempo</span>
+          </div>
+        </motion.div>
+
+        <motion.div variants={itemVariants} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Belum Dibayar</p>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-extrabold text-amber-600">{formatRupiah(totalPending)}</span>
+            </div>
+          </div>
+          <div className="text-[10px] text-amber-600 font-semibold mt-4 flex items-center gap-1">
+            <Clock className="w-3 h-3 text-amber-500" />
+            <span>{pendingCount} tagihan status pending</span>
+          </div>
+        </motion.div>
+
+        <motion.div variants={itemVariants} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Tingkat Hunian</p>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-extrabold text-slate-900">{occupancyRate}%</span>
+            </div>
+          </div>
+          <div className="mt-4">
+            <Progress value={occupancyRate} className="h-2 rounded-full overflow-hidden" />
+            <div className="flex justify-between items-center text-[10px] text-slate-400 font-semibold mt-1">
+              <span>{occupiedUnits} Terisi</span>
+              <span>{totalUnits} Total Unit</span>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+
+      {/* Main stats layout */}
+      <div className="grid gap-6 lg:grid-cols-7">
+        {/* Unit Status Card */}
+        <Card className="lg:col-span-3 border border-slate-200 rounded-2xl overflow-hidden shadow-xs bg-white">
+          <CardHeader className="border-b border-slate-100 p-5">
+            <CardTitle className="text-sm font-extrabold text-slate-900">Distribusi Status Kamar</CardTitle>
+            <CardDescription className="text-xs">Kondisi unit properti saat ini</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-success" />
+          <CardContent className="p-5 space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-xs font-semibold">
+                <span className="flex items-center gap-2 text-slate-600">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
                   Terisi
                 </span>
-                <span className="font-medium">{occupiedUnits} unit</span>
+                <span className="text-slate-800">{occupiedUnits} Unit</span>
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-primary" />
+              <div className="flex items-center justify-between text-xs font-semibold">
+                <span className="flex items-center gap-2 text-slate-600">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
                   Tersedia
                 </span>
-                <span className="font-medium">{availableUnits} unit</span>
+                <span className="text-slate-800">{availableUnits} Unit</span>
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-warning" />
-                  Maintenance
+              <div className="flex items-center justify-between text-xs font-semibold">
+                <span className="flex items-center gap-2 text-slate-600">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                  Dalam Perbaikan
                 </span>
-                <span className="font-medium">{maintenanceUnits} unit</span>
+                <span className="text-slate-800">{maintenanceUnits} Unit</span>
               </div>
             </div>
-            <div className="pt-4 border-t">
-              <Button variant="outline" className="w-full" asChild>
-                <Link to="/dashboard/properties">Lihat Semua Properti</Link>
+            
+            <div className="pt-4 border-t border-slate-100">
+              <Button variant="outline" className="w-full text-xs font-semibold rounded-xl py-2" asChild>
+                <Link to="/dashboard/properties">Lihat Kamar & Properti</Link>
               </Button>
             </div>
           </CardContent>
         </Card>
+
+        {/* Property Occupancy summary */}
+        <Card className="lg:col-span-4 border border-slate-200 rounded-2xl overflow-hidden shadow-xs bg-white">
+          <CardHeader className="border-b border-slate-100 p-5">
+            <CardTitle className="text-sm font-extrabold text-slate-900">Kapasitas Properti Anda</CardTitle>
+            <CardDescription className="text-xs">Rasio okupansi unit per properti</CardDescription>
+          </CardHeader>
+          <CardContent className="p-5 space-y-4">
+            <div className="space-y-3">
+              {properties?.length === 0 ? (
+                <p className="text-xs text-slate-400 text-center py-6">Belum ada data properti.</p>
+              ) : (
+                properties?.map((prop: any) => {
+                  const rate = prop.totalUnits > 0 ? Math.round((prop.occupiedUnits / prop.totalUnits) * 100) : 0
+                  return (
+                    <div key={prop.id} className="space-y-1">
+                      <div className="flex justify-between items-center text-xs font-bold">
+                        <span className="text-slate-700">{prop.name}</span>
+                        <span className="text-slate-500">{prop.occupiedUnits}/{prop.totalUnits} Terisi ({rate}%)</span>
+                      </div>
+                      <Progress value={rate} className="h-1.5 rounded-full overflow-hidden" />
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+      {/* Recent Bills section */}
+      <Card className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs bg-white">
+        <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 p-5">
           <div>
-            <CardTitle>Tagihan Terbaru</CardTitle>
-            <CardDescription>Daftar tagihan yang baru diterbitkan</CardDescription>
+            <CardTitle className="text-sm font-extrabold text-slate-900">Tagihan Terbaru</CardTitle>
+            <CardDescription className="text-xs">Daftar tagihan bulanan penghuni</CardDescription>
           </div>
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="outline" size="sm" className="rounded-xl text-xs font-semibold" asChild>
             <Link to="/dashboard/bills">Lihat Semua</Link>
           </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-5">
           {recentBills.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">Belum ada tagihan</p>
+            <div className="text-center py-10 text-slate-400 text-xs">Belum ada tagihan terdaftar.</div>
           ) : (
-            <div className="space-y-3">
+            <div className="divide-y divide-slate-100">
               {recentBills.map((bill: any) => (
-                <div key={bill.id} className="flex items-center justify-between p-3 rounded-lg border">
+                <div key={bill.id} className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0 font-medium">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                      <Users className="h-4 w-4 text-muted-foreground" />
+                    <div className="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-100">
+                      <Users className="h-4 w-4 text-slate-500" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium">{bill.tenantName || 'Unknown'}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Unit {bill.unitNumber || 'N/A'} &middot; Periode {bill.periodMonth}/{bill.periodYear}
+                      <p className="text-xs font-bold text-slate-900">{bill.tenantName || 'Penghuni Kost'}</p>
+                      <p className="text-[10px] text-slate-400 font-semibold">
+                        Unit {bill.unitNumber || 'Kamar'} &middot; Periode {bill.periodMonth}/{bill.periodYear}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-medium">{formatRupiah(bill.totalAmount)}</p>
-                    <Badge
-                      variant={
-                        bill.status === 'paid' ? 'success' :
-                        bill.status === 'overdue' ? 'destructive' :
-                        bill.status === 'pending' ? 'warning' : 'secondary'
-                      }
-                      className="text-xs"
-                    >
+                    <p className="text-xs font-extrabold text-slate-950">{formatRupiah(bill.totalAmount)}</p>
+                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold inline-block mt-1 ${
+                      bill.status === 'paid' ? 'bg-emerald-100 text-emerald-800' :
+                      bill.status === 'overdue' ? 'bg-rose-100 text-rose-800' :
+                      'bg-amber-100 text-amber-800'
+                    }`}>
                       {bill.status === 'paid' ? 'Lunas' :
-                       bill.status === 'overdue' ? 'Jatuh Tempo' :
-                       bill.status === 'pending' ? 'Belum Dibayar' : 'Sebagian'}
-                    </Badge>
+                       bill.status === 'overdue' ? 'Jatuh Tempo' : 'Belum Dibayar'}
+                    </span>
                   </div>
                 </div>
               ))}
