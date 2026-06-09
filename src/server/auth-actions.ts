@@ -59,3 +59,17 @@ export const signOut = createServerFn({ method: 'POST' }).handler(async () => {
   forwardAuthCookies(headers)
   return { success: true }
 })
+
+export const signInSocial = createServerFn({ method: 'POST' })
+  .inputValidator((d: { provider: 'google'; callbackURL?: string }) => d)
+  .handler(async ({ data }) => {
+    const request = getRequest()
+    const response = await auth.api.signInSocial({
+      body: {
+        provider: data.provider,
+        callbackURL: data.callbackURL,
+      },
+      headers: request.headers,
+    })
+    return response
+  })
