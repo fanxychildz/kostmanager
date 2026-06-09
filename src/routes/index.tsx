@@ -123,7 +123,7 @@ function LandingPage() {
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
-              { step: '1', title: 'Daftar Akun', desc: 'Buat akun gratis dengan email atau Google. Hanya 1 menit.' },
+              { step: '1', title: 'Daftar Akun', desc: 'Buat akun gratis dengan email. Hanya 1 menit.' },
               { step: '2', title: 'Tambah Properti', desc: 'Input data properti dan unit-unit kamar Anda.' },
               { step: '3', title: 'Tambah Penghuni', desc: 'Catat data penghuni dan periode kontraknya.' },
               { step: '4', title: 'Kelola & Pantau', desc: 'Tagihan otomatis, pembayaran tercatat, laporan tersedia.' },
