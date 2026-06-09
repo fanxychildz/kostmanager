@@ -1,5 +1,4 @@
-import { createFileRoute, Link, redirect } from '@tanstack/react-router'
-import { useEffect } from 'react'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import {
   Building2,
   Users,
@@ -15,22 +14,23 @@ import {
 import { Button } from '~/components/ui/button'
 import { Card, CardContent } from '~/components/ui/card'
 import { Badge } from '~/components/ui/badge'
-import { useAuth } from '~/lib/auth-context'
+import { api } from '~/lib/api'
 
 export const Route = createFileRoute('/')({
+  beforeLoad: async () => {
+    try {
+      const session = await api.auth.getSession()
+      if (session?.user) {
+        throw redirect({ to: '/dashboard' })
+      }
+    } catch {
+      // jika gagal cek session, tampilkan landing page biasa
+    }
+  },
   component: LandingPage,
 })
 
 function LandingPage() {
-  const { user, loading } = useAuth()
-
-  useEffect(() => {
-    if (!loading && user) {
-      throw redirect({ to: '/dashboard' })
-    }
-  }, [user, loading])
-
-  if (loading) return null
   return (
     <div className="min-h-screen bg-background">
       <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b">
