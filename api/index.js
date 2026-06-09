@@ -1,6 +1,15 @@
 import { Readable } from 'node:stream'
 import serverEntry from '../dist/server/server.js'
 
+const getRawBody = (req) => {
+  return new Promise((resolve, reject) => {
+    const chunks = []
+    req.on('data', (chunk) => { chunks.push(chunk) })
+    req.on('end', () => { resolve(Buffer.concat(chunks)) })
+    req.on('error', reject)
+  })
+}
+
 export default async function handler(req, res) {
   try {
     const proto = req.headers['x-forwarded-proto'] || 'http'
@@ -19,11 +28,11 @@ export default async function handler(req, res) {
     }
 
     const hasBody = method !== 'GET' && method !== 'HEAD'
+    const body = hasBody ? await getRawBody(req) : undefined
     const request = new Request(url, {
       method,
       headers,
-      body: hasBody ? Readable.toWeb(req) : undefined,
-      duplex: hasBody ? 'half' : undefined,
+      body,
     })
 
     const response = await serverEntry.fetch(request)
