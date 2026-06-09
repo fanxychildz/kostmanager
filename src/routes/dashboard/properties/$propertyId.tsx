@@ -8,6 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import { formatRupiah } from '~/lib/utils'
 import { api } from '~/lib/api'
 import { useQuery, useMutation } from '~/lib/hooks'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog'
+import { Input } from '~/components/ui/input'
+import { Label } from '~/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 
 export const Route = createFileRoute('/dashboard/properties/$propertyId')({
   component: PropertyDetailPage,
@@ -18,18 +22,59 @@ function PropertyDetailPage() {
   const navigate = useNavigate()
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [unitForm, setUnitForm] = useState({
+    unitNumber: '',
+    type: 'Standard',
+    priceMonthly: '',
+    facilities: '',
+  })
+  const [createUnitError, setCreateUnitError] = useState('')
 
   const { data: property, loading: loadingProperty, refetch: refetchProperty } = useQuery({
     queryFn: () => api.properties.get(propertyId),
   })
 
-  const { data: units, loading: loadingUnits } = useQuery({
+  const { data: units, loading: loadingUnits, refetch: refetchUnits } = useQuery({
     queryFn: () => api.units.list(propertyId),
   })
 
   const { data: tenants } = useQuery({
     queryFn: () => api.tenants.list(),
   })
+
+  const { mutate: createUnit, loading: loadingCreateUnit } = useMutation({
+    mutationFn: (data: { propertyId: string; unitNumber: string; type: string; priceMonthly: number; status: string; facilities: string[] }) =>
+      api.units.create(data),
+    onSuccess: () => {
+      refetchUnits()
+      setDialogOpen(false)
+      setUnitForm({ unitNumber: '', type: 'Standard', priceMonthly: '', facilities: '' })
+    },
+  })
+
+  const handleCreateUnit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setCreateUnitError('')
+    if (!unitForm.unitNumber.trim()) {
+      setCreateUnitError('Nomor unit harus diisi')
+      return
+    }
+    const price = parseInt(unitForm.priceMonthly, 10)
+    if (isNaN(price) || price <= 0) {
+      setCreateUnitError('Harga bulanan harus berupa angka valid dan lebih dari 0')
+      return
+    }
+
+    createUnit({
+      propertyId,
+      unitNumber: unitForm.unitNumber,
+      type: unitForm.type,
+      priceMonthly: price,
+      status: 'available',
+      facilities: unitForm.facilities.split(',').map(f => f.trim()).filter(Boolean),
+    })
+  }
 
   const { mutate: updateProperty } = useMutation({
     mutationFn: (data: { image: string }) => api.properties.update(propertyId, data),
@@ -184,7 +229,7 @@ function PropertyDetailPage() {
           <div>
             <CardTitle>Daftar Unit</CardTitle>
           </div>
-          <Button size="sm"><Plus className="mr-2 h-4 w-4" />Tambah Unit</Button>
+          <Button size="sm" onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" />Tambah Unit</Button>
         </CardHeader>
         <CardContent>
           {units && units.length === 0 ? (
@@ -233,6 +278,73 @@ function PropertyDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tambah Unit Baru</DialogTitle>
+            <DialogDescription>
+              Masukkan detail kamar/unit baru untuk properti {property.name}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateUnit} className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="unitNumber">Nomor Unit / Kamar</Label>
+              <Input
+                id="unitNumber"
+                placeholder="Contoh: Kamar 01, A-102"
+                value={unitForm.unitNumber}
+                onChange={(e) => setUnitForm({ ...unitForm, unitNumber: e.target.value })}
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="unitType">Tipe Kamar</Label>
+                <Select value={unitForm.type} onValueChange={(value) => setUnitForm({ ...unitForm, type: value })}>
+                  <SelectTrigger><SelectValue placeholder="Pilih tipe" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Standard">Standard</SelectItem>
+                    <SelectItem value="Deluxe">Deluxe</SelectItem>
+                    <SelectItem value="VIP">VIP</SelectItem>
+                    <SelectItem value="Suite">Suite</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="priceMonthly">Harga Bulanan (Rp)</Label>
+                <Input
+                  id="priceMonthly"
+                  type="number"
+                  placeholder="Contoh: 1500000"
+                  value={unitForm.priceMonthly}
+                  onChange={(e) => setUnitForm({ ...unitForm, priceMonthly: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="facilities">Fasilitas (pisahkan dengan koma)</Label>
+              <Input
+                id="facilities"
+                placeholder="Contoh: AC, Wifi, Kasur, Kamar Mandi Dalam"
+                value={unitForm.facilities}
+                onChange={(e) => setUnitForm({ ...unitForm, facilities: e.target.value })}
+              />
+            </div>
+            {createUnitError && (
+              <p className="text-sm text-destructive">{createUnitError}</p>
+            )}
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Batal</Button>
+              <Button type="submit" disabled={loadingCreateUnit}>
+                {loadingCreateUnit && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Tambah Unit
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

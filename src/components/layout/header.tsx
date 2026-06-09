@@ -44,6 +44,7 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
+  const { user, signOut } = useAuth()
   const name = user?.name || user?.email || 'KostManager'
   const initials = getInitials(name)
   const displayLabel = name === 'KostManager' ? '' : name

@@ -35,6 +35,13 @@ const bottomItems = [
   { label: 'Pengaturan', href: '/dashboard/settings', icon: Settings },
 ]
 
+function getInitials(name?: string | null) {
+  const source = name || 'KostManager'
+  const parts = source.split(' ').filter(Boolean)
+  if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.slice(0, 2).toUpperCase()
+  return source.slice(0, 2).toUpperCase()
+}
+
 export function Sidebar() {
   const location = useLocation()
   const navigate = useNavigate()
