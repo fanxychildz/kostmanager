@@ -145,3 +145,15 @@ export const chatMessages = sqliteTable('chat_messages', {
   read: integer('read', { mode: 'boolean' }).notNull().default(false),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 })
+
+export const expenses = sqliteTable('expenses', {
+  id: text('id').primaryKey(),
+  propertyId: text('property_id').notNull().references(() => properties.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  amount: integer('amount').notNull(),
+  category: text('category').notNull().default('other'), // 'operational', 'repair', 'utility', 'salary', 'other'
+  date: integer('date', { mode: 'timestamp' }).notNull(),
+  notes: text('notes'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+})

@@ -12,6 +12,7 @@ import {
   Home,
   Wrench,
   MessageSquare,
+  TrendingDown,
 } from 'lucide-react'
 import { cn } from '~/lib/utils'
 import { Button } from '~/components/ui/button'
@@ -25,6 +26,7 @@ const navItems = [
   { label: 'Penghuni', href: '/dashboard/tenants', icon: Users },
   { label: 'Tagihan', href: '/dashboard/bills', icon: FileText },
   { label: 'Pembayaran', href: '/dashboard/payments', icon: CreditCard },
+  { label: 'Pengeluaran', href: '/dashboard/expenses', icon: TrendingDown },
   { label: 'Laporan', href: '/dashboard/reports', icon: BarChart3 },
   { label: 'Notifikasi', href: '/dashboard/notifications', icon: Bell },
   { label: 'Keluhan Perbaikan', href: '/dashboard/maintenance', icon: Wrench },

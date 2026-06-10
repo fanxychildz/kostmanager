@@ -14,10 +14,11 @@ export const Route = createFileRoute('/dashboard/reports')({
 })
 
 function ReportsPage() {
-  const { data: bills, loading } = useQuery({ queryFn: () => api.bills.list() })
+  const { data: bills, loading: loadingBills } = useQuery({ queryFn: () => api.bills.list() })
   const { data: properties } = useQuery({ queryFn: () => api.properties.list() })
+  const { data: expenses, loading: loadingExpenses } = useQuery({ queryFn: () => api.expenses.list() })
 
-  if (loading) {
+  if (loadingBills || loadingExpenses) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -28,6 +29,8 @@ function ReportsPage() {
   const allBills = bills ?? []
   const paidBills = allBills.filter((b: any) => b.status === 'paid')
   const totalPaid = paidBills.reduce((sum: number, b: any) => sum + b.totalAmount, 0)
+  const totalExpenses = expenses?.reduce((sum: number, e: any) => sum + e.amount, 0) || 0
+  const netProfit = totalPaid - totalExpenses
   const totalPending = allBills.filter((b: any) => b.status === 'pending').reduce((sum: number, b: any) => sum + b.totalAmount, 0)
   const totalOverdue = allBills.filter((b: any) => b.status === 'overdue').reduce((sum: number, b: any) => sum + b.totalAmount, 0)
 
@@ -70,22 +73,43 @@ function ReportsPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">Total Pendapatan</p><p className="text-2xl font-bold text-success">{formatRupiah(totalPaid)}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">Belum Dibayar</p><p className="text-2xl font-bold text-warning">{formatRupiah(totalPending)}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">Jatuh Tempo</p><p className="text-2xl font-bold text-destructive">{formatRupiah(totalOverdue)}</p></CardContent></Card>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">Total Pendapatan (Lunas)</p><p className="text-2xl font-bold text-success">{formatRupiah(totalPaid)}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">Total Pengeluaran</p><p className="text-2xl font-bold text-destructive">{formatRupiah(totalExpenses)}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">Keuntungan Bersih</p><p className={`text-2xl font-bold ${netProfit >= 0 ? 'text-slate-900' : 'text-rose-600'}`}>{formatRupiah(netProfit)}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">Belum Dibayar (Pending)</p><p className="text-2xl font-bold text-warning">{formatRupiah(totalPending)}</p></CardContent></Card>
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Ringkasan Keuangan</CardTitle><CardDescription>Berdasarkan tagihan lunas</CardDescription></CardHeader>
+        <CardHeader><CardTitle>Ringkasan Keuangan</CardTitle><CardDescription>Berdasarkan tagihan lunas dan biaya operasional</CardDescription></CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex justify-between items-center text-sm"><span>Pendapatan Sewa</span><span className="font-medium">{formatRupiah(sumField('rentAmount'))}</span></div>
-          <div className="flex justify-between items-center text-sm"><span>Pendapatan Listrik</span><span className="font-medium">{formatRupiah(sumField('electricityAmount'))}</span></div>
-          <div className="flex justify-between items-center text-sm"><span>Pendapatan Air</span><span className="font-medium">{formatRupiah(sumField('waterAmount'))}</span></div>
-          <div className="flex justify-between items-center text-sm"><span>Pendapatan WiFi</span><span className="font-medium">{formatRupiah(sumField('wifiAmount'))}</span></div>
-          <div className="flex justify-between items-center text-sm"><span>Pendapatan Lain-lain</span><span className="font-medium">{formatRupiah(sumField('otherAmount'))}</span></div>
+          <div className="flex justify-between items-center text-sm"><span>Pendapatan Sewa</span><span className="font-medium text-emerald-650">+{formatRupiah(sumField('rentAmount'))}</span></div>
+          <div className="flex justify-between items-center text-sm"><span>Pendapatan Listrik</span><span className="font-medium text-emerald-650">+{formatRupiah(sumField('electricityAmount'))}</span></div>
+          <div className="flex justify-between items-center text-sm"><span>Pendapatan Air</span><span className="font-medium text-emerald-650">+{formatRupiah(sumField('waterAmount'))}</span></div>
+          <div className="flex justify-between items-center text-sm"><span>Pendapatan WiFi</span><span className="font-medium text-emerald-650">+{formatRupiah(sumField('wifiAmount'))}</span></div>
+          <div className="flex justify-between items-center text-sm"><span>Pendapatan Lain-lain</span><span className="font-medium text-emerald-650">+{formatRupiah(sumField('otherAmount'))}</span></div>
           <Separator />
-          <div className="flex justify-between items-center"><span className="font-bold">Total Pendapatan</span><span className="font-bold text-lg text-success">{formatRupiah(totalPaid)}</span></div>
+          <div className="flex justify-between items-center text-sm font-bold text-slate-800"><span>Subtotal Pendapatan</span><span>{formatRupiah(totalPaid)}</span></div>
+          
+          <Separator className="my-2" />
+          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Rincian Pengeluaran</div>
+          {expenses && expenses.length === 0 ? (
+            <p className="text-xs text-slate-400 italic">Tidak ada catatan pengeluaran.</p>
+          ) : (
+            ['operational', 'repair', 'utility', 'salary', 'other'].map((cat) => {
+              const amount = expenses?.filter((e: any) => e.category === cat).reduce((sum: number, e: any) => sum + e.amount, 0) || 0
+              const CATEGORIES: Record<string, string> = { operational: 'Operasional', repair: 'Perbaikan', utility: 'Utilitas', salary: 'Gaji Staf', other: 'Lainnya' }
+              if (amount === 0) return null
+              return (
+                <div key={cat} className="flex justify-between items-center text-sm">
+                  <span>Biaya {CATEGORIES[cat]}</span>
+                  <span className="font-medium text-rose-600">-{formatRupiah(amount)}</span>
+                </div>
+              )
+            })
+          )}
+          <Separator />
+          <div className="flex justify-between items-center"><span className="font-bold">Keuntungan Bersih</span><span className={`font-bold text-lg ${netProfit >= 0 ? 'text-success' : 'text-destructive'}`}>{formatRupiah(netProfit)}</span></div>
         </CardContent>
       </Card>
 

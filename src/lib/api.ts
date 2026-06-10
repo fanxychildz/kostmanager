@@ -9,6 +9,7 @@ import * as notificationsActions from '~/server/notifications'
 import * as billingActions from '~/server/billing'
 import * as usersActions from '~/server/users'
 import * as portalActions from '~/server/portal'
+import * as expensesActions from '~/server/expenses'
 
 export const api = {
   auth: {
@@ -101,5 +102,25 @@ export const api = {
       portalActions.portalRegister({ data }),
     profile: () => portalActions.getPortalProfile(),
     bills: () => portalActions.getPortalBills(),
+  },
+  expenses: {
+    list: () => expensesActions.listExpenses(),
+    create: (data: {
+      propertyId: string
+      title: string
+      amount: number
+      category: string
+      date: string | Date
+      notes?: string | null
+    }) => expensesActions.createExpense({ data }),
+    update: (id: string, data: {
+      propertyId: string
+      title: string
+      amount: number
+      category: string
+      date: string | Date
+      notes?: string | null
+    }) => expensesActions.updateExpense({ data: { id, ...data } }),
+    delete: (id: string) => expensesActions.deleteExpense({ data: { id } }),
   },
 }

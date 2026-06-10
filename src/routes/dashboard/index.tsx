@@ -41,7 +41,11 @@ function DashboardPage() {
     queryFn: () => api.units.list(),
   })
 
-  if (loadingProperties || loadingBills || loadingPayments || loadingUnits) {
+  const { data: expenses, loading: loadingExpenses } = useQuery({
+    queryFn: () => api.expenses.list(),
+  })
+
+  if (loadingProperties || loadingBills || loadingPayments || loadingUnits || loadingExpenses) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -56,6 +60,8 @@ function DashboardPage() {
   const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0
 
   const totalIncome = payments?.reduce((sum: number, p: any) => sum + p.amount, 0) || 0
+  const totalExpenses = expenses?.reduce((sum: number, e: any) => sum + e.amount, 0) || 0
+  const netProfit = totalIncome - totalExpenses
   const totalPending = bills?.filter((b: any) => b.status === 'pending').reduce((sum: number, b: any) => sum + b.totalAmount, 0) || 0
   const totalOverdue = bills?.filter((b: any) => b.status === 'overdue').reduce((sum: number, b: any) => sum + b.totalAmount, 0) || 0
   const pendingCount = bills?.filter((b: any) => b.status === 'pending').length || 0
@@ -107,14 +113,20 @@ function DashboardPage() {
       >
         <motion.div variants={itemVariants} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
           <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Total Pendapatan</p>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Keuntungan Bersih</p>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-extrabold text-slate-900">{formatRupiah(totalIncome)}</span>
+              <span className={`text-2xl font-extrabold ${netProfit >= 0 ? 'text-slate-900' : 'text-rose-600'}`}>{formatRupiah(netProfit)}</span>
             </div>
           </div>
-          <div className="text-[10px] text-emerald-600 font-semibold mt-4 flex items-center gap-1">
-            <TrendingUp className="w-3 h-3 text-emerald-500" />
-            <span>Terverifikasi dari transfer & tunai</span>
+          <div className="text-[10px] text-slate-500 font-semibold mt-4 space-y-1">
+            <div className="flex justify-between">
+              <span>Pendapatan:</span>
+              <span className="text-emerald-600 font-extrabold">{formatRupiah(totalIncome)}</span>
+            </div>
+            <div className="flex justify-between border-t border-slate-100 pt-1">
+              <span>Pengeluaran:</span>
+              <span className="text-rose-650 font-extrabold">{formatRupiah(totalExpenses)}</span>
+            </div>
           </div>
         </motion.div>
 
