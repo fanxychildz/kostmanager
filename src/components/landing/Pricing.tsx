@@ -226,20 +226,6 @@ export default function Pricing() {
           })}
         </div>
 
-        {/* Custom invoice helper disclaimer card */}
-        <div className="mt-16 bg-slate-50 border border-slate-200/60 rounded-3xl p-6 sm:p-8 max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="space-y-1 sm:text-left text-center">
-            <h5 className="font-extrabold text-slate-900 text-base">Butuh penawaran custom lebih dari 500 unit?</h5>
-            <p className="text-xs text-slate-500 font-medium">Kami menyediakan server terpisah, integrasi ERP lokal, dan SLA korporasi khusus.</p>
-          </div>
-          <a
-            href="mailto:sales@kostmanager.com?subject=Custom Quote Request KostManager"
-            className="bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs px-5 py-3 rounded-xl border border-slate-200 shadow-xs shrink-0 cursor-pointer decoration-none"
-            id="pricing-custom-quote"
-          >
-            Konsultasikan Custom Properti
-          </a>
-        </div>
 
       </div>
     </section>
