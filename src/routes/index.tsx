@@ -4,7 +4,6 @@ import { api } from '~/lib/api'
 import Navigation from '~/components/landing/Navigation'
 import Hero from '~/components/landing/Hero'
 import Features from '~/components/landing/Features'
-import Benefits from '~/components/landing/Benefits'
 import HowItWorks from '~/components/landing/HowItWorks'
 import Pricing from '~/components/landing/Pricing'
 import FAQ from '~/components/landing/FAQ'
@@ -70,7 +69,6 @@ function LandingPage() {
       <Navigation activeSection={activeSection} />
       <Hero />
       <Features />
-      <Benefits />
       <HowItWorks />
       <Pricing />
       <FAQ />
