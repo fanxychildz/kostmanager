@@ -16,7 +16,7 @@ export const Route = createFileRoute('/(auth)/login')({
 
 function LoginPage() {
   const navigate = useNavigate()
-  const { signIn } = useAuth()
+  const { signIn, signOut } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -28,6 +28,12 @@ function LoginPage() {
     setLoading(true)
     try {
       await signIn(email, password)
+      const session = await api.auth.getSession()
+      if (session && (session.user as { role?: string }).role === 'tenant') {
+        await signOut()
+        setError('Akun ini adalah akun penghuni. Silakan masuk melalui Portal Penghuni.')
+        return
+      }
       navigate({ to: '/dashboard' })
     } catch (err) {
       setError('Email atau password salah')

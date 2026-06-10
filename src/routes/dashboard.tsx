@@ -1,41 +1,23 @@
-import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 import { Sidebar } from '~/components/layout/sidebar'
 import { Header } from '~/components/layout/header'
 import { api } from '~/lib/api'
-import { useEffect, useState } from 'react'
-import { Loader2 } from 'lucide-react'
 
 export const Route = createFileRoute('/dashboard')({
+  beforeLoad: async () => {
+    const session = await api.auth.getSession()
+    if (!session) {
+      throw redirect({ to: '/login' })
+    }
+    const role = (session.user as any).role
+    if (role === 'tenant') {
+      throw redirect({ to: '/portal' })
+    }
+  },
   component: DashboardLayout,
 })
 
 function DashboardLayout() {
-  const navigate = useNavigate()
-  const [checking, setChecking] = useState(true)
-
-  useEffect(() => {
-  let cancelled = false
-  api.auth.getSession().then((session) => {
-    if (cancelled) return
-    if (!session) {
-      navigate({ to: '/login' })
-      return
-    }
-    setChecking(false)
-  })
-  return () => {
-    cancelled = true
-  }
-  }, [navigate])
-
-  if (checking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <Sidebar />
