@@ -21,6 +21,7 @@ export const Route = createFileRoute('/dashboard/chat')({
 
 function ChatPage() {
   const { data: tenants, loading: loadingTenants } = useQuery({ queryFn: () => api.tenants.list() })
+  const { data: allMessages, refetch: refetchSummaries } = useQuery<any[]>({ queryFn: () => api.chat.listConversations() })
   const [selectedTenantId, setSelectedTenantId] = useState<string>(tenants?.[0]?.id ?? '')
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [chatInputText, setChatInputText] = useState('')
@@ -46,6 +47,7 @@ function ChatPage() {
     }))
     setMessages(normalized as ChatMessage[])
     await api.chat.markRead({ tenantId })
+    refetchSummaries()
   }
 
   useEffect(() => {
@@ -76,6 +78,7 @@ function ChatPage() {
       setMessages(next)
       setChatInputText('')
       inputRef.current?.focus()
+      refetchSummaries()
     } finally {
       setSending(false)
     }
@@ -101,9 +104,11 @@ function ChatPage() {
             ) : tenants?.length ? (
               tenants.map((tenant) => {
                 const isSelected = selectedTenantId === tenant.id
-                const lastMessage = messages
-                  .filter((m) => m.senderName === tenant.fullName)
-                  .slice(-1)[0]
+                
+                const tenantMessages = allMessages?.filter((m: any) => m.tenantId === tenant.id) || []
+                const lastMessage = tenantMessages[0]
+                const unreadCount = tenantMessages.filter((m: any) => m.sender === 'Tenant' && !m.read).length
+
                 return (
                   <button
                     key={tenant.id}
@@ -111,16 +116,25 @@ function ChatPage() {
                     className={`w-full text-left p-4 flex items-center justify-between transition border-l-3 ${
                       isSelected
                         ? 'bg-white border-blue-600 shadow-2xs'
-                        : 'border-transparent hover:bg-slate-50'
+                        : 'border-transparent hover:bg-slate-55'
                     }`}
                   >
-                    <div>
-                      <span className="font-bold text-slate-950 block text-xs md:text-sm">{tenant.fullName}</span>
-                      <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">Kamar {tenant.unitId ? 'Aktif' : '-'} · {tenant.phone}</span>
+                    <div className="flex-1 min-w-0 pr-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-950 text-xs md:text-sm truncate">{tenant.fullName}</span>
+                        {unreadCount > 0 && (
+                          <span className="bg-blue-650 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full shrink-0">
+                            {unreadCount}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-semibold block mt-0.5 truncate">
+                        Kamar {tenant.unitId ? 'Aktif' : '-'} · {tenant.phone}
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-medium block mt-1 truncate">
+                        {lastMessage ? lastMessage.message : 'Belum ada pesan'}
+                      </span>
                     </div>
-                    <span className="text-[10px] text-slate-500 font-medium max-w-[140px] truncate">
-                      {lastMessage ? lastMessage.message : 'Belum ada pesan'}
-                    </span>
                   </button>
                 )
               })
