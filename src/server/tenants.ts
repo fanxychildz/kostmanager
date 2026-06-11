@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { eq, and } from 'drizzle-orm'
 import { db } from '../db'
-import { tenants, units, properties } from '../db/schema'
+import { tenants, units, properties, users } from '../db/schema'
 import { auth } from './auth'
 import { nanoid } from 'nanoid'
 import { getRequest } from '@tanstack/react-start/server'
@@ -18,7 +18,29 @@ export const listTenants = createServerFn({ method: 'GET' }).handler(async () =>
 
   const propertyIds = ownerProperties.map((p) => p.id)
 
-  const result = await db.select().from(tenants)
+  const result = await db
+    .select({
+      id: tenants.id,
+      userId: tenants.userId,
+      unitId: tenants.unitId,
+      propertyId: tenants.propertyId,
+      fullName: tenants.fullName,
+      ktpNumber: tenants.ktpNumber,
+      ktpPhotoUrl: tenants.ktpPhotoUrl,
+      phone: tenants.phone,
+      email: tenants.email,
+      occupation: tenants.occupation,
+      checkInDate: tenants.checkInDate,
+      checkOutDate: tenants.checkOutDate,
+      depositAmount: tenants.depositAmount,
+      status: tenants.status,
+      createdAt: tenants.createdAt,
+      updatedAt: tenants.updatedAt,
+      image: users.image,
+    })
+    .from(tenants)
+    .leftJoin(users, eq(tenants.userId, users.id))
+
   const filtered = result.filter((t) => propertyIds.includes(t.propertyId))
 
   return filtered
@@ -31,7 +53,29 @@ export const getTenant = createServerFn({ method: 'GET' })
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session) throw new Error('Unauthorized')
 
-    const result = await db.select().from(tenants).where(eq(tenants.id, data.id))
+    const result = await db
+      .select({
+        id: tenants.id,
+        userId: tenants.userId,
+        unitId: tenants.unitId,
+        propertyId: tenants.propertyId,
+        fullName: tenants.fullName,
+        ktpNumber: tenants.ktpNumber,
+        ktpPhotoUrl: tenants.ktpPhotoUrl,
+        phone: tenants.phone,
+        email: tenants.email,
+        occupation: tenants.occupation,
+        checkInDate: tenants.checkInDate,
+        checkOutDate: tenants.checkOutDate,
+        depositAmount: tenants.depositAmount,
+        status: tenants.status,
+        createdAt: tenants.createdAt,
+        updatedAt: tenants.updatedAt,
+        image: users.image,
+      })
+      .from(tenants)
+      .leftJoin(users, eq(tenants.userId, users.id))
+      .where(eq(tenants.id, data.id))
 
     if (result.length === 0) throw new Error('Not found')
 

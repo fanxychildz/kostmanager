@@ -5,7 +5,7 @@ import { Card, CardContent } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Badge } from '~/components/ui/badge'
-import { Avatar, AvatarFallback } from '~/components/ui/avatar'
+import { Avatar, AvatarImage, AvatarFallback } from '~/components/ui/avatar'
 import { formatRupiah, formatDate } from '~/lib/utils'
 import { api } from '~/lib/api'
 import { useQuery } from '~/lib/hooks'
@@ -122,6 +122,7 @@ function TenantsPage() {
                             className="flex items-center gap-3 group"
                           >
                             <Avatar className="h-9 w-9 ring-2 ring-slate-100">
+                              {tenant.image && <AvatarImage src={tenant.image} alt={tenant.fullName} className="object-cover" />}
                               <AvatarFallback className="text-xs bg-slate-900 text-white font-bold">
                                 {tenant.fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
                               </AvatarFallback>

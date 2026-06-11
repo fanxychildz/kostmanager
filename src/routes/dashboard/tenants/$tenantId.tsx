@@ -3,7 +3,7 @@ import { ArrowLeft, Phone, Mail, Calendar, CreditCard, Building2, Loader2 } from
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
 import { Badge } from '~/components/ui/badge'
-import { Avatar, AvatarFallback } from '~/components/ui/avatar'
+import { Avatar, AvatarImage, AvatarFallback } from '~/components/ui/avatar'
 import { Separator } from '~/components/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table'
 import { formatRupiah, formatDate } from '~/lib/utils'
@@ -51,8 +51,9 @@ function TenantDetailPage() {
         </Button>
         <div className="flex-1 flex items-center gap-4">
           <Avatar className="h-12 w-12">
+            {tenant.image && <AvatarImage src={tenant.image} alt={tenant.fullName} className="object-cover" />}
             <AvatarFallback className="bg-primary text-primary-foreground text-lg">
-              {tenant.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+              {tenant.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div>
