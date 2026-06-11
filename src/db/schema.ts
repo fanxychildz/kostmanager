@@ -47,18 +47,24 @@ export const verifications = sqliteTable('verifications', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }),
 })
 
-export const properties = sqliteTable('properties', {
-  id: text('id').primaryKey(),
-  ownerId: text('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  name: text('name').notNull(),
-  address: text('address').notNull(),
-  city: text('city').notNull(),
-  province: text('province').notNull(),
-  type: text('type', { enum: ['kost', 'kontrakan', 'apartemen'] }).notNull(),
-  image: text('image'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
-})
+export const properties = sqliteTable(
+  'properties',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    address: text('address').notNull(),
+    city: text('city').notNull(),
+    province: text('province').notNull(),
+    type: text('type', { enum: ['kost', 'kontrakan', 'apartemen'] }).notNull(),
+    image: text('image'),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+  },
+  (t) => ({
+    ownerIdx: t.index('properties_owner_id_idx').on(t.ownerId),
+  }),
+)
 
 export const units = sqliteTable('units', {
   id: text('id').primaryKey(),

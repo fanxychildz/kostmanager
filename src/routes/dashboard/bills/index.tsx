@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { Search, Loader2, FileText, Plus, ChevronRight, Trash2, Edit3 } from 'lucide-react'
 import { useState } from 'react'
 import { Card, CardContent } from '~/components/ui/card'
@@ -41,6 +41,7 @@ const toInputDateString = (dateInput: Date | string | number) => {
 }
 
 function BillsPage() {
+  const navigate = useNavigate()
   const [filter, setFilter] = useState<'all' | 'pending' | 'paid' | 'overdue'>('all')
   const [search, setSearch] = useState('')
   const [isBulkMode, setIsBulkMode] = useState(false)
@@ -223,6 +224,8 @@ function BillsPage() {
       } else {
         setSelectedIds([...selectedIds, billId])
       }
+    } else {
+      navigate({ to: '/dashboard/bills/$billId', params: { billId } })
     }
   }
 
@@ -720,8 +723,8 @@ function BillsPage() {
                   key={bill.id}
                   variants={itemVariants}
                   onClick={() => handleItemClick(bill.id)}
-                  className={`p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition font-medium ${
-                    isBulkMode ? 'cursor-pointer hover:bg-slate-50/70' : 'hover:bg-slate-50/50'
+                  className={`p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition font-medium cursor-pointer ${
+                    isBulkMode ? 'hover:bg-slate-50/70' : 'hover:bg-slate-50/50'
                   } ${isSelected && isBulkMode ? 'bg-blue-50/30 border-l-4 border-l-blue-500 pl-3' : ''}`}
                 >
                   <div className="flex items-center gap-3">
@@ -786,7 +789,11 @@ function BillsPage() {
                       )}
 
                       <Button variant="ghost" size="sm" className="h-7 text-blue-600 font-bold text-xs rounded-lg hover:bg-blue-50" asChild>
-                        <Link to="/dashboard/bills/$billId" params={{ billId: bill.id }}>
+                        <Link 
+                          to="/dashboard/bills/$billId" 
+                          params={{ billId: bill.id }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           Detail <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
                         </Link>
                       </Button>

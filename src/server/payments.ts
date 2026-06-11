@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { eq, and, sql, inArray } from 'drizzle-orm'
+import { eq, and, sql, inArray, desc } from 'drizzle-orm'
 import { db } from '../db'
 import { payments, bills, tenants, units, properties } from '../db/schema'
 import { auth } from './auth'

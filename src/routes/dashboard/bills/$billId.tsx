@@ -201,6 +201,8 @@ function BillDetailPage() {
         })
       })
 
+      const contentFontSize = 9.5
+
       rows.forEach((r) => {
         if (rowY < 120) return // page overflow guard
         
@@ -270,8 +272,8 @@ function BillDetailPage() {
       const stampY = sigY - 50
       
       const stampColor = rgb(0.12, 0.35, 0.8) // Stamp Blue
-      page.drawCircle({ x: stampX, y: stampY, radius: 32, borderColor: stampColor, borderWidth: 1.5 })
-      page.drawCircle({ x: stampX, y: stampY, radius: 28, borderColor: stampColor, borderWidth: 0.6 })
+      page.drawCircle({ x: stampX, y: stampY, size: 32, borderColor: stampColor, borderWidth: 1.5 })
+      page.drawCircle({ x: stampX, y: stampY, size: 28, borderColor: stampColor, borderWidth: 0.6 })
       
       const drawStampText = (txt: string, offX: number, offY: number, sz = 5.5, bld = true) => {
         const used = bld ? fontBold : font
