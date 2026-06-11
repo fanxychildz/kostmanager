@@ -120,10 +120,10 @@ function PaymentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-5">
         <div>
-          <h1 className="text-2xl font-bold">Pembayaran</h1>
-          <p className="text-muted-foreground">Catat dan pantau pembayaran penghuni</p>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight leading-none">Pembayaran</h1>
+          <p className="text-xs text-slate-400 font-semibold mt-1">Catat dan pantau pembayaran penghuni</p>
         </div>
         <div className="flex items-center gap-2">
           {payments && payments.length > 0 && (
@@ -148,7 +148,9 @@ function PaymentsPage() {
 
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button><Plus className="mr-2 h-4 w-4" />Catat Pembayaran</Button>
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition">
+                <Plus className="mr-2 h-4 w-4" />Catat Pembayaran
+              </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
@@ -223,22 +225,37 @@ function PaymentsPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">Total Tercatat</p><p className="text-2xl font-bold text-success">{formatRupiah(totalAmount)}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">Jumlah Transaksi</p><p className="text-2xl font-bold">{payments?.length || 0}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">Rata-rata Pembayaran</p><p className="text-2xl font-bold">{formatRupiah(avgAmount)}</p></CardContent></Card>
+      <div className="grid gap-6 sm:grid-cols-3">
+        <Card className="bg-white border border-slate-200 shadow-xs p-5 rounded-2xl flex flex-col justify-between">
+          <div>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Total Tercatat</p>
+            <span className="text-2xl font-extrabold text-slate-900">{formatRupiah(totalAmount)}</span>
+          </div>
+        </Card>
+        <Card className="bg-white border border-slate-200 shadow-xs p-5 rounded-2xl flex flex-col justify-between">
+          <div>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Jumlah Transaksi</p>
+            <span className="text-2xl font-extrabold text-slate-900">{payments?.length || 0}</span>
+          </div>
+        </Card>
+        <Card className="bg-white border border-slate-200 shadow-xs p-5 rounded-2xl flex flex-col justify-between">
+          <div>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Rata-rata Pembayaran</p>
+            <span className="text-2xl font-extrabold text-slate-900">{formatRupiah(avgAmount)}</span>
+          </div>
+        </Card>
       </div>
 
       {payments && payments.length === 0 ? (
-        <Card>
+        <Card className="bg-white border border-slate-200 rounded-2xl shadow-xs">
           <CardContent className="p-12 text-center">
-            <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Belum ada pembayaran</h3>
-            <p className="text-muted-foreground">Catat pembayaran pertama Anda</p>
+            <CreditCard className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-slate-800 mb-2">Belum ada pembayaran</h3>
+            <p className="text-sm text-slate-400">Catat pembayaran pertama Anda</p>
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <Card className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
           <CardContent className="p-0">
             <Table>
               <TableHeader>
@@ -284,19 +301,27 @@ function PaymentsPage() {
                           />
                         </TableCell>
                       )}
-                      <TableCell className="text-sm">{formatDate(payment.paidAt)}</TableCell>
-                      <TableCell className="font-medium">{payment.tenantName || 'Unknown'}</TableCell>
-                      <TableCell>{payment.unitNumber || 'N/A'}</TableCell>
-                      <TableCell><Badge variant="outline">{methodLabels[payment.paymentMethod]}</Badge></TableCell>
-                      <TableCell className="font-medium text-success">{formatRupiah(payment.amount)}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{payment.notes || '-'}</TableCell>
-                      <TableCell><Badge variant={payment.status === 'recorded' ? 'success' : 'destructive'}>{payment.status === 'recorded' ? 'Tercatat' : 'Dibatalkan'}</Badge></TableCell>
+                      <TableCell className="text-slate-600 font-semibold">{formatDate(payment.paidAt)}</TableCell>
+                      <TableCell className="font-bold text-slate-800">{payment.tenantName || 'Unknown'}</TableCell>
+                      <TableCell className="font-bold text-slate-900">Unit {payment.unitNumber || 'N/A'}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="px-2 py-0.5 rounded-md font-extrabold text-[10px] uppercase border bg-slate-50/50 text-slate-700 border-slate-200">
+                          {methodLabels[payment.paymentMethod]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-extrabold text-emerald-600">{formatRupiah(payment.amount)}</TableCell>
+                      <TableCell className="text-slate-500 font-medium">{payment.notes || '-'}</TableCell>
+                      <TableCell>
+                        <Badge variant={payment.status === 'recorded' ? 'success' : 'destructive'} className="px-2 py-0.5 rounded-md font-extrabold text-[10px] uppercase border">
+                          {payment.status === 'recorded' ? 'Tercatat' : 'Dibatalkan'}
+                        </Badge>
+                      </TableCell>
                       {!isBulkMode && (
                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-lg cursor-pointer"
+                            className="h-8 w-8 text-slate-600 hover:text-rose-600 rounded-lg cursor-pointer"
                             onClick={() => handleDeletePayment(payment.id)}
                           >
                             <Trash2 className="h-4 w-4" />

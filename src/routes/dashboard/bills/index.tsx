@@ -250,16 +250,17 @@ function BillsPage() {
                       </Button>
 
                       {!isBulkMode && (
-                        <button
-                          type="button"
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={(e) => {
                             e.stopPropagation()
                             handleDeleteBill(bill.id)
                           }}
-                          className="h-7 px-2 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg text-xs font-bold transition cursor-pointer"
+                          className="h-8 w-8 text-slate-600 hover:text-rose-600 rounded-lg cursor-pointer"
                         >
-                          Hapus
-                        </button>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -284,14 +285,14 @@ function BillsPage() {
                   setSelectedIds(filteredBills.map((b: any) => b.id))
                 }
               }}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-semibold cursor-pointer transition border border-slate-700"
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-semibold cursor-pointer transition border border-slate-750 text-white"
             >
               {selectedIds.length === filteredBills.length ? 'Batal Pilih Semua' : 'Pilih Semua'}
             </button>
             <button
               disabled={selectedIds.length === 0 || deleting}
               onClick={handleBulkDelete}
-              className="px-4 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-red-800/40 disabled:text-red-300/60 disabled:cursor-not-allowed rounded-lg text-xs font-bold cursor-pointer transition flex items-center gap-1.5"
+              className="px-4 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-red-800/40 disabled:text-red-300/60 disabled:cursor-not-allowed rounded-lg text-xs font-bold cursor-pointer transition flex items-center gap-1.5 text-white"
             >
               {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Hapus Terpilih'}
             </button>
