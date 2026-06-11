@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, sql } from 'drizzle-orm'
 import { db } from '../db'
 import { properties, units } from '../db/schema'
 import { auth } from './auth'
@@ -11,23 +11,31 @@ export const listProperties = createServerFn({ method: 'GET' }).handler(async ()
   const session = await auth.api.getSession({ headers: request.headers })
   if (!session) throw new Error('Unauthorized')
 
-  const result = await db
-    .select()
-    .from(properties)
-    .where(eq(properties.ownerId, session.user.id))
-
-  const withCounts = await Promise.all(
-    result.map(async (prop) => {
-      const allUnits = await db.select().from(units).where(eq(units.propertyId, prop.id))
-      return {
-        ...prop,
-        totalUnits: allUnits.length,
-        occupiedUnits: allUnits.filter((u) => u.status === 'occupied').length,
-      }
+  const propertiesWithCounts = await db
+    .select({
+      id: properties.id,
+      ownerId: properties.ownerId,
+      name: properties.name,
+      address: properties.address,
+      city: properties.city,
+      province: properties.province,
+      type: properties.type,
+      image: properties.image,
+      createdAt: properties.createdAt,
+      updatedAt: properties.updatedAt,
+      totalUnits: sql<number>`count(${units.id})`,
+      occupiedUnits: sql<number>`sum(case when ${units.status} = 'occupied' then 1 else 0 end)`,
     })
-  )
+    .from(properties)
+    .leftJoin(units, eq(units.propertyId, properties.id))
+    .where(eq(properties.ownerId, session.user.id))
+    .groupBy(properties.id)
 
-  return withCounts
+  return propertiesWithCounts.map((row) => ({
+    ...row,
+    totalUnits: Number(row.totalUnits),
+    occupiedUnits: Number(row.occupiedUnits ?? 0),
+  }))
 })
 
 export const getProperty = createServerFn({ method: 'GET' })

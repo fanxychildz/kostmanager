@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, Printer, Download, Loader2, FileText } from 'lucide-react'
+import { ArrowLeft, Printer, Download, Loader2, FileText, Plus } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
 import { Badge } from '~/components/ui/badge'
@@ -7,7 +7,12 @@ import { Separator } from '~/components/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table'
 import { formatRupiah, formatDate } from '~/lib/utils'
 import { api } from '~/lib/api'
-import { useQuery } from '~/lib/hooks'
+import { useQuery, useMutation } from '~/lib/hooks'
+import { useState } from 'react'
+import { Label } from '~/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog'
+import { Input } from '~/components/ui/input'
 
 export const Route = createFileRoute('/dashboard/bills/$billId')({
   component: BillDetailPage,
@@ -42,6 +47,46 @@ function BillDetailPage() {
     .filter((p: any) => p.status === 'recorded')
     .reduce((sum: number, p: any) => sum + p.amount, 0)
   const remaining = Math.max(0, bill.totalAmount - totalPayments)
+
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false)
+  const [paymentFormData, setPaymentFormData] = useState({
+    paymentMethod: 'bank_transfer',
+    amount: '',
+    paidAt: new Date().toISOString().split('T')[0],
+    notes: '',
+  })
+
+  const { mutate: createPayment, loading: creatingPayment } = useMutation({
+    mutationFn: (data: any) => api.payments.create(data),
+    onSuccess: () => {
+      setPaymentDialogOpen(false)
+      refetch()
+    },
+    onError: (err) => {
+      alert('Gagal mencatat pembayaran: ' + err)
+    }
+  })
+
+  const handleOpenPaymentDialog = () => {
+    setPaymentFormData({
+      paymentMethod: 'bank_transfer',
+      amount: remaining.toString(),
+      paidAt: new Date().toISOString().split('T')[0],
+      notes: '',
+    })
+    setPaymentDialogOpen(true)
+  }
+
+  const handlePaymentSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    createPayment({
+      billId: bill.id,
+      paymentMethod: paymentFormData.paymentMethod,
+      amount: parseInt(paymentFormData.amount),
+      paidAt: paymentFormData.paidAt,
+      notes: paymentFormData.notes || undefined,
+    })
+  }
 
   const handlePrint = () => {
     window.print()
@@ -149,6 +194,11 @@ function BillDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
+          {bill.status !== 'paid' && (
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition h-9 animate-pulse" onClick={handleOpenPaymentDialog}>
+              <Plus className="mr-1.5 h-4 w-4" /> Approve & Catat Bayar
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={handlePrint}>
             <Printer className="mr-2 h-4 w-4" />
             Cetak
@@ -272,6 +322,81 @@ function BillDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Catat Pembayaran Dialog */}
+      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-slate-900">Approve & Catat Pembayaran</DialogTitle>
+            <DialogDescription className="text-xs text-slate-550">
+              Catat transaksi pembayaran untuk tagihan sewa ini agar status berubah menjadi Lunas.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handlePaymentSubmit} className="space-y-4 mt-2">
+            <div className="grid gap-4 grid-cols-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">Metode Bayar</Label>
+                <Select 
+                  value={paymentFormData.paymentMethod} 
+                  onValueChange={(value) => setPaymentFormData({ ...paymentFormData, paymentMethod: value })}
+                >
+                  <SelectTrigger className="bg-white border-slate-200 rounded-xl text-xs font-semibold text-slate-850">
+                    <SelectValue placeholder="Pilih metode" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="bank_transfer" className="text-xs font-semibold cursor-pointer">Transfer Bank</SelectItem>
+                    <SelectItem value="qris_manual" className="text-xs font-semibold cursor-pointer">QRIS</SelectItem>
+                    <SelectItem value="cash" className="text-xs font-semibold cursor-pointer">Cash</SelectItem>
+                    <SelectItem value="other" className="text-xs font-semibold cursor-pointer">Lainnya</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">Jumlah Bayar (Rp)</Label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={paymentFormData.amount}
+                  onChange={(e) => setPaymentFormData({ ...paymentFormData, amount: e.target.value })}
+                  className="bg-white border-slate-200 rounded-xl text-xs font-semibold"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700">Tanggal Bayar</Label>
+              <Input
+                type="date"
+                value={paymentFormData.paidAt}
+                onChange={(e) => setPaymentFormData({ ...paymentFormData, paidAt: e.target.value })}
+                className="bg-white border-slate-200 rounded-xl text-xs font-semibold"
+                required
+              />
+            </div>
+            
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700">Catatan (opsional)</Label>
+              <Input
+                placeholder="Contoh: Transfer BCA a.n. Rania"
+                value={paymentFormData.notes}
+                onChange={(e) => setPaymentFormData({ ...paymentFormData, notes: e.target.value })}
+                className="bg-white border-slate-200 rounded-xl text-xs font-semibold"
+              />
+            </div>
+            
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" onClick={() => setPaymentDialogOpen(false)} className="rounded-xl text-xs font-semibold">
+                Batal
+              </Button>
+              <Button type="submit" disabled={creatingPayment} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold">
+                {creatingPayment && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Simpan Pembayaran
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

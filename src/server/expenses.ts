@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { eq, and, inArray } from 'drizzle-orm'
+import { eq, and, inArray, desc } from 'drizzle-orm'
 import { db } from '../db'
 import { expenses, properties } from '../db/schema'
 import { auth } from './auth'
@@ -18,20 +18,27 @@ async function requireOwnerProperties(headers: Headers) {
   return { session, propertyIds: ownerProps.map((p) => p.id) }
 }
 
-export const listExpenses = createServerFn({ method: 'GET' }).handler(async () => {
-  const request = getRequest()
-  const { propertyIds } = await requireOwnerProperties(request.headers)
+export const listExpenses = createServerFn({ method: 'GET' })
+  .inputValidator((d: { propertyId?: string } | undefined) => d)
+  .handler(async ({ data }) => {
+    const request = getRequest()
+    const { propertyIds: ownerPropertyIds } = await requireOwnerProperties(request.headers)
 
-  if (propertyIds.length === 0) return []
+    if (ownerPropertyIds.length === 0) return []
+    const propertyId = data?.propertyId
+    if (propertyId && !ownerPropertyIds.includes(propertyId)) return []
 
-  const result = await db
-    .select()
-    .from(expenses)
-    .where(inArray(expenses.propertyId, propertyIds))
-    .orderBy(expenses.date)
-
-  return result
-})
+    return db
+      .select()
+      .from(expenses)
+      .where(
+        propertyId
+          ? eq(expenses.propertyId, propertyId)
+          : inArray(expenses.propertyId, ownerPropertyIds)
+      )
+      .orderBy(desc(expenses.date))
+      .limit(200)
+  })
 
 export const createExpense = createServerFn({ method: 'POST' })
   .inputValidator(

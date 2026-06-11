@@ -1,44 +1,58 @@
 import { createServerFn } from '@tanstack/react-start'
-import { eq, and, inArray } from 'drizzle-orm'
+import { eq, and, inArray, desc, sql } from 'drizzle-orm'
 import { db } from '../db'
 import { bills, tenants, units, properties } from '../db/schema'
 import { auth } from './auth'
 import { nanoid } from 'nanoid'
 import { getRequest } from '@tanstack/react-start/server'
 
-export const listBills = createServerFn({ method: 'GET' }).handler(async () => {
-  const request = getRequest()
-  const session = await auth.api.getSession({ headers: request.headers })
-  if (!session) throw new Error('Unauthorized')
+export const listBills = createServerFn({ method: 'GET' })
+  .inputValidator((d: { status?: string; unitId?: string } | undefined) => d)
+  .handler(async ({ data }) => {
+    const request = getRequest()
+    const session = await auth.api.getSession({ headers: request.headers })
+    if (!session) throw new Error('Unauthorized')
 
-  const ownerProperties = await db
-    .select()
-    .from(properties)
-    .where(eq(properties.ownerId, session.user.id))
+    const ownerProperties = await db
+      .select()
+      .from(properties)
+      .where(eq(properties.ownerId, session.user.id))
+    const propertyIds = ownerProperties.map((p) => p.id)
+    if (propertyIds.length === 0) return []
 
-  const propertyIds = ownerProperties.map((p) => p.id)
+    const conditions = [inArray(tenants.propertyId, propertyIds)]
+    if (data?.status) conditions.push(eq(bills.status, data.status as any))
+    if (data?.unitId) conditions.push(eq(bills.unitId, data.unitId))
 
-  const allBills = await db.select().from(bills)
-  const allTenants = await db.select().from(tenants)
-  const allUnits = await db.select().from(units)
+    const rows = await db
+      .select({
+        id: bills.id,
+        tenantId: bills.tenantId,
+        unitId: bills.unitId,
+        periodMonth: bills.periodMonth,
+        periodYear: bills.periodYear,
+        rentAmount: bills.rentAmount,
+        electricityAmount: bills.electricityAmount,
+        waterAmount: bills.waterAmount,
+        wifiAmount: bills.wifiAmount,
+        otherAmount: bills.otherAmount,
+        totalAmount: bills.totalAmount,
+        dueDate: bills.dueDate,
+        status: bills.status,
+        createdAt: bills.createdAt,
+        updatedAt: bills.updatedAt,
+        tenantName: tenants.fullName,
+        unitNumber: units.unitNumber,
+      })
+      .from(bills)
+      .innerJoin(tenants, eq(tenants.id, bills.tenantId))
+      .leftJoin(units, eq(units.id, bills.unitId))
+      .where(and(...conditions))
+      .orderBy(desc(bills.dueDate))
+      .limit(200)
 
-  const filtered = allBills
-    .filter((b) => {
-      const tenant = allTenants.find((t) => t.id === b.tenantId)
-      return tenant && propertyIds.includes(tenant.propertyId)
-    })
-    .map((b) => {
-      const tenant = allTenants.find((t) => t.id === b.tenantId)
-      const unit = allUnits.find((u) => u.id === b.unitId)
-      return {
-        ...b,
-        tenantName: tenant?.fullName,
-        unitNumber: unit?.unitNumber,
-      }
-    })
-
-  return filtered
-})
+    return rows
+  })
 
 export const getBill = createServerFn({ method: 'GET' })
   .inputValidator((d: { id: string }) => d)
