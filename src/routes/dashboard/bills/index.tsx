@@ -1,17 +1,44 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Search, Loader2, FileText, Plus, ChevronRight, Trash2 } from 'lucide-react'
+import { Search, Loader2, FileText, Plus, ChevronRight, Trash2, Edit3 } from 'lucide-react'
 import { useState } from 'react'
 import { Card, CardContent } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
+import { Label } from '~/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog'
 import { formatRupiah, formatDate } from '~/lib/utils'
 import { api } from '~/lib/api'
-import { useQuery } from '~/lib/hooks'
+import { useQuery, useMutation } from '~/lib/hooks'
 import { motion } from 'motion/react'
 
 export const Route = createFileRoute('/dashboard/bills/')({
   component: BillsPage,
 })
+
+const MONTHS = [
+  { value: '1', label: 'Januari' },
+  { value: '2', label: 'Februari' },
+  { value: '3', label: 'Maret' },
+  { value: '4', label: 'April' },
+  { value: '5', label: 'Mei' },
+  { value: '6', label: 'Juni' },
+  { value: '7', label: 'Juli' },
+  { value: '8', label: 'Agustus' },
+  { value: '9', label: 'September' },
+  { value: '10', label: 'Oktober' },
+  { value: '11', label: 'November' },
+  { value: '12', label: 'Desember' },
+]
+
+const toInputDateString = (dateInput: Date | string | number) => {
+  const d = new Date(dateInput)
+  if (isNaN(d.getTime())) return ''
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
 
 function BillsPage() {
   const [filter, setFilter] = useState<'all' | 'pending' | 'paid' | 'overdue'>('all')
@@ -20,9 +47,174 @@ function BillsPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [deleting, setDeleting] = useState(false)
 
-  const { data: bills, loading, error, refetch } = useQuery({
+  // Dialog states
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editingBillId, setEditingBillId] = useState<string | null>(null)
+
+  // Queries
+  const { data: bills, loading: loadingBills, error, refetch } = useQuery({
     queryFn: () => api.bills.list(),
   })
+
+  const { data: tenantsList } = useQuery({
+    queryFn: () => api.tenants.list(),
+  })
+
+  const { data: unitsList } = useQuery({
+    queryFn: () => api.units.list(),
+  })
+
+  // Create Form State
+  const [createFormData, setCreateFormData] = useState({
+    tenantId: '',
+    unitId: '',
+    periodMonth: (new Date().getMonth() + 1).toString(),
+    periodYear: new Date().getFullYear().toString(),
+    rentAmount: '0',
+    electricityAmount: '0',
+    waterAmount: '0',
+    wifiAmount: '0',
+    otherAmount: '0',
+    dueDate: (() => {
+      const date = new Date()
+      date.setDate(date.getDate() + 7)
+      return toInputDateString(date)
+    })(),
+  })
+
+  // Edit Form State
+  const [editFormData, setEditFormData] = useState({
+    tenantName: '',
+    unitNumber: '',
+    periodMonth: '',
+    periodYear: '',
+    rentAmount: '0',
+    electricityAmount: '0',
+    waterAmount: '0',
+    wifiAmount: '0',
+    otherAmount: '0',
+    dueDate: '',
+    status: 'pending',
+  })
+
+  // Mutations
+  const { mutate: createBill, loading: creating } = useMutation({
+    mutationFn: (data: any) => api.bills.create(data),
+    onSuccess: () => {
+      setCreateDialogOpen(false)
+      resetCreateForm()
+      refetch()
+    },
+    onError: (err) => {
+      alert('Gagal membuat tagihan: ' + err)
+    },
+  })
+
+  const { mutate: updateBill, loading: updating } = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => api.bills.update(id, data),
+    onSuccess: () => {
+      setEditDialogOpen(false)
+      setEditingBillId(null)
+      refetch()
+    },
+    onError: (err) => {
+      alert('Gagal memperbarui tagihan: ' + err)
+    },
+  })
+
+  const activeTenants = tenantsList?.filter((t: any) => t.status === 'active') || []
+
+  const resetCreateForm = () => {
+    setCreateFormData({
+      tenantId: '',
+      unitId: '',
+      periodMonth: (new Date().getMonth() + 1).toString(),
+      periodYear: new Date().getFullYear().toString(),
+      rentAmount: '0',
+      electricityAmount: '0',
+      waterAmount: '0',
+      wifiAmount: '0',
+      otherAmount: '0',
+      dueDate: (() => {
+        const date = new Date()
+        date.setDate(date.getDate() + 7)
+        return toInputDateString(date)
+      })(),
+    })
+  }
+
+  const handleTenantSelect = (tenantId: string) => {
+    const tenant = tenantsList?.find((t: any) => t.id === tenantId)
+    if (!tenant) return
+
+    const unit = unitsList?.find((u: any) => u.id === tenant.unitId)
+    const rentVal = unit ? unit.priceMonthly.toString() : '0'
+
+    setCreateFormData((prev) => ({
+      ...prev,
+      tenantId,
+      unitId: tenant.unitId,
+      rentAmount: rentVal,
+    }))
+  }
+
+  const handleOpenEdit = (bill: any) => {
+    setEditingBillId(bill.id)
+    setEditFormData({
+      tenantName: bill.tenantName || 'Penghuni Kost',
+      unitNumber: bill.unitNumber || 'Kamar',
+      periodMonth: bill.periodMonth.toString(),
+      periodYear: bill.periodYear.toString(),
+      rentAmount: bill.rentAmount.toString(),
+      electricityAmount: bill.electricityAmount.toString(),
+      waterAmount: bill.waterAmount.toString(),
+      wifiAmount: bill.wifiAmount.toString(),
+      otherAmount: bill.otherAmount.toString(),
+      dueDate: toInputDateString(bill.dueDate),
+      status: bill.status,
+    })
+    setEditDialogOpen(true)
+  }
+
+  const handleCreateSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!createFormData.tenantId) {
+      alert('Silakan pilih penghuni terlebih dahulu.')
+      return
+    }
+
+    createBill({
+      tenantId: createFormData.tenantId,
+      unitId: createFormData.unitId,
+      periodMonth: parseInt(createFormData.periodMonth),
+      periodYear: parseInt(createFormData.periodYear),
+      rentAmount: parseInt(createFormData.rentAmount || '0'),
+      electricityAmount: parseInt(createFormData.electricityAmount || '0'),
+      waterAmount: parseInt(createFormData.waterAmount || '0'),
+      wifiAmount: parseInt(createFormData.wifiAmount || '0'),
+      otherAmount: parseInt(createFormData.otherAmount || '0'),
+      dueDate: createFormData.dueDate,
+    })
+  }
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingBillId) return
+
+    updateBill({
+      id: editingBillId,
+      data: {
+        rentAmount: parseInt(editFormData.rentAmount || '0'),
+        electricityAmount: parseInt(editFormData.electricityAmount || '0'),
+        waterAmount: parseInt(editFormData.waterAmount || '0'),
+        wifiAmount: parseInt(editFormData.wifiAmount || '0'),
+        otherAmount: parseInt(editFormData.otherAmount || '0'),
+        dueDate: editFormData.dueDate,
+        status: editFormData.status,
+      },
+    })
+  }
 
   const handleItemClick = (billId: string) => {
     if (isBulkMode) {
@@ -60,7 +252,28 @@ function BillsPage() {
     }
   }
 
-  if (loading) {
+  const createTotalAmount = 
+    parseInt(createFormData.rentAmount || '0') +
+    parseInt(createFormData.electricityAmount || '0') +
+    parseInt(createFormData.waterAmount || '0') +
+    parseInt(createFormData.wifiAmount || '0') +
+    parseInt(createFormData.otherAmount || '0')
+
+  const editTotalAmount = 
+    parseInt(editFormData.rentAmount || '0') +
+    parseInt(editFormData.electricityAmount || '0') +
+    parseInt(editFormData.waterAmount || '0') +
+    parseInt(editFormData.wifiAmount || '0') +
+    parseInt(editFormData.otherAmount || '0')
+
+  const currentYear = new Date().getFullYear()
+  const YEARS = [
+    (currentYear - 1).toString(),
+    currentYear.toString(),
+    (currentYear + 1).toString(),
+  ]
+
+  if (loadingBills) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -103,25 +316,37 @@ function BillsPage() {
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight leading-none">Buku Keuangan & Tagihan</h1>
           <p className="text-xs text-slate-400 font-semibold mt-1">Pantau pembayaran sewa bulanan dan status penagihan unit.</p>
         </div>
-        {bills && bills.length > 0 && (
-          <Button
-            variant={isBulkMode ? "outline" : "destructive"}
+        <div className="flex items-center gap-2">
+          {bills && bills.length > 0 && (
+            <Button
+              variant={isBulkMode ? "outline" : "destructive"}
+              onClick={() => {
+                setIsBulkMode(!isBulkMode)
+                setSelectedIds([])
+              }}
+              className="rounded-xl font-bold text-xs h-9"
+            >
+              {isBulkMode ? (
+                'Batal'
+              ) : (
+                <>
+                  <Trash2 className="mr-1.5 h-4 w-4" />
+                  Delete
+                </>
+              )}
+            </Button>
+          )}
+
+          <Button 
             onClick={() => {
-              setIsBulkMode(!isBulkMode)
-              setSelectedIds([])
+              resetCreateForm()
+              setCreateDialogOpen(true)
             }}
-            className="rounded-xl font-bold text-xs h-9"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition h-9"
           >
-            {isBulkMode ? (
-              'Batal'
-            ) : (
-              <>
-                <Trash2 className="mr-1.5 h-4 w-4" />
-                Delete
-              </>
-            )}
+            <Plus className="mr-1.5 h-4 w-4" />Buat Tagihan
           </Button>
-        )}
+        </div>
       </div>
 
       {/* Filter Options */}
@@ -160,6 +385,309 @@ function BillsPage() {
         </div>
       </div>
 
+      {/* Create Bill Dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="sm:max-w-[450px] rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-slate-900">Buat Tagihan Baru</DialogTitle>
+            <DialogDescription className="text-xs text-slate-550">
+              Pilih penghuni kost aktif dan masukkan rincian tagihan bulanan mereka.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateSubmit} className="space-y-4 mt-2">
+            {/* Select Tenant */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700">Pilih Penghuni Kost</Label>
+              <Select value={createFormData.tenantId} onValueChange={handleTenantSelect}>
+                <SelectTrigger className="w-full bg-white border-slate-200 rounded-xl text-xs font-semibold text-slate-800">
+                  <SelectValue placeholder="Pilih penghuni aktif..." />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  {activeTenants.length === 0 ? (
+                    <div className="p-3 text-center text-slate-400 text-xs font-semibold">Tidak ada penghuni aktif</div>
+                  ) : (
+                    activeTenants.map((t: any) => {
+                      const u = unitsList?.find((unit: any) => unit.id === t.unitId)
+                      return (
+                        <SelectItem key={t.id} value={t.id} className="text-xs font-semibold rounded-lg cursor-pointer">
+                          {t.fullName} (Unit {u?.unitNumber || 'Kamar'})
+                        </SelectItem>
+                      )
+                    })
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Period Month & Year */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">Bulan Periode</Label>
+                <Select
+                  value={createFormData.periodMonth}
+                  onValueChange={(val) => setCreateFormData({ ...createFormData, periodMonth: val })}
+                >
+                  <SelectTrigger className="bg-white border-slate-200 rounded-xl text-xs font-semibold text-slate-850">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    {MONTHS.map((m) => (
+                      <SelectItem key={m.value} value={m.value} className="text-xs font-semibold cursor-pointer">
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">Tahun Periode</Label>
+                <Select
+                  value={createFormData.periodYear}
+                  onValueChange={(val) => setCreateFormData({ ...createFormData, periodYear: val })}
+                >
+                  <SelectTrigger className="bg-white border-slate-200 rounded-xl text-xs font-semibold text-slate-850">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    {YEARS.map((y) => (
+                      <SelectItem key={y} value={y} className="text-xs font-semibold cursor-pointer">
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Rent Amount */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700">Biaya Sewa Kamar (Rp)</Label>
+              <Input
+                type="number"
+                placeholder="0"
+                value={createFormData.rentAmount}
+                onChange={(e) => setCreateFormData({ ...createFormData, rentAmount: e.target.value })}
+                className="bg-white border-slate-200 rounded-xl text-xs font-semibold"
+                required
+              />
+            </div>
+
+            {/* Utilities Grid */}
+            <div className="grid grid-cols-2 gap-3 border-t border-dashed border-slate-100 pt-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">Biaya Listrik (Rp)</Label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={createFormData.electricityAmount}
+                  onChange={(e) => setCreateFormData({ ...createFormData, electricityAmount: e.target.value })}
+                  className="bg-white border-slate-200 rounded-xl text-xs font-semibold"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">Biaya Air (Rp)</Label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={createFormData.waterAmount}
+                  onChange={(e) => setCreateFormData({ ...createFormData, waterAmount: e.target.value })}
+                  className="bg-white border-slate-200 rounded-xl text-xs font-semibold"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pb-3 border-b border-dashed border-slate-100">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">Biaya WiFi (Rp)</Label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={createFormData.wifiAmount}
+                  onChange={(e) => setCreateFormData({ ...createFormData, wifiAmount: e.target.value })}
+                  className="bg-white border-slate-200 rounded-xl text-xs font-semibold"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">Lain-lain (Rp)</Label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={createFormData.otherAmount}
+                  onChange={(e) => setCreateFormData({ ...createFormData, otherAmount: e.target.value })}
+                  className="bg-white border-slate-200 rounded-xl text-xs font-semibold"
+                />
+              </div>
+            </div>
+
+            {/* Due Date */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700">Tanggal Jatuh Tempo</Label>
+              <Input
+                type="date"
+                value={createFormData.dueDate}
+                onChange={(e) => setCreateFormData({ ...createFormData, dueDate: e.target.value })}
+                className="bg-white border-slate-200 rounded-xl text-xs font-semibold"
+                required
+              />
+            </div>
+
+            {/* Computed Total Display */}
+            <div className="bg-slate-50 border border-slate-100 rounded-xl p-3.5 flex items-center justify-between text-xs">
+              <span className="font-bold text-slate-500 uppercase tracking-wider">Total Tagihan</span>
+              <strong className="font-black text-sm text-slate-900">{formatRupiah(createTotalAmount)}</strong>
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)} className="rounded-xl text-xs font-semibold">
+                Batal
+              </Button>
+              <Button type="submit" disabled={creating} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold">
+                {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Buat Tagihan
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Bill Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-[450px] rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-slate-900">Edit Rincian Tagihan</DialogTitle>
+            <DialogDescription className="text-xs text-slate-550">
+              Perbarui rincian biaya sewa, utilitas, tanggal jatuh tempo, atau status pembayaran tagihan ini.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4 mt-2">
+            {/* Info Tenant & Unit (Read-only) */}
+            <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 flex justify-between text-xs font-semibold text-slate-700">
+              <div>
+                <span className="text-slate-400 block text-[9px] uppercase font-bold">Penyewa</span>
+                <span className="text-slate-800 font-extrabold">{editFormData.tenantName}</span>
+              </div>
+              <div className="text-center">
+                <span className="text-slate-400 block text-[9px] uppercase font-bold">Unit</span>
+                <span className="text-slate-800 font-extrabold">Kamar {editFormData.unitNumber}</span>
+              </div>
+              <div className="text-right">
+                <span className="text-slate-400 block text-[9px] uppercase font-bold">Periode</span>
+                <span className="text-slate-800 font-extrabold">{editFormData.periodMonth}/{editFormData.periodYear}</span>
+              </div>
+            </div>
+
+            {/* Rent Amount */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700">Biaya Sewa Kamar (Rp)</Label>
+              <Input
+                type="number"
+                placeholder="0"
+                value={editFormData.rentAmount}
+                onChange={(e) => setEditFormData({ ...editFormData, rentAmount: e.target.value })}
+                className="bg-white border-slate-200 rounded-xl text-xs font-semibold"
+                required
+              />
+            </div>
+
+            {/* Utilities Grid */}
+            <div className="grid grid-cols-2 gap-3 border-t border-dashed border-slate-100 pt-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">Biaya Listrik (Rp)</Label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={editFormData.electricityAmount}
+                  onChange={(e) => setEditFormData({ ...editFormData, electricityAmount: e.target.value })}
+                  className="bg-white border-slate-200 rounded-xl text-xs font-semibold"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">Biaya Air (Rp)</Label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={editFormData.waterAmount}
+                  onChange={(e) => setEditFormData({ ...editFormData, waterAmount: e.target.value })}
+                  className="bg-white border-slate-200 rounded-xl text-xs font-semibold"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pb-3 border-b border-dashed border-slate-100">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">Biaya WiFi (Rp)</Label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={editFormData.wifiAmount}
+                  onChange={(e) => setEditFormData({ ...editFormData, wifiAmount: e.target.value })}
+                  className="bg-white border-slate-200 rounded-xl text-xs font-semibold"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">Lain-lain (Rp)</Label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={editFormData.otherAmount}
+                  onChange={(e) => setEditFormData({ ...editFormData, otherAmount: e.target.value })}
+                  className="bg-white border-slate-200 rounded-xl text-xs font-semibold"
+                />
+              </div>
+            </div>
+
+            {/* Due Date & Status */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">Jatuh Tempo</Label>
+                <Input
+                  type="date"
+                  value={editFormData.dueDate}
+                  onChange={(e) => setEditFormData({ ...editFormData, dueDate: e.target.value })}
+                  className="bg-white border-slate-200 rounded-xl text-xs font-semibold"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">Status Pembayaran</Label>
+                <Select
+                  value={editFormData.status}
+                  onValueChange={(val) => setEditFormData({ ...editFormData, status: val })}
+                >
+                  <SelectTrigger className="bg-white border-slate-200 rounded-xl text-xs font-semibold text-slate-850">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="pending" className="text-xs font-semibold cursor-pointer">Belum Dibayar</SelectItem>
+                    <SelectItem value="paid" className="text-xs font-semibold cursor-pointer">Lunas</SelectItem>
+                    <SelectItem value="overdue" className="text-xs font-semibold cursor-pointer">Jatuh Tempo</SelectItem>
+                    <SelectItem value="partial" className="text-xs font-semibold cursor-pointer">Dibayar Sebagian</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Computed Total Display */}
+            <div className="bg-slate-50 border border-slate-100 rounded-xl p-3.5 flex items-center justify-between text-xs">
+              <span className="font-bold text-slate-500 uppercase tracking-wider">Total Tagihan</span>
+              <strong className="font-black text-sm text-slate-900">{formatRupiah(editTotalAmount)}</strong>
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)} className="rounded-xl text-xs font-semibold">
+                Batal
+              </Button>
+              <Button type="submit" disabled={updating} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold">
+                {updating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Simpan Perubahan
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Bills list */}
       {!bills || bills.length === 0 ? (
         <Card className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-xs">
@@ -168,7 +696,7 @@ function BillsPage() {
               <FileText className="h-6 w-6 text-slate-500" />
             </div>
             <h3 className="text-sm font-bold text-slate-900 mb-1">Belum ada tagihan</h3>
-            <p className="text-xs text-slate-450 mb-4 font-medium">Tagihan bulanan akan terbuat secara otomatis saat kontrak penghuni aktif.</p>
+            <p className="text-xs text-slate-450 mb-4 font-medium">Buat tagihan pertama secara manual menggunakan tombol di atas.</p>
           </CardContent>
         </Card>
       ) : (
@@ -242,6 +770,20 @@ function BillsPage() {
                         {bill.status === 'paid' ? 'Lunas' :
                          bill.status === 'overdue' ? 'Jatuh Tempo' : 'Belum Dibayar'}
                       </span>
+
+                      {!isBulkMode && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleOpenEdit(bill)
+                          }}
+                          className="h-8 w-8 text-slate-600 hover:text-blue-600 rounded-lg cursor-pointer"
+                        >
+                          <Edit3 className="h-4 w-4" />
+                        </Button>
+                      )}
 
                       <Button variant="ghost" size="sm" className="h-7 text-blue-600 font-bold text-xs rounded-lg hover:bg-blue-50" asChild>
                         <Link to="/dashboard/bills/$billId" params={{ billId: bill.id }}>
