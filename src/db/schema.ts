@@ -183,3 +183,15 @@ export const maintenanceUpdates = sqliteTable('maintenance_updates', {
   text: text('text').notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 })
+
+export const announcements = sqliteTable('announcements', {
+  id: text('id').primaryKey(),
+  propertyId: text('property_id').notNull().references(() => properties.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  body: text('body').notNull(),
+  channel: text('channel', { enum: ['owner', 'tenant', 'all'] }).notNull().default('all'),
+  audience: text('audience', { enum: ['all', 'property', 'unit', 'tenant'] }).notNull().default('property'),
+  targetTenantId: text('target_tenant_id'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+})

@@ -164,6 +164,10 @@ function PortalDashboard() {
   const unit = profile?.unit
   const property = profile?.property
 
+  const chatListRef = useRef<HTMLDivElement>(null)
+  const prevMessagesLengthRef = useRef(0)
+  const prevActiveTabRef = useRef(activeTab)
+
   useEffect(() => {
     if (!tenant?.id) return
     let cancelled = false
@@ -177,6 +181,33 @@ function PortalDashboard() {
       cancelled = true
     }
   }, [tenant?.id])
+
+  // Polling for incoming chat messages
+  useEffect(() => {
+    if (!tenant?.id || activeTab !== 'chat') return
+
+    const interval = setInterval(async () => {
+      const chat = await loadMessages()
+      setMessages(chat)
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [tenant?.id, activeTab])
+
+  // Auto-scroll chat container
+  useEffect(() => {
+    const isNewTab = activeTab === 'chat' && prevActiveTabRef.current !== 'chat'
+    const hasNewMessages = messages.length > prevMessagesLengthRef.current
+
+    if (isNewTab || (activeTab === 'chat' && hasNewMessages)) {
+      setTimeout(() => {
+        chatListRef.current?.scrollTo({ top: chatListRef.current.scrollHeight, behavior: 'smooth' })
+      }, 50)
+    }
+
+    prevMessagesLengthRef.current = messages.length
+    prevActiveTabRef.current = activeTab
+  }, [messages, activeTab])
 
   if (loadingProfile || loadingBills) {
     return (
@@ -630,7 +661,7 @@ function PortalDashboard() {
               </div>
 
               {/* Chat messages */}
-              <div className="flex-1 p-4 overflow-y-auto space-y-4 max-h-[300px]">
+              <div ref={chatListRef} className="flex-1 p-4 overflow-y-auto space-y-4 max-h-[300px]">
                 {myMessages.length === 0 ? (
                   <div className="text-center py-16 text-slate-400 text-xs font-semibold">Belum ada percakapan. Kirim pesan salam untuk menghubungi pemilik kost.</div>
                 ) : (

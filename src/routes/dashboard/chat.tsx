@@ -56,9 +56,31 @@ function ChatPage() {
     }
   }, [selectedTenantId])
 
+  const prevTenantIdRef = useRef(selectedTenantId)
+  const prevMessagesLengthRef = useRef(0)
+
   useEffect(() => {
-    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
-  }, [messages])
+    const isNewTenant = selectedTenantId !== prevTenantIdRef.current
+    const hasNewMessages = messages.length > prevMessagesLengthRef.current
+
+    if (isNewTenant || hasNewMessages) {
+      listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
+    }
+
+    prevTenantIdRef.current = selectedTenantId
+    prevMessagesLengthRef.current = messages.length
+  }, [messages, selectedTenantId])
+
+  // Polling for incoming chat messages
+  useEffect(() => {
+    if (!selectedTenantId) return
+
+    const interval = setInterval(() => {
+      loadMessages(selectedTenantId)
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [selectedTenantId])
 
   const sendMessage = async (message: string, sender: Sender) => {
     if (!selectedTenantId || !message.trim()) return
