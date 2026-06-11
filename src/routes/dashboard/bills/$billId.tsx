@@ -22,8 +22,8 @@ function BillDetailPage() {
   const { billId } = Route.useParams()
   const navigate = useNavigate()
 
-  const { data: billPage, loading, error, refetch } = useQuery({
-    queryFn: async () => api.payments.getPaymentsByBill({ billId } as any),
+  const { data: detail, loading, error, refetch } = useQuery({
+    queryFn: async () => api.payments.getPaymentsByBill({ billId }),
     deps: [billId],
   })
 
@@ -35,7 +35,7 @@ function BillDetailPage() {
     )
   }
 
-  if (error || !billPage) {
+  if (error || !detail || !detail.bill) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <p className="text-destructive">Tagihan tidak ditemukan{error ? `: ${error}` : ''}</p>
@@ -43,7 +43,7 @@ function BillDetailPage() {
     )
   }
 
-  const { bill, property, tenant, unit, payments } = billPage as any
+  const { bill, property, tenant, unit, payments } = detail
   const totalPayments = (payments || [])
     .filter((p: any) => p.status === 'recorded')
     .reduce((sum: number, p: any) => sum + p.amount, 0)
