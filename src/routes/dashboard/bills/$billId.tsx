@@ -1,5 +1,6 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, Printer, Download, Loader2, FileText, Plus } from 'lucide-react'
+"use client"
+
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
 import { Badge } from '~/components/ui/badge'
@@ -27,6 +28,25 @@ function BillDetailPage() {
     deps: [billId],
   })
 
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false)
+  const [paymentFormData, setPaymentFormData] = useState({
+    paymentMethod: 'bank_transfer',
+    amount: '',
+    paidAt: new Date().toISOString().split('T')[0],
+    notes: '',
+  })
+
+  const { mutate: createPayment, loading: creatingPayment } = useMutation({
+    mutationFn: (data: any) => api.payments.create(data),
+    onSuccess: () => {
+      setPaymentDialogOpen(false)
+      refetch()
+    },
+    onError: (err) => {
+      alert('Gagal mencatat pembayaran: ' + err)
+    }
+  })
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -48,25 +68,6 @@ function BillDetailPage() {
     .filter((p: any) => p.status === 'recorded')
     .reduce((sum: number, p: any) => sum + p.amount, 0)
   const remaining = Math.max(0, bill.totalAmount - totalPayments)
-
-  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false)
-  const [paymentFormData, setPaymentFormData] = useState({
-    paymentMethod: 'bank_transfer',
-    amount: '',
-    paidAt: new Date().toISOString().split('T')[0],
-    notes: '',
-  })
-
-  const { mutate: createPayment, loading: creatingPayment } = useMutation({
-    mutationFn: (data: any) => api.payments.create(data),
-    onSuccess: () => {
-      setPaymentDialogOpen(false)
-      refetch()
-    },
-    onError: (err) => {
-      alert('Gagal mencatat pembayaran: ' + err)
-    }
-  })
 
   const handleOpenPaymentDialog = () => {
     setPaymentFormData({
