@@ -345,20 +345,20 @@ function PortalDashboard() {
       {/* Sidebar Profile details & Tabs selector */}
       <aside className="lg:col-span-1 space-y-5">
         {/* Profile details summary card */}
-        <div className="bg-slate-900 border border-slate-800 text-white p-5 rounded-2xl shadow-sm">
+        <div className="bg-blue-600 border border-blue-500 text-white p-5 rounded-2xl shadow-sm">
           <div className="flex items-center gap-3 mb-4">
-            <Avatar className="h-10 w-10 ring-2 ring-slate-850">
-              <AvatarFallback className="text-sm bg-blue-100 text-slate-900 font-bold uppercase">
+            <Avatar className="h-10 w-10 ring-2 ring-blue-500/50">
+              <AvatarFallback className="text-sm bg-white text-blue-600 font-bold uppercase">
                 {tenant?.fullName.substring(0, 2)}
               </AvatarFallback>
             </Avatar>
             <div>
               <h4 className="font-bold text-sm tracking-tight text-white leading-none">{tenant?.fullName}</h4>
-              <span className="text-[10px] text-blue-200 mt-1 block">Kamar {unit?.unitNumber || '-'}</span>
+              <span className="text-[10px] text-blue-100 mt-1 block">Kamar {unit?.unitNumber || '-'}</span>
             </div>
           </div>
 
-          <div className="border-t border-slate-800 py-3.5 space-y-2 text-xs text-slate-300">
+          <div className="border-t border-blue-500 py-3.5 space-y-2 text-xs text-blue-100">
             <div className="flex items-center justify-between">
               <span>Properti:</span>
               <strong className="text-white">{property?.name || '-'}</strong>
