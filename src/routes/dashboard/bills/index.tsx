@@ -104,28 +104,23 @@ function BillsPage() {
           <p className="text-xs text-slate-400 font-semibold mt-1">Pantau pembayaran sewa bulanan dan status penagihan unit.</p>
         </div>
         {bills && bills.length > 0 && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                setIsBulkMode(!isBulkMode)
-                setSelectedIds([])
-              }}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer border flex items-center gap-1.5 ${
-                isBulkMode
-                  ? 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200'
-                  : 'bg-rose-650 border-rose-650 text-white hover:bg-rose-750'
-              }`}
-            >
-              {isBulkMode ? (
-                'Batal'
-              ) : (
-                <>
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Delete
-                </>
-              )}
-            </button>
-          </div>
+          <Button
+            variant={isBulkMode ? "outline" : "destructive"}
+            onClick={() => {
+              setIsBulkMode(!isBulkMode)
+              setSelectedIds([])
+            }}
+            className="rounded-xl font-bold text-xs h-9"
+          >
+            {isBulkMode ? (
+              'Batal'
+            ) : (
+              <>
+                <Trash2 className="mr-1.5 h-4 w-4" />
+                Delete
+              </>
+            )}
+          </Button>
         )}
       </div>
 
@@ -248,7 +243,7 @@ function BillsPage() {
                          bill.status === 'overdue' ? 'Jatuh Tempo' : 'Belum Dibayar'}
                       </span>
 
-                      <Button variant="ghost" size="sm" className="h-7 text-blue-650 font-bold text-xs rounded-lg hover:bg-blue-50" asChild>
+                      <Button variant="ghost" size="sm" className="h-7 text-blue-600 font-bold text-xs rounded-lg hover:bg-blue-50" asChild>
                         <Link to="/dashboard/bills/$billId" params={{ billId: bill.id }}>
                           Detail <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
                         </Link>
@@ -261,7 +256,7 @@ function BillsPage() {
                             e.stopPropagation()
                             handleDeleteBill(bill.id)
                           }}
-                          className="h-7 px-2 text-rose-650 hover:text-rose-850 hover:bg-rose-50 rounded-lg text-xs font-bold transition cursor-pointer"
+                          className="h-7 px-2 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg text-xs font-bold transition cursor-pointer"
                         >
                           Hapus
                         </button>
@@ -289,14 +284,14 @@ function BillsPage() {
                   setSelectedIds(filteredBills.map((b: any) => b.id))
                 }
               }}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-semibold cursor-pointer transition border border-slate-750"
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-semibold cursor-pointer transition border border-slate-700"
             >
               {selectedIds.length === filteredBills.length ? 'Batal Pilih Semua' : 'Pilih Semua'}
             </button>
             <button
               disabled={selectedIds.length === 0 || deleting}
               onClick={handleBulkDelete}
-              className="px-4 py-1.5 bg-red-650 hover:bg-red-750 disabled:bg-red-800/40 disabled:text-red-350/60 disabled:cursor-not-allowed rounded-lg text-xs font-bold cursor-pointer transition flex items-center gap-1.5"
+              className="px-4 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-red-800/40 disabled:text-red-300/60 disabled:cursor-not-allowed rounded-lg text-xs font-bold cursor-pointer transition flex items-center gap-1.5"
             >
               {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Hapus Terpilih'}
             </button>

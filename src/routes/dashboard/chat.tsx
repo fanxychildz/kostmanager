@@ -236,7 +236,7 @@ function ChatPage() {
                       <button
                         type="button"
                         onClick={handleClearAllChat}
-                        className="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-650 text-[10px] font-bold border border-red-200 transition cursor-pointer"
+                        className="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-[10px] font-bold border border-red-200 transition cursor-pointer"
                       >
                         Hapus Semua Chat
                       </button>
@@ -330,7 +330,7 @@ function ChatPage() {
                       type="button"
                       disabled={selectedIds.length === 0 || sending}
                       onClick={handleBulkDeleteChats}
-                      className="px-4 py-1.5 bg-red-650 hover:bg-red-750 disabled:bg-red-800/45 disabled:text-red-350/60 disabled:cursor-not-allowed rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer"
+                      className="px-4 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-red-800/45 disabled:text-red-300/60 disabled:cursor-not-allowed rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer"
                     >
                       {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Hapus Terpilih'}
                     </button>
