@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Plus, Search, Phone, Mail, Loader2, Users, Calendar, ArrowUpRight } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Card, CardContent } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
@@ -8,7 +8,8 @@ import { Badge } from '~/components/ui/badge'
 import { Avatar, AvatarImage, AvatarFallback } from '~/components/ui/avatar'
 import { formatRupiah, formatDate } from '~/lib/utils'
 import { api } from '~/lib/api'
-import { useQuery } from '~/lib/hooks'
+import { useQuery, useDebounce } from '~/lib/hooks'
+import { selectCache } from '../_cache'
 
 export const Route = createFileRoute('/dashboard/tenants/')({
   component: TenantsPage,
@@ -16,18 +17,20 @@ export const Route = createFileRoute('/dashboard/tenants/')({
 
 function TenantsPage() {
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 250)
 
   const { data: tenants, loading, error } = useQuery({
     queryFn: () => api.tenants.list(),
+    cacheKey: 'tenants.list',
   })
 
-  const { data: units } = useQuery({
-    queryFn: () => api.units.list(),
-  })
+  // Use shared select-cache so units/properties are NOT re-fetched
+  const { data: units } = selectCache.units(() => api.units.list())
+  const { data: properties } = selectCache.properties(() => api.properties.list())
 
-  const { data: properties } = useQuery({
-    queryFn: () => api.properties.list(),
-  })
+  // Pre-build O(1) lookup Maps instead of per-row .find() calls
+  const unitMap = useMemo(() => new Map((units || []).map((u: any) => [u.id, u])), [units])
+  const propertyMap = useMemo(() => new Map((properties || []).map((p: any) => [p.id, p])), [properties])
 
   if (loading) {
     return (
@@ -37,12 +40,16 @@ function TenantsPage() {
     )
   }
 
-  // Filter tenants based on search term
-  const filteredTenants = tenants?.filter((t: any) => 
-    t.fullName.toLowerCase().includes(search.toLowerCase()) ||
-    t.email.toLowerCase().includes(search.toLowerCase()) ||
-    t.phone.includes(search)
-  ) || []
+  // Memoized filter with debounced search for smooth typing
+  const filteredTenants = useMemo(() => {
+    const q = debouncedSearch.toLowerCase()
+    if (!q) return tenants || []
+    return (tenants || []).filter((t: any) =>
+      t.fullName.toLowerCase().includes(q) ||
+      t.email.toLowerCase().includes(q) ||
+      t.phone.includes(debouncedSearch)
+    )
+  }, [tenants, debouncedSearch])
 
   return (
     <div className="space-y-8">
@@ -110,8 +117,8 @@ function TenantsPage() {
                   </tr>
                 ) : (
                   filteredTenants.map((tenant: any) => {
-                    const unit = units?.find((u: any) => u.id === tenant.unitId)
-                    const property = properties?.find((p: any) => p.id === tenant.propertyId)
+                    const unit = unitMap.get(tenant.unitId)
+                    const property = propertyMap.get(tenant.propertyId)
                     
                     return (
                       <tr key={tenant.id} className="hover:bg-slate-50/50 transition duration-150">

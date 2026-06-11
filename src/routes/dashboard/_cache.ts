@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { api } from '~/lib/api'
 
 export type SelectItem = { id: string; label: string; sub?: string }
 
@@ -10,6 +11,7 @@ type CacheSlot = {
   data: any[] | undefined
   loading: boolean
   error: Error | null
+  inflight?: Promise<any>
 }
 
 type CacheMap = {
@@ -47,27 +49,35 @@ async function fetchList(
   source: Key,
   queryFn: ListApi['queryFn'],
 ): Promise<any[] | undefined> {
+  // Deduplicate: if there's already an in-flight request, wait on it
+  if (cache[source].inflight) {
+    return cache[source].inflight
+  }
   if (cache[source].loading) return cache[source].data
 
   cache[source].loading = true
   cache[source].error = null
-  cache[source].data = undefined
   notify()
 
-  try {
-    const res = await queryFn()
+  const inflight = queryFn().then((res) => {
     cache[source].data = Array.isArray(res)
       ? res
       : (res as any)?.items || []
-  } catch (e) {
+    cache[source].loading = false
+    cache[source].inflight = undefined
+    notify()
+    return cache[source].data
+  }).catch((e) => {
     cache[source].error = e as Error
     cache[source].data = []
-  } finally {
     cache[source].loading = false
+    cache[source].inflight = undefined
     notify()
-  }
+    return cache[source].data
+  })
 
-  return cache[source].data
+  cache[source].inflight = inflight as Promise<any>
+  return inflight as Promise<any>
 }
 
 const CACHE_KEYS: Key[] = ['properties', 'tenants', 'units']
@@ -91,9 +101,8 @@ export function useSelectCache<K extends Key>(key: K, queryFn: ListApi['queryFn'
       loading: true,
       error: null,
       refresh: async () => {
-        const current = cache[key]
-        if (current.loading) return
-        current.data = undefined
+        cache[key].data = undefined
+        cache[key].inflight = undefined
         notify()
         await fetchList(key, queryFn).catch(() => {})
       },
@@ -105,9 +114,9 @@ export function useSelectCache<K extends Key>(key: K, queryFn: ListApi['queryFn'
     loading: state.loading,
     error: state.error,
     refresh: async () => {
-      const current = cache[key]
-      if (current.loading) return
-      current.data = undefined
+      if (cache[key].loading) return
+      cache[key].data = undefined
+      cache[key].inflight = undefined
       notify()
       await fetchList(key, queryFn).catch(() => {})
     },
@@ -118,11 +127,17 @@ export const selectCache = {
   properties: (queryFn: ListApi['queryFn']) => useSelectCache('properties', queryFn),
   tenants: (queryFn: ListApi['queryFn']) => useSelectCache('tenants', queryFn),
   units: (queryFn: ListApi['queryFn']) => useSelectCache('units', queryFn),
+  /** Properly re-fetches all entries using the real API */
   refreshAll: async () => {
-    cache.properties.data = undefined
-    cache.tenants.data = undefined
-    cache.units.data = undefined
+    CACHE_KEYS.forEach((k) => {
+      cache[k].data = undefined
+      cache[k].inflight = undefined
+    })
     notify()
-    await Promise.all(CACHE_KEYS.map((key) => fetchList(key, () => Promise.resolve([])).catch(() => {})))
+    await Promise.all([
+      fetchList('properties', () => api.properties.list()),
+      fetchList('tenants', () => api.tenants.list()),
+      fetchList('units', () => api.units.list()),
+    ]).catch(() => {})
   },
 }

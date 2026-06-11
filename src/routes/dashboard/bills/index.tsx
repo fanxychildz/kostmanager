@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { Search, Loader2, FileText, Plus, ChevronRight, Trash2, Edit3 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { motion } from 'motion/react'
 import { Card, CardContent } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog'
 import { formatRupiah, formatDate } from '~/lib/utils'
 import { api } from '~/lib/api'
-import { useQuery, useMutation } from '~/lib/hooks'
+import { useQuery, useMutation, useDebounce } from '~/lib/hooks'
 import { selectCache } from '../_cache'
 
 export const Route = createFileRoute('/dashboard/bills/')({
@@ -41,10 +41,21 @@ const toInputDateString = (dateInput: Date | string | number) => {
   return `${yyyy}-${mm}-${dd}`
 }
 
+// Animation variants defined outside component — stable references, no GC pressure
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.04 } }
+}
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 320, damping: 26 } }
+}
+
 function BillsPage() {
   const navigate = useNavigate()
   const [filter, setFilter] = useState<'all' | 'pending' | 'paid' | 'overdue'>('all')
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 250)
   const [isBulkMode, setIsBulkMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [deleting, setDeleting] = useState(false)
@@ -57,6 +68,7 @@ function BillsPage() {
   // Queries
   const { data: bills, loading: loadingBills, error, refetch } = useQuery({
     queryFn: () => api.bills.list(),
+    cacheKey: 'bills.list',
   })
 
   const { data: tenantsList, loading: loadingTenants } = selectCache.tenants(() => api.tenants.list())
@@ -120,7 +132,10 @@ function BillsPage() {
     },
   })
 
-  const activeTenants = tenantsList?.filter((t: any) => t.status === 'active') || []
+  const activeTenants = useMemo(
+    () => tenantsList?.filter((t: any) => t.status === 'active') || [],
+    [tenantsList]
+  )
 
   const resetCreateForm = () => {
     setCreateFormData({
@@ -251,19 +266,23 @@ function BillsPage() {
     }
   }
 
-  const createTotalAmount = 
+  const createTotalAmount = useMemo(() =>
     parseInt(createFormData.rentAmount || '0') +
     parseInt(createFormData.electricityAmount || '0') +
     parseInt(createFormData.waterAmount || '0') +
     parseInt(createFormData.wifiAmount || '0') +
-    parseInt(createFormData.otherAmount || '0')
+    parseInt(createFormData.otherAmount || '0'),
+    [createFormData]
+  )
 
-  const editTotalAmount = 
+  const editTotalAmount = useMemo(() =>
     parseInt(editFormData.rentAmount || '0') +
     parseInt(editFormData.electricityAmount || '0') +
     parseInt(editFormData.waterAmount || '0') +
     parseInt(editFormData.wifiAmount || '0') +
-    parseInt(editFormData.otherAmount || '0')
+    parseInt(editFormData.otherAmount || '0'),
+    [editFormData]
+  )
 
   const currentYear = new Date().getFullYear()
   const YEARS = [
@@ -288,24 +307,17 @@ function BillsPage() {
     )
   }
 
-  // Filter bills
-  const filteredBills = bills?.filter((bill: any) => {
-    const matchesSearch = 
-      (bill.tenantName || '').toLowerCase().includes(search.toLowerCase()) || 
-      (bill.unitNumber || '').toLowerCase().includes(search.toLowerCase())
-    const matchesFilter = filter === 'all' || bill.status === filter
-    return matchesSearch && matchesFilter
-  }) || []
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.05 } }
-  }
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 12 },
-    show: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } }
-  }
+  // Filter bills — debounced search + memoized to avoid recalculating on every render
+  const filteredBills = useMemo(() => {
+    const q = debouncedSearch.toLowerCase()
+    return bills?.filter((bill: any) => {
+      const matchesSearch = !q ||
+        (bill.tenantName || '').toLowerCase().includes(q) ||
+        (bill.unitNumber || '').toLowerCase().includes(q)
+      const matchesFilter = filter === 'all' || bill.status === filter
+      return matchesSearch && matchesFilter
+    }) || []
+  }, [bills, debouncedSearch, filter])
 
   return (
     <div className="space-y-8">

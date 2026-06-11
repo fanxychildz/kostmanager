@@ -5,6 +5,8 @@ export function getRouter() {
   return createRouter({
     routeTree,
     defaultPreload: 'intent',
+    defaultPreloadDelay: 50,
+    defaultStaleTime: 30_000,
   })
 }
 

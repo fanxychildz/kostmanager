@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Plus, Loader2, CreditCard, Trash2 } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { Card, CardContent } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
@@ -32,27 +32,14 @@ function PaymentsPage() {
 
   const { data: payments, loading, refetch } = useQuery({
     queryFn: () => api.payments.list(),
+    cacheKey: 'payments.list',
   })
 
-  const [billsCache, setBillsCache] = useState<any[] | null>(null)
-  const [loadingBillsCache, setLoadingBillsCache] = useState(true)
-  useEffect(() => {
-    let cancelled = false
-    setLoadingBillsCache(true)
-    api.bills.list()
-      .then((res) => {
-        if (cancelled) return
-        const list = Array.isArray(res) ? res : (res as any)?.items || []
-        setBillsCache(list)
-      })
-      .catch(() => {
-        if (!cancelled) setBillsCache([])
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingBillsCache(false)
-      })
-    return () => { cancelled = true }
-  }, [])
+  // Re-use cached bills — avoids a duplicate network request
+  const { data: billsCache, loading: loadingBillsCache } = useQuery({
+    queryFn: () => api.bills.list(),
+    cacheKey: 'bills.list',
+  })
 
   const { mutate: createPayment, loading: creating } = useMutation({
     mutationFn: (data: any) => api.payments.create(data),
