@@ -85,8 +85,29 @@ export const getMaintenanceRequest = createServerFn({ method: 'GET' })
     const { id } = data
 
     const result = await db
-      .select()
+      .select({
+        id: maintenanceRequests.id,
+        tenantId: maintenanceRequests.tenantId,
+        propertyId: maintenanceRequests.propertyId,
+        unitId: maintenanceRequests.unitId,
+        title: maintenanceRequests.title,
+        description: maintenanceRequests.description,
+        category: maintenanceRequests.category,
+        priority: maintenanceRequests.priority,
+        status: maintenanceRequests.status,
+        photoUrl: maintenanceRequests.photoUrl,
+        repairCost: maintenanceRequests.repairCost,
+        createdAt: maintenanceRequests.createdAt,
+        updatedAt: maintenanceRequests.updatedAt,
+        resolvedAt: maintenanceRequests.resolvedAt,
+        tenantName: tenants.fullName,
+        unitNumber: units.unitNumber,
+        propertyName: properties.name,
+      })
       .from(maintenanceRequests)
+      .leftJoin(tenants, eq(maintenanceRequests.tenantId, tenants.id))
+      .leftJoin(units, eq(maintenanceRequests.unitId, units.id))
+      .leftJoin(properties, eq(maintenanceRequests.propertyId, properties.id))
       .where(and(eq(maintenanceRequests.id, id), inArray(maintenanceRequests.propertyId, propertyIds)))
       .limit(1)
 
@@ -178,7 +199,32 @@ export const updateMaintenanceStatus = createServerFn({ method: 'POST' })
       createdAt: now,
     })
 
-    const [updated] = await db.select().from(maintenanceRequests).where(eq(maintenanceRequests.id, data.id)).limit(1)
+    const [updated] = await db
+      .select({
+        id: maintenanceRequests.id,
+        tenantId: maintenanceRequests.tenantId,
+        propertyId: maintenanceRequests.propertyId,
+        unitId: maintenanceRequests.unitId,
+        title: maintenanceRequests.title,
+        description: maintenanceRequests.description,
+        category: maintenanceRequests.category,
+        priority: maintenanceRequests.priority,
+        status: maintenanceRequests.status,
+        photoUrl: maintenanceRequests.photoUrl,
+        repairCost: maintenanceRequests.repairCost,
+        createdAt: maintenanceRequests.createdAt,
+        updatedAt: maintenanceRequests.updatedAt,
+        resolvedAt: maintenanceRequests.resolvedAt,
+        tenantName: tenants.fullName,
+        unitNumber: units.unitNumber,
+        propertyName: properties.name,
+      })
+      .from(maintenanceRequests)
+      .leftJoin(tenants, eq(maintenanceRequests.tenantId, tenants.id))
+      .leftJoin(units, eq(maintenanceRequests.unitId, units.id))
+      .leftJoin(properties, eq(maintenanceRequests.propertyId, properties.id))
+      .where(eq(maintenanceRequests.id, data.id))
+      .limit(1)
     return updated as any
   })
 
