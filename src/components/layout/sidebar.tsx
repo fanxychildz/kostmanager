@@ -55,12 +55,14 @@ export function Sidebar() {
   // Real-time stats dynamically queried from DB
   const { data: properties } = useQuery({ queryFn: () => api.properties.list() })
   const { data: tenants } = useQuery({ queryFn: () => api.tenants.list() })
+  const { data: notificationsList } = useQuery({ queryFn: () => api.notifications.list({ recipientType: 'owner' }) })
 
   const propertiesCount = properties?.length || 0
   const activeTenantsCount = tenants?.filter((t: any) => t.status === 'active').length || 0
   const totalUnits = properties?.reduce((sum: number, p: any) => sum + (p.totalUnits || 0), 0) || 0
   const occupiedUnits = properties?.reduce((sum: number, p: any) => sum + (p.occupiedUnits || 0), 0) || 0
   const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0
+  const unreadCount = notificationsList?.filter((item: any) => item.status !== 'delivered').length || 0
 
   const handleSignOut = async () => {
     await signOut()
@@ -124,14 +126,21 @@ export function Sidebar() {
                   key={item.href}
                   to={item.href}
                   className={cn(
-                    'flex items-center gap-3 rounded-xl px-4 py-2.5 text-xs md:text-sm font-semibold transition-all',
+                    'flex items-center justify-between rounded-xl px-4 py-2.5 text-xs md:text-sm font-semibold transition-all',
                     isActive
                       ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
                       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                   )}
                 >
-                  <item.icon className="h-4 w-4 shrink-0" />
-                  {item.label}
+                  <div className="flex items-center gap-3">
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    {item.label}
+                  </div>
+                  {item.label === 'Notifikasi' && unreadCount > 0 && (
+                    <span className="flex h-5 min-w-5 px-1.5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white ring-1 ring-white">
+                      {unreadCount}
+                    </span>
+                  )}
                 </Link>
               )
             })}

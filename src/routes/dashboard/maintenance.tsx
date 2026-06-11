@@ -30,6 +30,37 @@ function LandlordMaintenancePage() {
   const [maintenanceNoteText, setMaintenanceNoteText] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [isBulkMode, setIsBulkMode] = useState(false)
+
+  const handleCardClick = (req: MaintenanceItem) => {
+    if (isBulkMode) {
+      if (selectedIds.includes(req.id)) {
+        setSelectedIds(selectedIds.filter(id => id !== req.id))
+      } else {
+        setSelectedIds([...selectedIds, req.id])
+      }
+    } else {
+      setSelectedRequest(req)
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return
+    if (!confirm(`Apakah Anda yakin ingin menghapus ${selectedIds.length} laporan kerusakan terpilih? Semua log terkait akan dihapus secara permanen.`)) return
+    setSaving(true)
+    try {
+      await api.maintenance.deleteMultiple(selectedIds)
+      const next = items.filter(item => !selectedIds.includes(item.id))
+      setItems(next)
+      setSelectedIds([])
+      setIsBulkMode(false)
+    } catch (err) {
+      alert('Gagal menghapus laporan terpilih: ' + err)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const normalizeItem = (row: any): MaintenanceItem => ({
     id: String(row.id),
@@ -173,6 +204,21 @@ function LandlordMaintenancePage() {
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight leading-none">Meja Keluhan Perbaikan</h1>
           <p className="text-xs text-slate-400 font-semibold mt-1">Pantau, proses, dan tugaskan keluhan perbaikan dari penghuni kost.</p>
         </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setIsBulkMode(!isBulkMode)
+              setSelectedIds([])
+            }}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer border ${
+              isBulkMode
+                ? 'bg-slate-100 border-slate-350 text-slate-700 hover:bg-slate-200'
+                : 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'
+            }`}
+          >
+            {isBulkMode ? 'Selesai Memilih' : 'Hapus Massal (Spam)'}
+          </button>
+        </div>
       </div>
 
       {/* Kanban Board columns */}
@@ -198,20 +244,39 @@ function LandlordMaintenancePage() {
               <motion.div
                 key={req.id}
                 variants={itemVariants}
-                onClick={() => setSelectedRequest(req)}
-                className="border border-slate-200 rounded-2xl p-4 bg-white hover:border-blue-300 shadow-xs cursor-pointer transition hover:shadow-md"
+                onClick={() => handleCardClick(req)}
+                className={`border rounded-2xl p-4 transition shadow-xs cursor-pointer hover:shadow-md ${
+                  selectedIds.includes(req.id)
+                    ? 'border-blue-500 bg-blue-50/40 hover:border-blue-600 shadow-sm'
+                    : 'border-slate-200 bg-white hover:border-blue-300'
+                }`}
               >
-                <div className="flex items-center justify-between text-[10px] text-slate-400 mb-2">
-                  <span>{req.category}</span>
-                  <span className={`px-2 py-0.5 rounded-md font-bold ${req.priority === 'High' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-500'}`}>
-                    {req.priority === 'High' ? 'Urgent' : req.priority === 'Medium' ? 'Standar' : 'Ringan'}
-                  </span>
-                </div>
-                <h4 className="font-bold text-slate-900 text-xs md:text-sm mb-1">{req.title}</h4>
-                <p className="text-[11px] text-slate-500 font-semibold line-clamp-2 mb-3 leading-relaxed">{req.description}</p>
-                <div className="border-t border-slate-50 pt-2 flex items-center justify-between text-[10px] text-slate-400 font-semibold">
-                  <span>{req.tenantName} (Kamar {req.unitNumber})</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                <div className="flex items-start gap-3 w-full">
+                  {isBulkMode && (
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(req.id)}
+                      onChange={(e) => {
+                        e.stopPropagation()
+                        handleCardClick(req)
+                      }}
+                      className="mt-1 h-4 w-4 rounded border-slate-350 text-blue-600 focus:ring-blue-500 cursor-pointer shrink-0"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 mb-2">
+                      <span>{req.category}</span>
+                      <span className={`px-2 py-0.5 rounded-md font-bold ${req.priority === 'High' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-500'}`}>
+                        {req.priority === 'High' ? 'Urgent' : req.priority === 'Medium' ? 'Standar' : 'Ringan'}
+                      </span>
+                    </div>
+                    <h4 className="font-bold text-slate-900 text-xs md:text-sm mb-1">{req.title}</h4>
+                    <p className="text-[11px] text-slate-500 font-semibold line-clamp-2 mb-3 leading-relaxed">{req.description}</p>
+                    <div className="border-t border-slate-50 pt-2 flex items-center justify-between text-[10px] text-slate-400 font-semibold">
+                      <span>{req.tenantName} (Kamar {req.unitNumber})</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -234,20 +299,39 @@ function LandlordMaintenancePage() {
               <motion.div
                 key={req.id}
                 variants={itemVariants}
-                onClick={() => setSelectedRequest(req)}
-                className="border border-slate-200 rounded-2xl p-4 bg-white hover:border-blue-300 shadow-xs cursor-pointer transition hover:shadow-md"
+                onClick={() => handleCardClick(req)}
+                className={`border rounded-2xl p-4 transition shadow-xs cursor-pointer hover:shadow-md ${
+                  selectedIds.includes(req.id)
+                    ? 'border-blue-500 bg-blue-50/40 hover:border-blue-600 shadow-sm'
+                    : 'border-slate-200 bg-white hover:border-blue-300'
+                }`}
               >
-                <div className="flex items-center justify-between text-[10px] text-slate-400 mb-2">
-                  <span>{req.category}</span>
-                  <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md font-bold">
-                    {req.priority === 'High' ? 'Urgent' : req.priority === 'Medium' ? 'Standar' : 'Ringan'}
-                  </span>
-                </div>
-                <h4 className="font-bold text-slate-900 text-xs md:text-sm mb-1">{req.title}</h4>
-                <p className="text-[11px] text-slate-500 font-semibold line-clamp-2 mb-3 leading-relaxed">{req.description}</p>
-                <div className="border-t border-slate-50 pt-2 flex items-center justify-between text-[10px] text-slate-400 font-semibold">
-                  <span>{req.tenantName} (Kamar {req.unitNumber})</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                <div className="flex items-start gap-3 w-full">
+                  {isBulkMode && (
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(req.id)}
+                      onChange={(e) => {
+                        e.stopPropagation()
+                        handleCardClick(req)
+                      }}
+                      className="mt-1 h-4 w-4 rounded border-slate-350 text-blue-600 focus:ring-blue-500 cursor-pointer shrink-0"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 mb-2">
+                      <span>{req.category}</span>
+                      <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md font-bold">
+                        {req.priority === 'High' ? 'Urgent' : req.priority === 'Medium' ? 'Standar' : 'Ringan'}
+                      </span>
+                    </div>
+                    <h4 className="font-bold text-slate-900 text-xs md:text-sm mb-1">{req.title}</h4>
+                    <p className="text-[11px] text-slate-500 font-semibold line-clamp-2 mb-3 leading-relaxed">{req.description}</p>
+                    <div className="border-t border-slate-50 pt-2 flex items-center justify-between text-[10px] text-slate-400 font-semibold">
+                      <span>{req.tenantName} (Kamar {req.unitNumber})</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -270,20 +354,39 @@ function LandlordMaintenancePage() {
               <motion.div
                 key={req.id}
                 variants={itemVariants}
-                onClick={() => setSelectedRequest(req)}
-                className="border border-slate-200 rounded-2xl p-4 bg-slate-50 opacity-80 cursor-pointer hover:opacity-100 transition hover:shadow-xs"
+                onClick={() => handleCardClick(req)}
+                className={`border rounded-2xl p-4 transition cursor-pointer hover:shadow-xs ${
+                  selectedIds.includes(req.id)
+                    ? 'border-blue-500 bg-blue-50/40 hover:border-blue-600 shadow-sm opacity-100'
+                    : 'border-slate-200 bg-slate-50 opacity-80 hover:opacity-100 hover:border-blue-300'
+                }`}
               >
-                <div className="flex items-center justify-between text-[10px] text-slate-400 mb-2">
-                  <span>{req.category}</span>
-                  <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-bold">
-                    Selesai
-                  </span>
-                </div>
-                <h4 className="font-bold text-slate-900 text-xs md:text-sm mb-1 line-through">{req.title}</h4>
-                <p className="text-[11px] text-slate-400 font-medium line-clamp-2 mb-3 leading-relaxed">{req.description}</p>
-                <div className="border-t border-slate-100 pt-2 flex items-center justify-between text-[10px] text-slate-400 font-semibold">
-                  <span>{req.tenantName} (Kamar {req.unitNumber})</span>
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                <div className="flex items-start gap-3 w-full">
+                  {isBulkMode && (
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(req.id)}
+                      onChange={(e) => {
+                        e.stopPropagation()
+                        handleCardClick(req)
+                      }}
+                      className="mt-1 h-4 w-4 rounded border-slate-350 text-blue-600 focus:ring-blue-500 cursor-pointer shrink-0"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 mb-2">
+                      <span>{req.category}</span>
+                      <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-bold">
+                        Selesai
+                      </span>
+                    </div>
+                    <h4 className="font-bold text-slate-900 text-xs md:text-sm mb-1 line-through">{req.title}</h4>
+                    <p className="text-[11px] text-slate-400 font-medium line-clamp-2 mb-3 leading-relaxed">{req.description}</p>
+                    <div className="border-t border-slate-100 pt-2 flex items-center justify-between text-[10px] text-slate-400 font-semibold">
+                      <span>{req.tenantName} (Kamar {req.unitNumber})</span>
+                      <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -389,6 +492,44 @@ function LandlordMaintenancePage() {
                 </div>
               </form>
             </div>
+          </div>
+        </div>
+      )}
+
+      {isBulkMode && (
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 border border-slate-800">
+          <div className="text-xs font-bold">
+            <span className="text-blue-400">{selectedIds.length}</span> dari <span className="text-slate-300">{items.length}</span> terpilih
+          </div>
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => {
+                if (selectedIds.length === items.length) {
+                  setSelectedIds([])
+                } else {
+                  setSelectedIds(items.map(item => item.id))
+                }
+              }}
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-semibold cursor-pointer transition border border-slate-750"
+            >
+              {selectedIds.length === items.length ? 'Batal Pilih Semua' : 'Pilih Semua'}
+            </button>
+            <button
+              disabled={selectedIds.length === 0 || saving}
+              onClick={handleBulkDelete}
+              className="px-4 py-1.5 bg-red-650 hover:bg-red-750 disabled:bg-red-800/40 disabled:text-red-350/60 disabled:cursor-not-allowed rounded-lg text-xs font-bold cursor-pointer transition flex items-center gap-1.5"
+            >
+              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Hapus Terpilih'}
+            </button>
+            <button
+              onClick={() => {
+                setIsBulkMode(false)
+                setSelectedIds([])
+              }}
+              className="px-3 py-1.5 text-slate-400 hover:text-white text-xs font-semibold cursor-pointer transition"
+            >
+              Batal
+            </button>
           </div>
         </div>
       )}

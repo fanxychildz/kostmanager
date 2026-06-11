@@ -13,7 +13,7 @@ export const listNotifications = createServerFn({ method: 'GET' })
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session) throw new Error('Unauthorized')
 
-    const query = db.select().from(notifications).where(eq(notifications.recipientId, session.user.id)) as any
+    const query = await db.select().from(notifications).where(eq(notifications.recipientId, session.user.id)) as any
 
     let filtered = query
     if (data?.recipientType) {

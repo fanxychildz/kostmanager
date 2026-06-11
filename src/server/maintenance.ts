@@ -282,3 +282,19 @@ export const deleteMaintenanceRequest = createServerFn({ method: 'POST' })
     return { success: true }
   })
 
+export const deleteMultipleMaintenanceRequests = createServerFn({ method: 'POST' })
+  .inputValidator((d: { ids: string[] }) => d)
+  .handler(async ({ data }) => {
+    const { propertyIds } = await requireOwnerProperties(getRequest().headers)
+    const { ids } = data
+
+    if (ids.length === 0) return { success: true }
+
+    await db
+      .delete(maintenanceRequests)
+      .where(and(inArray(maintenanceRequests.id, ids), inArray(maintenanceRequests.propertyId, propertyIds)))
+
+    return { success: true }
+  })
+
+

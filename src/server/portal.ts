@@ -175,7 +175,7 @@ export const createPortalMaintenanceRequest = createServerFn({ method: 'POST' })
           type: 'announcement',
           subject: 'Keluhan Baru',
           messageContent: `Ada keluhan baru dari ${tenant.fullName}: ${data.title}`,
-          status: 'delivered',
+          status: 'sent',
           createdAt: now,
         })
       }

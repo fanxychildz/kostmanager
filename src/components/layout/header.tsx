@@ -21,6 +21,7 @@ import { cn } from '~/lib/utils'
 import { Button } from '~/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '~/components/ui/avatar'
 import { useAuth } from '~/lib/auth-context'
+import { api } from '~/lib/api'
 
 function getInitials(nameOrEmail?: string | null) {
   const source = nameOrEmail || 'KostManager'
@@ -51,6 +52,31 @@ export function Header() {
   const initials = getInitials(name)
   const displayLabel = name === 'KostManager' ? '' : name
 
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  useEffect(() => {
+    if (!user || (user as any).role === 'tenant') return
+    let active = true
+    const fetchUnread = async () => {
+      try {
+        const list = await api.notifications.list({ recipientType: 'owner' })
+        if (!active) return
+        const count = (list || []).filter((item: any) => item.status !== 'delivered').length
+        setUnreadCount(count)
+      } catch (err) {
+        // ignore
+      }
+    }
+    fetchUnread()
+    
+    // Refresh notifications every 45 seconds
+    const interval = setInterval(fetchUnread, 45000)
+    return () => {
+      active = false
+      clearInterval(interval)
+    }
+  }, [user])
+
   const handleSignOut = async () => {
     await signOut()
     navigate({ to: '/login' })
@@ -71,9 +97,14 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="text-slate-600 hover:text-slate-900 rounded-xl" asChild>
+          <Button variant="ghost" size="icon" className="text-slate-600 hover:text-slate-900 rounded-xl relative" asChild>
             <Link to="/dashboard/notifications">
               <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white ring-2 ring-white">
+                  {unreadCount}
+                </span>
+              )}
             </Link>
           </Button>
 

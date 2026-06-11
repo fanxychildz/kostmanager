@@ -32,7 +32,7 @@ function NotificationsPage() {
       const rows: NotificationRow[] = (list || [])
         .filter((item: any) => item.recipientType === 'owner')
         .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      return { list: rows, unreadCount: rows.length }
+      return { list: rows, unreadCount: rows.filter((item) => item.status !== 'delivered').length }
     },
   })
 

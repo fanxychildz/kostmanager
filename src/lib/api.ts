@@ -153,6 +153,8 @@ export const api = {
       maintenanceActions.addMaintenanceUpdate({ data: { id, text } }),
     delete: (id: string) =>
       maintenanceActions.deleteMaintenanceRequest({ data: { id } }),
+    deleteMultiple: (ids: string[]) =>
+      maintenanceActions.deleteMultipleMaintenanceRequests({ data: { ids } }),
   },
   expenses: {
     list: () => expensesActions.listExpenses(),
