@@ -1,47 +1,44 @@
 import { createServerFn } from '@tanstack/react-start'
-import { eq, and, inArray, sql } from 'drizzle-orm'
+import { eq, and, sql, inArray } from 'drizzle-orm'
 import { db } from '../db'
 import { payments, bills, tenants, units, properties } from '../db/schema'
 import { auth } from './auth'
 import { nanoid } from 'nanoid'
 import { getRequest } from '@tanstack/react-start/server'
 
+async function requireOwnerPropertyIds(headers: Headers) {
+  const session = await auth.api.getSession({ headers })
+  if (!session) throw new Error('Unauthorized')
+  const rows = await db.select({ id: properties.id }).from(properties).where(eq(properties.ownerId, session.user.id))
+  return { session, propertyIds: rows.map((r) => r.id) }
+}
+
 export const listPayments = createServerFn({ method: 'GET' }).handler(async () => {
   const request = getRequest()
-  const session = await auth.api.getSession({ headers: request.headers })
-  if (!session) throw new Error('Unauthorized')
+  const { propertyIds } = await requireOwnerPropertyIds(request.headers)
+  if (propertyIds.length === 0) return []
 
-  const ownerProperties = await db
-    .select()
-    .from(properties)
-    .where(eq(properties.ownerId, session.user.id))
-
-  const propertyIds = ownerProperties.map((p) => p.id)
-
-  const allPayments = await db.select().from(payments)
-  const allBills = await db.select().from(bills)
-  const allTenants = await db.select().from(tenants)
-  const allUnits = await db.select().from(units)
-
-  const filtered = allPayments
-    .filter((p) => {
-      const bill = allBills.find((b) => b.id === p.billId)
-      if (!bill) return false
-      const tenant = allTenants.find((t) => t.id === bill.tenantId)
-      return tenant && propertyIds.includes(tenant.propertyId)
+  return db
+    .select({
+      id: payments.id,
+      billId: payments.billId,
+      recordedBy: payments.recordedBy,
+      paymentMethod: payments.paymentMethod,
+      amount: payments.amount,
+      paidAt: payments.paidAt,
+      notes: payments.notes,
+      status: payments.status,
+      createdAt: payments.createdAt,
+      updatedAt: payments.updatedAt,
+      tenantName: tenants.fullName,
+      unitNumber: units.unitNumber,
     })
-    .map((p) => {
-      const bill = allBills.find((b) => b.id === p.billId)
-      const tenant = allTenants.find((t) => t.id === bill?.tenantId)
-      const unit = allUnits.find((u) => u.id === bill?.unitId)
-      return {
-        ...p,
-        tenantName: tenant?.fullName,
-        unitNumber: unit?.unitNumber,
-      }
-    })
-
-  return filtered
+    .from(payments)
+    .innerJoin(bills, eq(bills.id, payments.billId))
+    .innerJoin(tenants, eq(tenants.id, bills.tenantId))
+    .leftJoin(units, eq(units.id, bills.unitId))
+    .where(inArray(tenants.propertyId, propertyIds))
+    .orderBy(payments.createdAt)
 })
 
 export const getPaymentsByBill = createServerFn({ method: 'GET' })

@@ -620,10 +620,6 @@ function PortalDashboard() {
               <strong className="text-white">{formatRupiah(unit?.priceMonthly || 0)}</strong>
             </div>
             <div className="flex items-center justify-between">
-              <span>Uang Jaminan:</span>
-              <strong className="text-white">{formatRupiah(tenant?.depositAmount || 0)}</strong>
-            </div>
-            <div className="flex items-center justify-between">
               <span>Tagihan Belum Lunas:</span>
               <span className={`px-2 py-0.5 rounded font-black text-[10px] ${pendingBillsCount > 0 ? 'bg-red-500/20 text-red-300 animate-pulse' : 'bg-emerald-500/20 text-emerald-300'}`}>
                 {pendingBillsCount} Tagihan
