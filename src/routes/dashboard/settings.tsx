@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState, useEffect, useRef } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Download, DatabaseBackup, CheckCircle2, AlertCircle } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
@@ -22,6 +22,93 @@ function getInitials(name?: string | null) {
   if (!name) return 'KM'
   return name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
 }
+
+// ── Backup Database Button ────────────────────────────────────────────────────
+function BackupButton() {
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [message, setMessage] = useState('')
+  const [lastBackup, setLastBackup] = useState<string | null>(null)
+
+  const handleBackup = async () => {
+    setStatus('loading')
+    setMessage('')
+    try {
+      const res = await fetch('/api/backup', { credentials: 'include' })
+
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+        throw new Error(json.error || `HTTP ${res.status}`)
+      }
+
+      // Ambil nama file dari header Content-Disposition
+      const disposition = res.headers.get('content-disposition') || ''
+      const match = disposition.match(/filename="([^"]+)"/)
+      const filename = match?.[1] || `kostmanager-backup-${Date.now()}.db`
+
+      // Trigger download di browser
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      const sizeKB = Math.round(blob.size / 1024)
+      const now = new Date().toLocaleString('id-ID')
+      setLastBackup(`${now} — ${filename} (${sizeKB} KB)`)
+      setStatus('success')
+      setMessage(`✅ Berhasil! File ${filename} (${sizeKB} KB) sedang didownload.`)
+    } catch (err: any) {
+      setStatus('error')
+      setMessage(err?.message || 'Gagal download backup. Coba lagi.')
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <Button
+        onClick={handleBackup}
+        disabled={status === 'loading'}
+        className="bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl px-5 py-2.5 text-sm flex items-center gap-2 transition"
+      >
+        {status === 'loading' ? (
+          <><Loader2 className="h-4 w-4 animate-spin" /> Mengunduh database...</>
+        ) : (
+          <><Download className="h-4 w-4" /> Download Backup Database Sekarang</>
+        )}
+      </Button>
+
+      {status === 'success' && (
+        <div className="flex items-start gap-2 rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-xs text-emerald-800 font-medium">
+          <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-emerald-600" />
+          <span>{message}</span>
+        </div>
+      )}
+
+      {status === 'error' && (
+        <div className="flex items-start gap-2 rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs text-rose-800 font-medium">
+          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-rose-600" />
+          <span>{message}</span>
+        </div>
+      )}
+
+      {lastBackup && (
+        <p className="text-[11px] text-slate-400 font-medium">
+          📅 Backup terakhir sesi ini: {lastBackup}
+        </p>
+      )}
+
+      <div className="text-[11px] text-slate-400 leading-relaxed">
+        Atau akses langsung: <a href="/api/backup" target="_blank" className="text-blue-600 underline font-semibold hover:text-blue-800">/api/backup</a>
+        {' '}(harus login sebagai owner)
+      </div>
+    </div>
+  )
+}
+
 
 function SettingsPage() {
   const { user, refreshSession } = useAuth()
@@ -213,20 +300,44 @@ function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="security">
-          <Card>
-            <CardHeader><CardTitle>Keamanan</CardTitle><CardDescription>Kelola password dan keamanan akun</CardDescription></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2"><Label>Password Lama</Label><Input type="password" placeholder="Masukkan password lama" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} /></div>
-              <div className="space-y-2"><Label>Password Baru</Label><Input type="password" placeholder="Minimal 8 karakter" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} /></div>
-              <div className="space-y-2"><Label>Konfirmasi Password Baru</Label><Input type="password" placeholder="Ulangi password baru" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} /></div>
-              {passwordMsg && <p className="text-sm text-muted-foreground">{passwordMsg}</p>}
-              <Button onClick={handleChangePassword} disabled={passwordMutation.loading}>
-                {passwordMutation.loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Ganti Password
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader><CardTitle>Keamanan</CardTitle><CardDescription>Kelola password dan keamanan akun</CardDescription></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2"><Label>Password Lama</Label><Input type="password" placeholder="Masukkan password lama" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} /></div>
+                <div className="space-y-2"><Label>Password Baru</Label><Input type="password" placeholder="Minimal 8 karakter" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} /></div>
+                <div className="space-y-2"><Label>Konfirmasi Password Baru</Label><Input type="password" placeholder="Ulangi password baru" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} /></div>
+                {passwordMsg && <p className="text-sm text-muted-foreground">{passwordMsg}</p>}
+                <Button onClick={handleChangePassword} disabled={passwordMutation.loading}>
+                  {passwordMutation.loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Ganti Password
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* ── Backup Database ── */}
+            <Card className="border-amber-200 bg-amber-50/30">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-amber-900">
+                  <span>🗄️</span> Backup Database
+                </CardTitle>
+                <CardDescription className="text-amber-700">
+                  Download salinan database production (<code className="bg-amber-100 px-1 rounded text-xs">kostmanager.db</code>) dari server Vercel langsung ke komputer Anda.
+                  Lakukan backup sebelum setiap deployment besar.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="rounded-xl border border-amber-200 bg-white p-4 text-xs text-amber-800 space-y-1.5 font-medium">
+                  <p>⚠️ <strong>Penting:</strong> SQLite di Vercel serverless tidak persisten. Data bisa hilang saat restart/deploy jika belum ada external storage.</p>
+                  <p>✅ Klik tombol di bawah untuk download database saat ini dari server Vercel.</p>
+                  <p>📁 File akan tersimpan dengan nama: <code className="bg-amber-50 px-1 rounded">kostmanager-backup-YYYY-MM-DD-HHMM.db</code></p>
+                </div>
+                <BackupButton />
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
+
 
         <TabsContent value="billing">
           <Card>
