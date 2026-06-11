@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { eq, and, desc, asc, sql } from 'drizzle-orm'
+import { eq, and, desc, asc, sql, inArray } from 'drizzle-orm'
 import { db } from '../db'
 import { chatMessages, tenants, properties, users } from '../db/schema'
 import { auth } from './auth'
@@ -117,3 +117,39 @@ export const listTenantChatSummaries = createServerFn({ method: 'GET' }).handler
 
   return summaries
 })
+
+export const deleteMultipleChatMessages = createServerFn({ method: 'POST' })
+  .inputValidator((d: { ids: string[]; tenantId: string }) => d)
+  .handler(async ({ data }) => {
+    const request = getRequest()
+    const { propertyIds } = await requireOwner(request.headers)
+
+    const tenant = await db.select().from(tenants).where(eq(tenants.id, data.tenantId)).then((r) => r[0])
+    if (!tenant) throw new Error('Tenant not found')
+    if (!propertyIds.includes(tenant.propertyId ?? '')) throw new Error('Forbidden')
+
+    if (data.ids.length === 0) return { success: true }
+
+    await db
+      .delete(chatMessages)
+      .where(and(eq(chatMessages.tenantId, data.tenantId), inArray(chatMessages.id, data.ids)))
+
+    return { success: true }
+  })
+
+export const clearChatConversation = createServerFn({ method: 'POST' })
+  .inputValidator((d: { tenantId: string }) => d)
+  .handler(async ({ data }) => {
+    const request = getRequest()
+    const { propertyIds } = await requireOwner(request.headers)
+
+    const tenant = await db.select().from(tenants).where(eq(tenants.id, data.tenantId)).then((r) => r[0])
+    if (!tenant) throw new Error('Tenant not found')
+    if (!propertyIds.includes(tenant.propertyId ?? '')) throw new Error('Forbidden')
+
+    await db
+      .delete(chatMessages)
+      .where(eq(chatMessages.tenantId, data.tenantId))
+
+    return { success: true }
+  })

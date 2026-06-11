@@ -79,6 +79,8 @@ export const api = {
     listMessages: (data: { tenantId: string }) => chatActions.listChatMessages({ data }),
     sendMessage: (data: { tenantId: string; message: string; sender: 'Tenant' | 'Landlord'; senderName: string }) => chatActions.sendChatMessage({ data }),
     markRead: (data: { tenantId: string }) => chatActions.markChatRead({ data }),
+    deleteMessages: (data: { ids: string[]; tenantId: string }) => chatActions.deleteMultipleChatMessages({ data }),
+    clearConversation: (data: { tenantId: string }) => chatActions.clearChatConversation({ data }),
   },
   portal: {
     chat: {

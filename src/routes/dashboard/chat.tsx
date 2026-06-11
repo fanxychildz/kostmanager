@@ -26,11 +26,51 @@ function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [chatInputText, setChatInputText] = useState('')
   const [sending, setSending] = useState(false)
+  const [isBulkMode, setIsBulkMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const selectedTenant = tenants?.find((t: any) => t.id === selectedTenantId)
   const currentTenantLabel = selectedTenant ? `${selectedTenant.fullName} (${selectedTenant.phone})` : ''
+
+  useEffect(() => {
+    setIsBulkMode(false)
+    setSelectedIds([])
+  }, [selectedTenantId])
+
+  const handleClearAllChat = async () => {
+    if (!selectedTenantId) return
+    if (!confirm('Apakah Anda yakin ingin menghapus seluruh riwayat obrolan dengan penghuni ini? Semua pesan akan dihapus secara permanen untuk kedua pihak.')) return
+    setSending(true)
+    try {
+      await api.chat.clearConversation({ tenantId: selectedTenantId })
+      setMessages([])
+      refetchSummaries()
+    } catch (err) {
+      alert('Gagal membersihkan obrolan: ' + err)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const handleBulkDeleteChats = async () => {
+    if (!selectedTenantId || selectedIds.length === 0) return
+    if (!confirm(`Apakah Anda yakin ingin menghapus ${selectedIds.length} pesan terpilih secara permanen?`)) return
+    setSending(true)
+    try {
+      await api.chat.deleteMessages({ ids: selectedIds, tenantId: selectedTenantId })
+      const next = messages.filter(m => !selectedIds.includes(m.id))
+      setMessages(next)
+      setSelectedIds([])
+      setIsBulkMode(false)
+      refetchSummaries()
+    } catch (err) {
+      alert('Gagal menghapus pesan terpilih: ' + err)
+    } finally {
+      setSending(false)
+    }
+  }
 
   useEffect(() => {
     if (tenants?.length) {
@@ -169,72 +209,168 @@ function ChatPage() {
         <div className="flex-1 flex flex-col">
           {selectedTenantId ? (
             <>
-              <div className="p-4 border-b border-slate-200 flex items-center justify-between gap-3 overflow-x-hidden">
+              <div className="p-4 border-b border-slate-200 flex items-center justify-between gap-3 overflow-x-hidden bg-slate-50/40">
                 <div>
                   <p className="text-xs font-extrabold text-slate-900">Percakapan dengan Penghuni</p>
                   {currentTenantLabel && (
                     <p className="text-[11px] text-slate-500 font-medium">{currentTenantLabel}</p>
                   )}
                 </div>
-                {unreadTotal > 0 ? (
-                  <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-1 rounded-lg">
-                    {unreadTotal} pesan baru
-                  </span>
-                ) : null}
+                <div className="flex items-center gap-2">
+                  {messages.length > 0 && (
+                    <div className="flex items-center gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsBulkMode(!isBulkMode)
+                          setSelectedIds([])
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-[10px] font-bold transition cursor-pointer border ${
+                          isBulkMode
+                            ? 'bg-slate-100 border-slate-350 text-slate-700 hover:bg-slate-200'
+                            : 'bg-white border-slate-200 text-blue-600 hover:bg-blue-50'
+                        }`}
+                      >
+                        {isBulkMode ? 'Selesai Memilih' : 'Pilih Chat'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleClearAllChat}
+                        className="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-650 text-[10px] font-bold border border-red-200 transition cursor-pointer"
+                      >
+                        Hapus Semua Chat
+                      </button>
+                    </div>
+                  )}
+                  {unreadTotal > 0 && !isBulkMode ? (
+                    <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-1 rounded-lg">
+                      {unreadTotal} pesan baru
+                    </span>
+                  ) : null}
+                </div>
               </div>
 
               <div ref={listRef} className="flex-1 overflow-y-auto p-4 space-y-3">
                 {messages.length === 0 ? (
                   <p className="text-center text-xs text-slate-400 font-semibold">Belum ada pesan.</p>
                 ) : (
-                  messages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={`flex flex-col ${msg.sender === 'owner' ? 'items-end' : 'items-start'}`}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[10px] text-slate-400 font-semibold">{msg.senderName}</span>
-                        <span className="text-[10px] text-slate-400 font-medium">
-                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
+                  messages.map((msg) => {
+                    const isSelected = selectedIds.includes(msg.id)
+                    return (
                       <div
-                        className={`px-3 py-2 rounded-2xl text-xs font-semibold shadow-sm ${
-                          msg.sender === 'owner'
-                            ? 'bg-slate-900 text-white rounded-br-none'
-                            : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'
+                        key={msg.id}
+                        onClick={() => {
+                          if (isBulkMode) {
+                            if (isSelected) {
+                              setSelectedIds(selectedIds.filter(id => id !== msg.id))
+                            } else {
+                              setSelectedIds([...selectedIds, msg.id])
+                            }
+                          }
+                        }}
+                        className={`flex items-start gap-3 w-full transition duration-150 ${
+                          isBulkMode ? 'cursor-pointer hover:bg-slate-55 p-1.5 rounded-2xl' : ''
                         }`}
                       >
-                        {msg.message}
+                        {isBulkMode && (
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {}} // Handled by outer click
+                            className="mt-4 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer shrink-0"
+                          />
+                        )}
+                        <div className={`flex-1 flex flex-col ${msg.sender === 'owner' ? 'items-end' : 'items-start'}`}>
+                          <div className="flex items-center gap-2 mb-1 select-none">
+                            <span className="text-[10px] text-slate-400 font-semibold">{msg.senderName}</span>
+                            <span className="text-[10px] text-slate-400 font-medium">
+                              {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <div
+                            className={`px-3 py-2 rounded-2xl text-xs font-semibold shadow-xs transition ${
+                              msg.sender === 'owner'
+                                ? 'bg-slate-900 text-white rounded-br-none'
+                                : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'
+                            } ${
+                              isBulkMode && isSelected
+                                ? 'ring-2 ring-blue-500 ring-offset-1 bg-blue-50/20'
+                                : ''
+                            }`}
+                          >
+                            {msg.message}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    )
+                  })
                 )}
               </div>
 
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  if (!chatInputText.trim()) return
-                  sendMessage(chatInputText, 'owner')
-                }}
-                className="p-3 border-t border-slate-200 flex gap-2"
-              >
-                <input
-                  ref={inputRef}
-                  value={chatInputText}
-                  onChange={(e) => setChatInputText(e.target.value)}
-                  placeholder="Tulis balasan..."
-                  className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-                <button
-                  type="submit"
-                  disabled={sending || !chatInputText.trim()}
-                  className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-slate-800 disabled:opacity-60"
+              {isBulkMode ? (
+                <div className="p-3 border-t border-slate-200 bg-slate-900 text-white flex items-center justify-between gap-4 rounded-b-2xl">
+                  <div className="text-xs font-bold pl-2">
+                    <span className="text-blue-400">{selectedIds.length}</span> dari <span className="text-slate-300">{messages.length}</span> pesan terpilih
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (selectedIds.length === messages.length) {
+                          setSelectedIds([])
+                        } else {
+                          setSelectedIds(messages.map(m => m.id))
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-[11px] font-semibold transition cursor-pointer border border-slate-750"
+                    >
+                      {selectedIds.length === messages.length ? 'Batal Pilih Semua' : 'Pilih Semua'}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={selectedIds.length === 0 || sending}
+                      onClick={handleBulkDeleteChats}
+                      className="px-4 py-1.5 bg-red-650 hover:bg-red-750 disabled:bg-red-800/45 disabled:text-red-350/60 disabled:cursor-not-allowed rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Hapus Terpilih'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsBulkMode(false)
+                        setSelectedIds([])
+                      }}
+                      className="px-3 py-1.5 text-slate-400 hover:text-white text-[11px] font-semibold transition cursor-pointer"
+                    >
+                      Batal
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    if (!chatInputText.trim()) return
+                    sendMessage(chatInputText, 'owner')
+                  }}
+                  className="p-3 border-t border-slate-200 flex gap-2"
                 >
-                  {sending ? 'Mengirim...' : 'Kirim'}
-                </button>
-              </form>
+                  <input
+                    ref={inputRef}
+                    value={chatInputText}
+                    onChange={(e) => setChatInputText(e.target.value)}
+                    placeholder="Tulis balasan..."
+                    className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-slate-200"
+                  />
+                  <button
+                    type="submit"
+                    disabled={sending || !chatInputText.trim()}
+                    className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-slate-800 disabled:opacity-60 cursor-pointer"
+                  >
+                    {sending ? 'Mengirim...' : 'Kirim'}
+                  </button>
+                </form>
+              )}
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center text-xs text-slate-400 font-semibold">
