@@ -13,33 +13,64 @@ async function requireOwnerPropertyIds(headers: Headers) {
   return { session, propertyIds: rows.map((r) => r.id) }
 }
 
-export const listPayments = createServerFn({ method: 'GET' }).handler(async () => {
-  const request = getRequest()
-  const { propertyIds } = await requireOwnerPropertyIds(request.headers)
-  if (propertyIds.length === 0) return []
+export const listPayments = createServerFn({ method: 'GET' })
+  .inputValidator((d: { billId?: string; page?: number; limit?: number } | undefined) => d)
+  .handler(async ({ data }) => {
+    const request = getRequest()
+    const { session, propertyIds } = await requireOwnerPropertyIds(request.headers)
+    
+    const isPaginated = data?.page !== undefined
 
-  return db
-    .select({
-      id: payments.id,
-      billId: payments.billId,
-      recordedBy: payments.recordedBy,
-      paymentMethod: payments.paymentMethod,
-      amount: payments.amount,
-      paidAt: payments.paidAt,
-      notes: payments.notes,
-      status: payments.status,
-      createdAt: payments.createdAt,
-      updatedAt: payments.updatedAt,
-      tenantName: tenants.fullName,
-      unitNumber: units.unitNumber,
-    })
-    .from(payments)
-    .innerJoin(bills, eq(bills.id, payments.billId))
-    .innerJoin(tenants, eq(tenants.id, bills.tenantId))
-    .leftJoin(units, eq(units.id, bills.unitId))
-    .where(inArray(tenants.propertyId, propertyIds))
-    .orderBy(payments.createdAt)
-})
+    if (propertyIds.length === 0) {
+      return isPaginated ? { items: [], total: 0, page: 1, limit: 50 } : []
+    }
+
+    const pageSize = Math.max(1, Math.min(200, data?.limit ?? 50))
+    const page = Math.max(1, data?.page ?? 1)
+    const offset = (page - 1) * pageSize
+
+    const conditions = [inArray(tenants.propertyId, propertyIds)]
+    if (data?.billId) conditions.push(eq(bills.id, data.billId))
+
+    const base = db
+      .select({
+        id: payments.id,
+        billId: payments.billId,
+        recordedBy: payments.recordedBy,
+        paymentMethod: payments.paymentMethod,
+        amount: payments.amount,
+        paidAt: payments.paidAt,
+        notes: payments.notes,
+        status: payments.status,
+        createdAt: payments.createdAt,
+        updatedAt: payments.updatedAt,
+        tenantName: tenants.fullName,
+        unitNumber: units.unitNumber,
+      })
+      .from(payments)
+      .innerJoin(bills, eq(bills.id, payments.billId))
+      .innerJoin(tenants, eq(tenants.id, bills.tenantId))
+      .leftJoin(units, eq(units.id, bills.unitId))
+      .where(and(...conditions))
+
+    if (isPaginated) {
+      const [items, countRow] = await Promise.all([
+        base.orderBy(sql`${payments.createdAt} DESC`).limit(pageSize).offset(offset),
+        db.select({ count: sql<number>`count(*)` }).from(payments)
+          .innerJoin(bills, eq(bills.id, payments.billId))
+          .innerJoin(tenants, eq(tenants.id, bills.tenantId))
+          .where(and(...conditions)),
+      ])
+      return {
+        items,
+        total: Number(countRow[0]?.count ?? 0),
+        page,
+        limit: pageSize,
+      }
+    } else {
+      return base.orderBy(sql`${payments.createdAt} DESC`).limit(200)
+    }
+  })
 
 export const getPaymentsByBill = createServerFn({ method: 'GET' })
   .inputValidator((d: { billId: string }) => d)
