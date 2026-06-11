@@ -7,11 +7,12 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 import { Badge } from '~/components/ui/badge'
-import { Avatar, AvatarFallback } from '~/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Progress } from '~/components/ui/progress'
 import { formatRupiah, formatDate } from '~/lib/utils'
 import { api } from '~/lib/api'
 import { useQuery } from '~/lib/hooks'
+import { useAuth } from '~/lib/auth-context'
 
 export const Route = createFileRoute('/portal/')({
   component: PortalDashboard,
@@ -102,6 +103,7 @@ function generateAISuggestion(messages: PortalChatMessage[], respondent: 'Tenant
 }
 
 function PortalDashboard() {
+  const { user: authUser } = useAuth()
   const [activeTab, setActiveTab] = useState<TenantTab>('lease')
 
   const {
@@ -348,6 +350,7 @@ function PortalDashboard() {
         <div className="bg-blue-600 border border-blue-500 text-white p-5 rounded-2xl shadow-sm">
           <div className="flex items-center gap-3 mb-4">
             <Avatar className="h-10 w-10 ring-2 ring-blue-500/50">
+              {authUser?.image && <AvatarImage src={authUser.image} className="object-cover" />}
               <AvatarFallback className="text-sm bg-white text-blue-600 font-bold uppercase">
                 {tenant?.fullName.substring(0, 2)}
               </AvatarFallback>

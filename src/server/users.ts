@@ -6,17 +6,18 @@ import { auth } from './auth'
 import { getRequest } from '@tanstack/react-start/server'
 
 export const updateProfile = createServerFn({ method: 'POST' })
-  .inputValidator((d: { name?: string; phone?: string }) => d)
+  .inputValidator((d: { name?: string; phone?: string; image?: string }) => d)
   .handler(async ({ data }) => {
     const request = getRequest()
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session) throw new Error('Unauthorized')
 
-    const updatePayload: { name?: string; phone?: string; updatedAt: Date } = {
+    const updatePayload: { name?: string; phone?: string; image?: string; updatedAt: Date } = {
       updatedAt: new Date(),
     }
     if (data.name !== undefined) updatePayload.name = data.name
     if (data.phone !== undefined) updatePayload.phone = data.phone
+    if (data.image !== undefined) updatePayload.image = data.image
 
     const result = await db
       .update(users)

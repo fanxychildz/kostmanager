@@ -1,8 +1,8 @@
 import { createFileRoute, Outlet, useNavigate, redirect, useLocation } from '@tanstack/react-router'
 import { LogOut, Building2, Clock } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '~/components/ui/button'
-import { Avatar, AvatarFallback } from '~/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { api } from '~/lib/api'
 import { useAuth } from '~/lib/auth-context'
 
@@ -33,15 +33,32 @@ export const Route = createFileRoute('/portal')({
 
 function PortalLayout() {
   const navigate = useNavigate()
-  const { user, signOut } = useAuth()
+  const { user, signOut, refreshSession } = useAuth()
   const [currentTime, setCurrentTime] = useState<string>('')
   const location = useLocation()
 
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [updatingPhoto, setUpdatingPhoto] = useState(false)
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleString('id-ID', {
+      timeZone: 'Asia/Jakarta',
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }).replace(/\./g, ':') + ' WIB'
+  }
+
   useEffect(() => {
     if (isAuthPath(location.pathname)) return
-    setCurrentTime(new Date().toUTCString())
+    setCurrentTime(formatTime(new Date()))
     const interval = setInterval(() => {
-      setCurrentTime(new Date().toUTCString())
+      setCurrentTime(formatTime(new Date()))
     }, 1000)
     return () => clearInterval(interval)
   }, [location.pathname])
@@ -49,6 +66,31 @@ function PortalLayout() {
   const handleSignOut = async () => {
     await signOut()
     navigate({ to: '/portal/login' })
+  }
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUpdatingPhoto(true)
+    try {
+      const reader = new FileReader()
+      reader.onload = async () => {
+        const base64 = reader.result as string
+        await api.auth.updateProfile({ image: base64 })
+        await refreshSession()
+      }
+      reader.readAsDataURL(file)
+    } catch (err) {
+      console.error(err)
+      alert('Gagal mengunggah foto profil.')
+    } finally {
+      setUpdatingPhoto(false)
+    }
   }
 
   // If on login/register page, bypass layout wrapper
@@ -85,10 +127,22 @@ function PortalLayout() {
           </div>
 
           <div className="flex items-center gap-3">
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileChange}
+            />
             <div className="flex items-center gap-2">
-              <Avatar className="h-8 w-8 ring-2 ring-slate-100">
+              <Avatar
+                onClick={handleAvatarClick}
+                className={`h-8 w-8 ring-2 ring-slate-100 cursor-pointer hover:opacity-80 transition-all ${updatingPhoto ? 'animate-pulse' : ''}`}
+                title="Ganti Foto Profil"
+              >
+                {user?.image && <AvatarImage src={user.image} className="object-cover" />}
                 <AvatarFallback className="text-xs bg-slate-900 text-white font-bold">
-                  {getInitials(user?.name)}
+                  {updatingPhoto ? '...' : getInitials(user?.name)}
                 </AvatarFallback>
               </Avatar>
               <div className="hidden sm:block text-left">

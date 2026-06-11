@@ -23,7 +23,7 @@ export const api = {
     getSession: () => authActions.getSession(),
     signInSocial: (data: { provider: 'google'; callbackURL?: string }) =>
       authActions.signInSocial({ data }),
-    updateProfile: (data: { name?: string; phone?: string }) =>
+    updateProfile: (data: { name?: string; phone?: string; image?: string }) =>
       usersActions.updateProfile({ data }),
     changePassword: (data: { currentPassword: string; newPassword: string }) =>
       usersActions.changePassword({ data }),
