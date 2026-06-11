@@ -32,15 +32,7 @@ function TenantsPage() {
   const unitMap = useMemo(() => new Map((units || []).map((u: any) => [u.id, u])), [units])
   const propertyMap = useMemo(() => new Map((properties || []).map((p: any) => [p.id, p])), [properties])
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
-  }
-
-  // Memoized filter with debounced search for smooth typing
+  // Memoized filter with debounced search — MUST be before any early return (Rules of Hooks)
   const filteredTenants = useMemo(() => {
     const q = debouncedSearch.toLowerCase()
     if (!q) return tenants || []
@@ -50,6 +42,15 @@ function TenantsPage() {
       t.phone.includes(debouncedSearch)
     )
   }, [tenants, debouncedSearch])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
 
   return (
     <div className="space-y-8">
