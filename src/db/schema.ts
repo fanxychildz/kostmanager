@@ -1,4 +1,57 @@
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, real, index } from 'drizzle-orm/sqlite-core'
+import { sql } from 'drizzle-orm'
+
+export const ensurePerformanceIndexes = async () => {
+  try {
+    // Bisa sempat utk semua listBills/listPayments tanpa full table scan
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_bills_tenant_property
+      ON bills (tenantId, unitId, status, dueDate)
+    `
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_bills_unit_property
+      ON bills (unitId, propertyId, status, dueDate)
+    `
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_bills_property_period
+      ON bills (propertyId, periodMonth, periodYear, status)
+    `
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_payments_bill_created
+      ON payments (billId, createdAt)
+    `
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_payments_created
+      ON payments (createdAt)
+    `
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_expenses_property_date
+      ON expenses (propertyId, date)
+    `
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_meter_readings_unit_type
+      ON meter_readings (unitId, type, readingDate)
+    `
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_maintenance_property_status
+      ON maintenance_requests (propertyId, status)
+    `
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_announcements_property
+      ON announcements (propertyId, createdAt)
+    `
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_tenants_property_status
+      ON tenants (propertyId, status)
+    `
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_units_property
+      ON units (propertyId, status)
+    `
+  } catch (e) {
+    console.error('ensurePerformanceIndexes failed', e)
+  }
+}
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
@@ -62,7 +115,7 @@ export const properties = sqliteTable(
     updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
   },
   (t) => ({
-    ownerIdx: t.index('properties_owner_id_idx').on(t.ownerId),
+    ownerIdx: index('properties_owner_id_idx').on(t.ownerId),
   }),
 )
 

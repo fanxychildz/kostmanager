@@ -1,6 +1,6 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { db, isTurso } from '../db'
+import { db } from '../db'
 import * as schema from '../db/schema'
 
 const baseURL =
@@ -15,7 +15,7 @@ export const auth = betterAuth({
     process.env.BETTER_AUTH_SECRET ||
     'kostmanager-dev-secret-change-me-in-production',
   database: drizzleAdapter(db, {
-    provider: isTurso() ? 'mysql' : 'sqlite',
+    provider: 'sqlite',
     schema: {
       user: schema.users,
       session: schema.sessions,
