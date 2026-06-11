@@ -213,6 +213,19 @@ function PortalDashboard() {
   const [passwordMsg, setPasswordMsg] = useState('')
   const [passwordMsgType, setPasswordMsgType] = useState<'success' | 'error' | ''>('')
 
+  const [lastViewedAnnouncements, setLastViewedAnnouncements] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('lastViewedAnnouncements') || '1970-01-01T00:00:00.000Z'
+    }
+    return '1970-01-01T00:00:00.000Z'
+  })
+
+  const unreadAnnouncementsCount = announcements.filter((ann) => {
+    const annTime = new Date(ann.createdAt).getTime()
+    const lastViewedTime = new Date(lastViewedAnnouncements).getTime()
+    return annTime > lastViewedTime
+  }).length
+
   useEffect(() => {
     if (tenant) {
       setName(tenant.fullName || authUser?.name || '')
@@ -348,6 +361,16 @@ function PortalDashboard() {
       cancelled = true
     }
   }, [tenant?.id, activeTab])
+
+  useEffect(() => {
+    if (activeTab === 'announcements') {
+      const nowStr = new Date().toISOString()
+      setLastViewedAnnouncements(nowStr)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('lastViewedAnnouncements', nowStr)
+      }
+    }
+  }, [activeTab, announcements.length])
 
   // Polling for incoming chat messages
   useEffect(() => {
@@ -615,6 +638,11 @@ function PortalDashboard() {
             <span className="flex items-center gap-3">
               <Megaphone className="w-4 h-4 shrink-0" /> Pengumuman
             </span>
+            {unreadAnnouncementsCount > 0 && (
+              <span className={`flex h-5 min-w-5 px-1.5 items-center justify-center rounded-full text-[10px] font-bold ring-1 ring-white ${activeTab === 'announcements' ? 'bg-white text-blue-600' : 'bg-rose-500 text-white'}`}>
+                {unreadAnnouncementsCount}
+              </span>
+            )}
           </button>
 
           <button
