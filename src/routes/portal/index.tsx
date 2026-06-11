@@ -221,9 +221,10 @@ function PortalDashboard() {
   })
 
   const unreadAnnouncementsCount = announcements.filter((ann) => {
+    if (!ann.createdAt) return false
     const annTime = new Date(ann.createdAt).getTime()
     const lastViewedTime = new Date(lastViewedAnnouncements).getTime()
-    return annTime > lastViewedTime
+    return !isNaN(annTime) && annTime > lastViewedTime
   }).length
 
   useEffect(() => {
@@ -383,6 +384,18 @@ function PortalDashboard() {
 
     return () => clearInterval(interval)
   }, [tenant?.id, activeTab])
+
+  // Polling for announcements to show notifications badge in real-time
+  useEffect(() => {
+    if (!tenant?.id) return
+
+    const interval = setInterval(async () => {
+      const list = await loadAnnouncements()
+      setAnnouncements(list)
+    }, 10000)
+
+    return () => clearInterval(interval)
+  }, [tenant?.id])
 
   // Auto-scroll chat container
   useEffect(() => {
