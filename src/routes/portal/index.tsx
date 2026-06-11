@@ -177,8 +177,19 @@ function PortalDashboard() {
 
   const [payingBill, setPayingBill] = useState<PortalBill | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<string>('bank_transfer')
-  const [customReceiptUrl, setCustomReceiptUrl] = useState('')
+  const [receiptBase64, setReceiptBase64] = useState('')
   const [paymentMemo, setPaymentMemo] = useState('')
+
+  const handleReceiptFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      setReceiptBase64(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
 
   const [showSubmitRequest, setShowSubmitRequest] = useState(false)
   const [newReqTitle, setNewReqTitle] = useState('')
@@ -445,9 +456,19 @@ function PortalDashboard() {
     if (!payingBill || !tenant?.id || isSubmittingPayment) return
     setIsSubmittingPayment(true)
     try {
+      let finalMessage = `🔔 PEMBERITAHUAN BAYAR: Saya telah mengirim bukti transfer untuk sewa periode ${payingBill.periodMonth}/${payingBill.periodYear} sebesar ${formatRupiah(payingBill.totalAmount)}. Metode: ${paymentMethod === 'bank_transfer' ? 'Transfer Bank' : paymentMethod === 'qris_manual' ? 'QRIS Manual' : 'Metode Lain'}.`
+      
+      if (paymentMemo.trim()) {
+        finalMessage += ` Catatan: ${paymentMemo}`
+      }
+      
+      if (receiptBase64) {
+        finalMessage += `\n[BUKTI_FOTO]: ${receiptBase64}`
+      }
+
       await api.portal.chat.sendMessage({
         tenantId: tenant.id,
-        message: `🔔 PEMBERITAHUAN BAYAR: Saya telah mengirim bukti transfer untuk sewa periode ${payingBill.periodMonth}/${payingBill.periodYear} sebesar ${formatRupiah(payingBill.totalAmount)}. Metode: ${paymentMethod === 'bank_transfer' ? 'Transfer Bank' : paymentMethod === 'qris_manual' ? 'QRIS Manual' : 'Metode Lain'}.`,
+        message: finalMessage,
         sender: 'Tenant',
         senderName: tenant.fullName || 'Penghuni',
       })
@@ -457,7 +478,7 @@ function PortalDashboard() {
 
       alert('Bukti pembayaran sewa Anda berhasil diunggah! Pemilik kost akan segera melakukan pengecekan mutasi bank dan mengubah status sewa Anda menjadi lunas.')
       setPayingBill(null)
-      setCustomReceiptUrl('')
+      setReceiptBase64('')
       setPaymentMemo('')
       refetchBills()
     } catch (err) {
@@ -1021,7 +1042,19 @@ function PortalDashboard() {
                         <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                       <div className={`p-3 rounded-2xl text-xs max-w-[85%] shadow-xs leading-relaxed ${msg.sender === 'Tenant' ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white text-slate-800 rounded-tl-none border border-slate-200'}`}>
-                        {msg.message}
+                        {msg.message.includes('[BUKTI_FOTO]:') ? (
+                          <div className="space-y-2">
+                            <div>{msg.message.split('[BUKTI_FOTO]:')[0].trim()}</div>
+                            <img 
+                              src={msg.message.split('[BUKTI_FOTO]:')[1].trim()} 
+                              alt="Bukti Transfer" 
+                              className="max-w-xs max-h-60 rounded-xl object-contain border cursor-pointer hover:opacity-90 transition-opacity" 
+                              onClick={() => window.open(msg.message.split('[BUKTI_FOTO]:')[1].trim(), '_blank')}
+                            />
+                          </div>
+                        ) : (
+                          msg.message
+                        )}
                       </div>
                     </div>
                   ))
@@ -1277,15 +1310,23 @@ function PortalDashboard() {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-slate-500 block mb-1">Bukti Transfer (Screenshot URL)</label>
+                <label className="text-[10px] font-bold text-slate-500 block mb-1">Bukti Transfer (Unggah Foto / Screenshot) *</label>
                 <input
-                  type="text"
-                  placeholder="https://images.unsplash.com/photo-..."
-                  className="w-full border border-slate-200 rounded-lg p-2 text-xs"
-                  value={customReceiptUrl}
-                  onChange={e => setCustomReceiptUrl(e.target.value)}
+                  type="file"
+                  accept="image/*"
+                  required
+                  className="w-full border border-slate-200 rounded-lg p-2 text-xs bg-white text-slate-850"
+                  onChange={handleReceiptFileChange}
                 />
-                <span className="text-[9px] text-slate-400 block mt-1 font-medium">Anda dapat mengosongkan URL ini untuk simulasi pengiriman bukti transfer bank otomatis.</span>
+                <span className="text-[9px] text-slate-400 block mt-1 font-medium">
+                  Pilih file gambar atau ambil foto struk transfer ATM / m-banking Anda.
+                </span>
+                
+                {receiptBase64 && (
+                  <div className="mt-2.5 border border-slate-100 rounded-lg overflow-hidden bg-slate-50 p-1 flex justify-center">
+                    <img src={receiptBase64} alt="Pratinjau Struk" className="max-h-28 object-contain rounded-md" />
+                  </div>
+                )}
               </div>
 
               <div>

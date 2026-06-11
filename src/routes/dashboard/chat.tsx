@@ -298,7 +298,19 @@ function ChatPage() {
                                 : ''
                             }`}
                           >
-                            {msg.message}
+                            {msg.message.includes('[BUKTI_FOTO]:') ? (
+                              <div className="space-y-2">
+                                <div>{msg.message.split('[BUKTI_FOTO]:')[0].trim()}</div>
+                                <img 
+                                  src={msg.message.split('[BUKTI_FOTO]:')[1].trim()} 
+                                  alt="Bukti Transfer" 
+                                  className="max-w-xs max-h-60 rounded-xl object-contain border cursor-pointer hover:opacity-90 transition-opacity" 
+                                  onClick={() => window.open(msg.message.split('[BUKTI_FOTO]:')[1].trim(), '_blank')}
+                                />
+                              </div>
+                            ) : (
+                              msg.message
+                            )}
                           </div>
                         </div>
                       </div>
