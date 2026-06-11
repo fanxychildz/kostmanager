@@ -1,6 +1,7 @@
 "use client"
 
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { Loader2, ArrowLeft, Plus, Printer, FileText } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
 import { Badge } from '~/components/ui/badge'
