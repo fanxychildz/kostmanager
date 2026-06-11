@@ -489,6 +489,17 @@ function PortalDashboard() {
     }
   }
 
+  const handleDeleteRequest = async (id: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus laporan kerusakan ini? Laporan yang dihapus tidak dapat dikembalikan.')) return
+    try {
+      await api.portal.maintenance.delete(id)
+      const maint = await loadMaintenance()
+      setMaintenance(maint)
+    } catch (err) {
+      alert('Gagal menghapus laporan: ' + err)
+    }
+  }
+
   // Smart Draft writer suggestion triggers
   const triggerAISuggestion = () => {
     setIsSuggestingAI(true)
@@ -853,9 +864,18 @@ function PortalDashboard() {
                               <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">{req.description}</p>
                             </div>
 
-                            <div className="border-t border-slate-200 pt-2 flex justify-between text-[10px] text-slate-400 font-semibold">
+                            <div className="border-t border-slate-200 pt-2 flex justify-between items-center text-[10px] text-slate-400 font-semibold">
                               <span>Diajukan: {new Date(req.createdAt).toLocaleDateString()}</span>
-                              <span className="text-rose-650">{req.priority} Priority</span>
+                              <div className="flex items-center gap-3">
+                                <span className="text-rose-650">{req.priority} Priority</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteRequest(req.id)}
+                                  className="text-rose-600 hover:text-rose-800 hover:underline font-bold cursor-pointer"
+                                >
+                                  Hapus
+                                </button>
+                              </div>
                             </div>
 
                             {/* Updates Timeline */}

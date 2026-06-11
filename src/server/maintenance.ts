@@ -263,3 +263,22 @@ export const addMaintenanceUpdate = createServerFn({ method: 'POST' })
     await db.update(maintenanceRequests).set({ updatedAt: now }).where(eq(maintenanceRequests.id, data.id))
     return result as any
   })
+
+export const deleteMaintenanceRequest = createServerFn({ method: 'POST' })
+  .inputValidator((d: { id: string }) => d)
+  .handler(async ({ data }) => {
+    const { propertyIds } = await requireOwnerProperties(getRequest().headers)
+    const { id } = data
+
+    const [existing] = await db
+      .select()
+      .from(maintenanceRequests)
+      .where(and(eq(maintenanceRequests.id, id), inArray(maintenanceRequests.propertyId, propertyIds)))
+      .limit(1)
+
+    if (!existing) throw new Error('Not found: Permintaan perbaikan tidak ditemukan')
+
+    await db.delete(maintenanceRequests).where(eq(maintenanceRequests.id, id))
+    return { success: true }
+  })
+

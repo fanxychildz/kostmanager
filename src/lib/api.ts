@@ -116,6 +116,8 @@ export const api = {
         maintenanceActions.updateMaintenanceStatus({ data: { id, ...data } }),
       addUpdate: (id: string, text: string) =>
         maintenanceActions.addMaintenanceUpdate({ data: { id, text } }),
+      delete: (id: string) =>
+        portalActions.deletePortalMaintenanceRequest({ data: { id } }),
     },
     register: (data: { email: string; password: string }) =>
       portalActions.portalRegister({ data }),
@@ -149,6 +151,8 @@ export const api = {
       maintenanceActions.updateMaintenanceStatus({ data: { id, ...data } }),
     addUpdate: (id: string, text: string) =>
       maintenanceActions.addMaintenanceUpdate({ data: { id, text } }),
+    delete: (id: string) =>
+      maintenanceActions.deleteMaintenanceRequest({ data: { id } }),
   },
   expenses: {
     list: () => expensesActions.listExpenses(),

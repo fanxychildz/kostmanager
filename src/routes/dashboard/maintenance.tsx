@@ -96,6 +96,21 @@ function LandlordMaintenancePage() {
     }
   }
 
+  const handleDeleteRequest = async (id: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus laporan kerusakan ini? Semua log perbaikan yang terkait akan dihapus secara permanen.')) return
+    setSaving(true)
+    try {
+      await api.maintenance.delete(id)
+      const next = items.filter(item => item.id !== id)
+      setItems(next)
+      setSelectedRequest(null)
+    } catch (err) {
+      alert('Gagal menghapus laporan: ' + err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const handleAddMaintenanceUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedRequest || !maintenanceNoteText.trim() || saving) return
@@ -282,9 +297,17 @@ function LandlordMaintenancePage() {
           <div className="bg-white rounded-2xl w-full max-w-lg border border-slate-200 shadow-2xl overflow-hidden text-xs md:text-sm text-slate-700">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 font-bold">
               <span className="bg-blue-100 text-blue-700 text-[10px] px-2.5 py-0.5 rounded-md uppercase">{selectedRequest.category}</span>
-              <button onClick={() => setSelectedRequest(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => handleDeleteRequest(selectedRequest.id)}
+                  className="text-red-500 hover:text-red-700 text-[11px] font-extrabold cursor-pointer hover:underline"
+                >
+                  Hapus Keluhan
+                </button>
+                <button onClick={() => setSelectedRequest(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             <div className="p-5 space-y-5 max-h-[480px] overflow-y-auto font-semibold">

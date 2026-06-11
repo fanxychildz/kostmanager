@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { db } from '../db'
 import { tenants, units, properties, bills, users, maintenanceRequests, maintenanceUpdates, notifications } from '../db/schema'
 import { auth } from './auth'
@@ -183,4 +183,24 @@ export const createPortalMaintenanceRequest = createServerFn({ method: 'POST' })
 
     return result as any
   })
+
+export const deletePortalMaintenanceRequest = createServerFn({ method: 'POST' })
+  .inputValidator((d: { id: string }) => d)
+  .handler(async ({ data }) => {
+    const request = getRequest()
+    const tenant = await requireTenant(request.headers)
+    const { id } = data
+
+    const [existing] = await db
+      .select()
+      .from(maintenanceRequests)
+      .where(and(eq(maintenanceRequests.id, id), eq(maintenanceRequests.tenantId, tenant.id)))
+      .limit(1)
+
+    if (!existing) throw new Error('Not found: Permintaan perbaikan tidak ditemukan')
+
+    await db.delete(maintenanceRequests).where(eq(maintenanceRequests.id, id))
+    return { success: true }
+  })
+
 
