@@ -179,7 +179,9 @@ function PaymentsPage() {
                   <Select value={formData.billId} onValueChange={(value) => setFormData({ ...formData, billId: value })}>
                     <SelectTrigger><SelectValue placeholder="Pilih tagihan" /></SelectTrigger>
                     <SelectContent>
-                      {bills?.filter((b: any) => b.status !== 'paid').map((bill: any) => (
+                      {(billsCache || [])
+                        .filter((b: any) => b.status !== 'paid')
+                        .map((bill: any) => (
                         <SelectItem key={bill.id} value={bill.id}>
                           {bill.tenantName || 'Unknown'} - Unit {bill.unitNumber || 'N/A'} ({bill.periodMonth}/{bill.periodYear}) - {formatRupiah(bill.totalAmount)}
                         </SelectItem>

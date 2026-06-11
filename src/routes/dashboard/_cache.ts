@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react'
 import { useSyncExternalStore } from 'react'
 
 export type SelectItem = { id: string; label: string; sub?: string }
@@ -27,6 +26,23 @@ let cache: CacheMap = {
 
 type Key = keyof CacheMap
 
+let cacheVersion = 0
+let listeners: (() => void)[] = []
+
+function subscribe(cb: () => void) {
+  listeners.push(cb)
+  return () => {
+    listeners = listeners.filter((l) => l !== cb)
+  }
+}
+
+function notify() {
+  cacheVersion++
+  listeners.forEach((l) => l())
+}
+
+const getSnapshot = () => cacheVersion
+
 async function fetchList(
   source: Key,
   queryFn: ListApi['queryFn'],
@@ -36,6 +52,7 @@ async function fetchList(
   cache[source].loading = true
   cache[source].error = null
   cache[source].data = undefined
+  notify()
 
   try {
     const res = await queryFn()
@@ -47,22 +64,13 @@ async function fetchList(
     cache[source].data = []
   } finally {
     cache[source].loading = false
+    notify()
   }
 
   return cache[source].data
 }
 
 const CACHE_KEYS: Key[] = ['properties', 'tenants', 'units']
-
-function subscribe(cb: () => void) {
-  let timer: any
-  return () => {
-    clearTimeout(timer)
-    timer = setTimeout(cb, 100)
-  }
-}
-
-const snapshot = () => true
 
 interface SelectCacheResult {
   data: any[] | undefined
@@ -74,7 +82,7 @@ interface SelectCacheResult {
 export function useSelectCache<K extends Key>(key: K, queryFn: ListApi['queryFn']): SelectCacheResult {
   const state = cache[key]
 
-  useSyncExternalStore(subscribe, snapshot, snapshot)
+  useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 
   if (!state.data && !state.loading && !state.error) {
     fetchList(key, queryFn).catch(() => {})
@@ -86,6 +94,7 @@ export function useSelectCache<K extends Key>(key: K, queryFn: ListApi['queryFn'
         const current = cache[key]
         if (current.loading) return
         current.data = undefined
+        notify()
         await fetchList(key, queryFn).catch(() => {})
       },
     }
@@ -99,6 +108,7 @@ export function useSelectCache<K extends Key>(key: K, queryFn: ListApi['queryFn'
       const current = cache[key]
       if (current.loading) return
       current.data = undefined
+      notify()
       await fetchList(key, queryFn).catch(() => {})
     },
   }
@@ -109,6 +119,10 @@ export const selectCache = {
   tenants: (queryFn: ListApi['queryFn']) => useSelectCache('tenants', queryFn),
   units: (queryFn: ListApi['queryFn']) => useSelectCache('units', queryFn),
   refreshAll: async () => {
+    cache.properties.data = undefined
+    cache.tenants.data = undefined
+    cache.units.data = undefined
+    notify()
     await Promise.all(CACHE_KEYS.map((key) => fetchList(key, () => Promise.resolve([])).catch(() => {})))
   },
 }
