@@ -136,3 +136,19 @@ export const deleteExpense = createServerFn({ method: 'POST' })
 
     return { success: true }
   })
+
+export const deleteMultipleExpenses = createServerFn({ method: 'POST' })
+  .inputValidator((d: { ids: string[] }) => d)
+  .handler(async ({ data }) => {
+    const request = getRequest()
+    const { propertyIds } = await requireOwnerProperties(request.headers)
+
+    if (propertyIds.length === 0) throw new Error('Forbidden')
+    if (data.ids.length === 0) return { success: true }
+
+    await db
+      .delete(expenses)
+      .where(and(inArray(expenses.id, data.ids), inArray(expenses.propertyId, propertyIds)))
+
+    return { success: true }
+  })

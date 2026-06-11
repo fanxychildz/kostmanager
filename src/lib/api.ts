@@ -180,6 +180,7 @@ export const api = {
       notes?: string | null
     }) => expensesActions.updateExpense({ data: { id, ...data } }),
     delete: (id: string) => expensesActions.deleteExpense({ data: { id } }),
+    deleteMultiple: (ids: string[]) => expensesActions.deleteMultipleExpenses({ data: { ids } }),
   },
   announcements: {
     list: (params?: { propertyId?: string; audience?: string; page?: number; limit?: number }) =>

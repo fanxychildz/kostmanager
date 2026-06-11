@@ -46,6 +46,10 @@ function ExpensesPage() {
     notes: '',
   })
 
+  const [isBulkMode, setIsBulkMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [deleting, setDeleting] = useState(false)
+
   const { data: expenses, loading, refetch } = useQuery({
     queryFn: () => api.expenses.list(),
   })
@@ -133,6 +137,43 @@ function ExpensesPage() {
   const handleDelete = (id: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus catatan pengeluaran ini?')) {
       deleteExpense(id)
+      setSelectedIds(prev => prev.filter(item => item !== id))
+    }
+  }
+
+  const handleRowClick = (expenseId: string) => {
+    if (isBulkMode) {
+      if (selectedIds.includes(expenseId)) {
+        setSelectedIds(selectedIds.filter(id => id !== expenseId))
+      } else {
+        setSelectedIds([...selectedIds, expenseId])
+      }
+    }
+  }
+
+  const handleSelectAll = () => {
+    if (expenses) {
+      if (selectedIds.length === expenses.length) {
+        setSelectedIds([])
+      } else {
+        setSelectedIds(expenses.map((e: any) => e.id))
+      }
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return
+    if (!confirm(`Apakah Anda yakin ingin menghapus ${selectedIds.length} pengeluaran terpilih secara permanen?`)) return
+    setDeleting(true)
+    try {
+      await api.expenses.deleteMultiple(selectedIds)
+      setSelectedIds([])
+      setIsBulkMode(false)
+      await refetch()
+    } catch (err) {
+      alert('Gagal menghapus pengeluaran terpilih: ' + err)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -154,9 +195,31 @@ function ExpensesPage() {
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight leading-none">Pencatatan Pengeluaran</h1>
           <p className="text-xs text-slate-400 font-semibold mt-1">Kelola pengeluaran operasional dan pemeliharaan kos</p>
         </div>
-        <Button onClick={handleOpenCreate} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition">
-          <Plus className="mr-2 h-4 w-4" />Catat Pengeluaran
-        </Button>
+        <div className="flex items-center gap-2">
+          {expenses && expenses.length > 0 && (
+            <Button
+              variant={isBulkMode ? "outline" : "destructive"}
+              onClick={() => {
+                setIsBulkMode(!isBulkMode)
+                setSelectedIds([])
+              }}
+              className="rounded-xl font-bold text-xs h-9"
+            >
+              {isBulkMode ? (
+                'Batal'
+              ) : (
+                <>
+                  <Trash2 className="mr-1.5 h-4 w-4" />
+                  Delete
+                </>
+              )}
+            </Button>
+          )}
+
+          <Button onClick={handleOpenCreate} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition">
+            <Plus className="mr-2 h-4 w-4" />Catat Pengeluaran
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 sm:grid-cols-3">
@@ -281,20 +344,47 @@ function ExpensesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  {isBulkMode && (
+                    <TableHead className="w-[50px]">
+                      <input
+                        type="checkbox"
+                        checked={!!(expenses && expenses.length > 0 && selectedIds.length === expenses.length)}
+                        onChange={handleSelectAll}
+                        className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      />
+                    </TableHead>
+                  )}
                   <TableHead>Tanggal</TableHead>
                   <TableHead>Properti</TableHead>
                   <TableHead>Judul</TableHead>
                   <TableHead>Kategori</TableHead>
                   <TableHead>Jumlah</TableHead>
                   <TableHead>Catatan</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
+                  {!isBulkMode && <TableHead className="text-right">Aksi</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {expenses?.map((expense: any) => {
                   const propertyName = properties?.find((p: any) => p.id === expense.propertyId)?.name || 'Properti'
+                  const isSelected = selectedIds.includes(expense.id)
                   return (
-                    <TableRow key={expense.id}>
+                    <TableRow 
+                      key={expense.id}
+                      onClick={() => handleRowClick(expense.id)}
+                      className={`transition-colors ${
+                        isBulkMode ? 'cursor-pointer hover:bg-slate-50/80' : ''
+                      } ${isSelected && isBulkMode ? 'bg-blue-50/40 hover:bg-blue-50/60' : ''}`}
+                    >
+                      {isBulkMode && (
+                        <TableCell className="w-[50px]" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleRowClick(expense.id)}
+                            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          />
+                        </TableCell>
+                      )}
                       <TableCell className="text-slate-600 font-semibold">{formatDate(expense.date)}</TableCell>
                       <TableCell className="font-bold text-slate-800">{propertyName}</TableCell>
                       <TableCell className="font-bold text-slate-900">{expense.title}</TableCell>
@@ -305,16 +395,18 @@ function ExpensesPage() {
                       </TableCell>
                       <TableCell className="font-extrabold text-rose-600">{formatRupiah(expense.amount)}</TableCell>
                       <TableCell className="text-slate-500 font-medium">{expense.notes || '-'}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1.5">
-                          <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(expense)} className="h-8 w-8 text-slate-600 hover:text-blue-600 rounded-lg">
-                            <Edit3 className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDelete(expense.id)} className="h-8 w-8 text-slate-600 hover:text-rose-600 rounded-lg">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                      {!isBulkMode && (
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex justify-end gap-1.5">
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(expense)} className="h-8 w-8 text-slate-600 hover:text-blue-600 rounded-lg">
+                              <Edit3 className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(expense.id)} className="h-8 w-8 text-slate-600 hover:text-rose-600 rounded-lg">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   )
                 })}
@@ -322,6 +414,38 @@ function ExpensesPage() {
             </Table>
           </CardContent>
         </Card>
+      )}
+
+      {isBulkMode && (
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 border border-slate-800">
+          <div className="text-xs font-bold">
+            <span className="text-blue-400">{selectedIds.length}</span> dari <span className="text-slate-300">{expenses?.length || 0}</span> terpilih
+          </div>
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={handleSelectAll}
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-semibold cursor-pointer transition border border-slate-750 text-white"
+            >
+              {selectedIds.length === (expenses?.length || 0) ? 'Batal Pilih Semua' : 'Pilih Semua'}
+            </button>
+            <button
+              disabled={selectedIds.length === 0 || deleting}
+              onClick={handleBulkDelete}
+              className="px-4 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-red-800/40 disabled:text-red-300/60 disabled:cursor-not-allowed rounded-lg text-xs font-bold cursor-pointer transition flex items-center gap-1.5 text-white"
+            >
+              {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Hapus Terpilih'}
+            </button>
+            <button
+              onClick={() => {
+                setIsBulkMode(false)
+                setSelectedIds([])
+              }}
+              className="px-3 py-1.5 text-slate-400 hover:text-white text-xs font-semibold cursor-pointer transition"
+            >
+              Batal
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )
