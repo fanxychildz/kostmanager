@@ -34,9 +34,25 @@ function PaymentsPage() {
     queryFn: () => api.payments.list(),
   })
 
-  const { data: bills } = useQuery({
-    queryFn: () => api.bills.list(),
-  })
+  const [billsCache, setBillsCache] = useState<any[] | null>(null)
+  const [loadingBillsCache, setLoadingBillsCache] = useState(true)
+  useEffect(() => {
+    let cancelled = false
+    setLoadingBillsCache(true)
+    api.bills.list()
+      .then((res) => {
+        if (cancelled) return
+        const list = Array.isArray(res) ? res : (res as any)?.items || []
+        setBillsCache(list)
+      })
+      .catch(() => {
+        if (!cancelled) setBillsCache([])
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingBillsCache(false)
+      })
+    return () => { cancelled = true }
+  }, [])
 
   const { mutate: createPayment, loading: creating } = useMutation({
     mutationFn: (data: any) => api.payments.create(data),

@@ -8,6 +8,7 @@ import { Label } from '~/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { api } from '~/lib/api'
 import { useQuery, useMutation } from '~/lib/hooks'
+import { selectCache } from '../_cache'
 
 export const Route = createFileRoute('/dashboard/tenants/new')({
   component: NewTenantPage,
@@ -16,8 +17,8 @@ export const Route = createFileRoute('/dashboard/tenants/new')({
 function NewTenantPage() {
   const navigate = useNavigate()
 
-  const { data: units } = useQuery({ queryFn: () => api.units.list() })
-  const { data: properties } = useQuery({ queryFn: () => api.properties.list() })
+  const { data: properties } = selectCache.properties(() => api.properties.list())
+  const { data: units, loading: loadingUnits } = selectCache.units(() => api.units.list())
 
   const availableUnits = units?.filter((u: any) => u.status === 'available') ?? []
 

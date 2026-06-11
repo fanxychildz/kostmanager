@@ -10,24 +10,25 @@ import {
   Clock,
   ArrowRight,
   ChevronRight,
+  Progress,
 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
-import { Progress } from '~/components/ui/progress'
+import { useState } from 'react'
 import { formatRupiah } from '~/lib/utils'
 import { api } from '~/lib/api'
 import { useQuery } from '~/lib/hooks'
+import { selectCache } from './_cache'
 
 export const Route = createFileRoute('/dashboard/')({
   component: DashboardPage,
 })
 
 function DashboardPage() {
-  const { data: properties, loading: loadingProperties } = useQuery({
-    queryFn: () => api.properties.list(),
-  })
+  const { data: properties, loading: loadingProperties } = selectCache.properties(() => api.properties.list())
+  const { data: units, loading: loadingUnits } = selectCache.units(() => api.units.list())
 
   const { data: bills, loading: loadingBills } = useQuery({
     queryFn: () => api.bills.list(),
@@ -35,10 +36,6 @@ function DashboardPage() {
 
   const { data: payments, loading: loadingPayments } = useQuery({
     queryFn: () => api.payments.list(),
-  })
-
-  const { data: units, loading: loadingUnits } = useQuery({
-    queryFn: () => api.units.list(),
   })
 
   const { data: expenses, loading: loadingExpenses } = useQuery({

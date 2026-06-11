@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { Search, Loader2, FileText, Plus, ChevronRight, Trash2, Edit3 } from 'lucide-react'
 import { useState } from 'react'
+import { motion } from 'motion/react'
 import { Card, CardContent } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
@@ -10,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { formatRupiah, formatDate } from '~/lib/utils'
 import { api } from '~/lib/api'
 import { useQuery, useMutation } from '~/lib/hooks'
-import { motion } from 'motion/react'
+import { selectCache } from './_cache'
 
 export const Route = createFileRoute('/dashboard/bills/')({
   component: BillsPage,
@@ -58,13 +59,8 @@ function BillsPage() {
     queryFn: () => api.bills.list(),
   })
 
-  const { data: tenantsList } = useQuery({
-    queryFn: () => api.tenants.list(),
-  })
-
-  const { data: unitsList } = useQuery({
-    queryFn: () => api.units.list(),
-  })
+  const { data: tenantsList, loading: loadingTenants } = selectCache.tenants(() => api.tenants.list())
+  const { data: unitsList, loading: loadingUnitsCache } = selectCache.units(() => api.units.list())
 
   // Create Form State
   const [createFormData, setCreateFormData] = useState({

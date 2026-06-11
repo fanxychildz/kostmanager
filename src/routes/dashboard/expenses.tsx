@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { formatRupiah, formatDate } from '~/lib/utils'
 import { api } from '~/lib/api'
 import { useQuery, useMutation } from '~/lib/hooks'
+import { selectCache } from './_cache'
 
 export const Route = createFileRoute('/dashboard/expenses')({
   component: ExpensesPage,
@@ -50,12 +51,10 @@ function ExpensesPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [deleting, setDeleting] = useState(false)
 
+  const { data: properties } = selectCache.properties(() => api.properties.list())
+
   const { data: expenses, loading, refetch } = useQuery({
     queryFn: () => api.expenses.list(),
-  })
-
-  const { data: properties } = useQuery({
-    queryFn: () => api.properties.list(),
   })
 
   const { mutate: createExpense, loading: creating } = useMutation({

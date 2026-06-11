@@ -50,8 +50,8 @@ const initialForm: FormState = {
 }
 
 function AnnouncementsPage() {
-  const { data: properties } = useQuery({ queryFn: () => api.properties.list() })
-  const { data: announcements, loading, refetch } = useQuery<any>({
+  const { data: properties, loading } = selectCache.properties(() => api.properties.list())
+  const { data: announcements, refetch } = useQuery<any>({
     queryFn: () => api.announcements.list(),
   })
 
