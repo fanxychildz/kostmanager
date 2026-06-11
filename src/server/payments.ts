@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, inArray, sql } from 'drizzle-orm'
 import { db } from '../db'
 import { payments, bills, tenants, units, properties } from '../db/schema'
 import { auth } from './auth'
@@ -229,6 +229,43 @@ export const deletePayment = createServerFn({ method: 'POST' })
         }
 
         await db.update(bills).set({ status: newStatus, updatedAt: new Date() }).where(eq(bills.id, bill[0].id))
+      }
+    }
+
+    return { success: true }
+  })
+
+export const deleteMultiplePayments = createServerFn({ method: 'POST' })
+  .inputValidator((d: { ids: string[] }) => d)
+  .handler(async ({ data }) => {
+    const request = getRequest()
+    const session = await auth.api.getSession({ headers: request.headers })
+    if (!session) throw new Error('Unauthorized')
+
+    if (data.ids.length === 0) return { success: true }
+
+    const targetPayments = await db.select().from(payments).where(inArray(payments.id, data.ids))
+    if (targetPayments.length === 0) return { success: true }
+
+    await db.delete(payments).where(inArray(payments.id, data.ids))
+
+    const billIds = Array.from(new Set(targetPayments.map((p) => p.billId)))
+    for (const billId of billIds) {
+      const bill = await db.select().from(bills).where(eq(bills.id, billId))
+      if (bill.length > 0) {
+        const allPayments = await db.select().from(payments).where(eq(payments.billId, billId))
+        const totalPaid = allPayments
+          .filter((p) => p.status === 'recorded')
+          .reduce((sum, p) => sum + p.amount, 0)
+
+        let newStatus: 'pending' | 'paid' | 'partial' = 'pending'
+        if (totalPaid >= bill[0].totalAmount) {
+          newStatus = 'paid'
+        } else if (totalPaid > 0) {
+          newStatus = 'partial'
+        }
+
+        await db.update(bills).set({ status: newStatus, updatedAt: new Date() }).where(eq(bills.id, billId))
       }
     }
 

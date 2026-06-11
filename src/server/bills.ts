@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, inArray } from 'drizzle-orm'
 import { db } from '../db'
 import { bills, tenants, units, properties } from '../db/schema'
 import { auth } from './auth'
@@ -180,5 +180,18 @@ export const deleteBill = createServerFn({ method: 'POST' })
     if (existing.length === 0) throw new Error('Not found')
 
     await db.delete(bills).where(eq(bills.id, data.id))
+    return { success: true }
+  })
+
+export const deleteMultipleBills = createServerFn({ method: 'POST' })
+  .inputValidator((d: { ids: string[] }) => d)
+  .handler(async ({ data }) => {
+    const request = getRequest()
+    const session = await auth.api.getSession({ headers: request.headers })
+    if (!session) throw new Error('Unauthorized')
+
+    if (data.ids.length === 0) return { success: true }
+
+    await db.delete(bills).where(inArray(bills.id, data.ids))
     return { success: true }
   })

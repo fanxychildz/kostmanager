@@ -54,13 +54,16 @@ export const api = {
     create: (data: any) => billsActions.createBill({ data }),
     update: (id: string, data: any) => billsActions.updateBill({ data: { id, ...data } }),
     delete: (id: string) => billsActions.deleteBill({ data: { id } }),
+    deleteMultiple: (ids: string[]) => billsActions.deleteMultipleBills({ data: { ids } }),
   },
   payments: {
     list: () => paymentsActions.listPayments(),
     get: (id: string) => paymentsActions.getPayment({ data: { id } }),
+    getPaymentsByBill: (data: { billId: string }) => paymentsActions.getPaymentsByBill({ data }),
     create: (data: any) => paymentsActions.createPayment({ data }),
     update: (id: string, data: any) => paymentsActions.updatePayment({ data: { id, ...data } }),
     delete: (id: string) => paymentsActions.deletePayment({ data: { id } }),
+    deleteMultiple: (ids: string[]) => paymentsActions.deleteMultiplePayments({ data: { ids } }),
   },
   notifications: {
     list: (params?: { recipientType?: string; channel?: string }) =>
