@@ -36,7 +36,7 @@ async function requireRecipient(headers: Headers) {
 }
 
 export const listOwnerAnnouncements = createServerFn({ method: 'GET' })
-  .inputValidator((d: { propertyId?: string | undefined; audience?: string | undefined; page?: number | undefined; limit?: number | undefined } | undefined) => d)
+  .inputValidator((d: { propertyId?: string | undefined; status?: string | undefined; audience?: string | undefined; page?: number | undefined; limit?: number | undefined } | undefined) => d)
   .handler(async ({ data }) => {
     const { propertyIds } = await requireOwnerProperties(getRequest().headers)
     if (propertyIds.length === 0) return { items: [], total: 0, page: data?.page || 1, limit: data?.limit || 20 }

@@ -672,7 +672,7 @@ function PortalDashboard() {
                         <span>•</span>
                         <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
-                      <div className={`p-3 rounded-2xl text-xs max-w-[85%] shadow-xs leading-relaxed ${msg.sender === 'Tenant' ? 'bg-slate-900 text-white rounded-tr-none' : 'bg-white text-slate-800 rounded-tl-none border border-slate-200'}`}>
+                      <div className={`p-3 rounded-2xl text-xs max-w-[85%] shadow-xs leading-relaxed ${msg.sender === 'Tenant' ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white text-slate-800 rounded-tl-none border border-slate-200'}`}>
                         {msg.message}
                       </div>
                     </div>
@@ -725,7 +725,7 @@ function PortalDashboard() {
                   />
                   <button
                     type="submit"
-                    className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold px-4 rounded-xl transition cursor-pointer"
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 rounded-xl transition cursor-pointer"
                   >
                     Kirim
                   </button>

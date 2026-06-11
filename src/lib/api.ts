@@ -11,6 +11,7 @@ import * as usersActions from '~/server/users'
 import * as portalActions from '~/server/portal'
 import * as expensesActions from '~/server/expenses'
 import * as maintenanceActions from '~/server/maintenance'
+import * as announcementsActions from '~/server/announcements'
 
 export const api = {
   auth: {
@@ -167,5 +168,26 @@ export const api = {
       notes?: string | null
     }) => expensesActions.updateExpense({ data: { id, ...data } }),
     delete: (id: string) => expensesActions.deleteExpense({ data: { id } }),
+  },
+  announcements: {
+    list: (params?: { propertyId?: string; audience?: string; page?: number; limit?: number }) =>
+      announcementsActions.listOwnerAnnouncements({ data: params }),
+    get: (id: string) => announcementsActions.getAnnouncement({ data: { id } }),
+    create: (data: {
+      propertyId: string
+      title: string
+      body: string
+      channel: 'owner' | 'tenant' | 'all'
+      audience: 'all' | 'property' | 'unit' | 'tenant'
+      targetTenantId?: string | null
+    }) => announcementsActions.createAnnouncement({ data }),
+    update: (id: string, data: {
+      title?: string
+      body?: string
+      channel?: 'owner' | 'tenant' | 'all'
+      audience?: 'all' | 'property' | 'unit' | 'tenant'
+      targetTenantId?: string | null
+    }) => announcementsActions.updateAnnouncement({ data: { id, ...data } }),
+    delete: (id: string) => announcementsActions.deleteAnnouncement({ data: { id } }),
   },
 }
