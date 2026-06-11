@@ -70,17 +70,22 @@ function AnnouncementsPage() {
     e.preventDefault()
     if (!propertyId) return
     setSaving(true)
-    await api.announcements.create({
-      propertyId,
-      title: form.title,
-      body: form.body,
-      channel: form.channel,
-      audience: form.audience,
-      targetTenantId: form.targetTenantId || null,
-    })
-    setSaving(false)
-    resetForm()
-    refetch()
+    try {
+      await api.announcements.create({
+        propertyId,
+        title: form.title,
+        body: form.body,
+        channel: form.channel,
+        audience: form.audience,
+        targetTenantId: form.targetTenantId || null,
+      })
+      resetForm()
+      refetch()
+    } catch (err) {
+      alert('Gagal mempublikasikan pengumuman: ' + err)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleDelete = async (id: string) => {
