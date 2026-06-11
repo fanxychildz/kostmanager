@@ -44,6 +44,42 @@ export const listPayments = createServerFn({ method: 'GET' }).handler(async () =
   return filtered
 })
 
+export const getPaymentsByBill = createServerFn({ method: 'GET' })
+  .inputValidator((d: { billId: string }) => d)
+  .handler(async ({ data }) => {
+    const request = getRequest()
+    const session = await auth.api.getSession({ headers: request.headers })
+    if (!session) throw new Error('Unauthorized')
+
+    const billRow = await db.select().from(bills).where(eq(bills.id, data.billId)).limit(1)
+    if (billRow.length === 0) throw new Error('Not found: Tagihan tidak ditemukan')
+
+    const tenantRow = await db.select().from(tenants).where(eq(tenants.id, billRow[0].tenantId)).limit(1)
+    if (tenantRow.length === 0) throw new Error('Not found: Penghuni tidak ditemukan')
+
+    const propRow = await db
+      .select()
+      .from(properties)
+      .where(and(eq(properties.id, tenantRow[0].propertyId), eq(properties.ownerId, session.user.id)))
+      .limit(1)
+    if (propRow.length === 0) throw new Error('Forbidden: Properti tidak sesuai')
+
+    const unitRow = await db.select().from(units).where(eq(units.id, billRow[0].unitId)).limit(1)
+    const paymentRows = await db
+      .select()
+      .from(payments)
+      .where(eq(payments.billId, data.billId))
+      .orderBy(sql`${payments.createdAt} ASC`)
+
+    return {
+      bill: { ...billRow[0], tenantName: tenantRow[0].fullName, unitNumber: unitRow?.[0]?.unitNumber },
+      property: propRow[0],
+      tenant: tenantRow[0],
+      unit: unitRow?.[0],
+      payments: paymentRows,
+    }
+  })
+
 export const getPayment = createServerFn({ method: 'GET' })
   .inputValidator((d: { id: string }) => d)
   .handler(async ({ data }) => {
