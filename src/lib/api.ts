@@ -12,7 +12,6 @@ import * as portalActions from '~/server/portal'
 import * as expensesActions from '~/server/expenses'
 import * as maintenanceActions from '~/server/maintenance'
 import * as announcementsActions from '~/server/announcements'
-
 export const api = {
   auth: {
     signUp: (data: { email: string; password: string; name: string }) =>

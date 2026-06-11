@@ -7,29 +7,23 @@ import { nanoid } from 'nanoid'
 import { getRequest } from '@tanstack/react-start/server'
 
 export const listNotifications = createServerFn({ method: 'GET' })
-  .inputValidator((d: { recipientType?: string; channel?: string } | undefined) => d)
+  .inputValidator((d: { recipientType?: string | undefined; channel?: string | undefined } | undefined) => d)
   .handler(async ({ data }) => {
     const request = getRequest()
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session) throw new Error('Unauthorized')
 
-    let query = db.select().from(notifications)
+    const query = db.select().from(notifications).where(eq(notifications.recipientId, session.user.id)) as any
 
-    if (data?.recipientType === 'owner') {
-      query = query.where(eq(notifications.recipientId, session.user.id)) as typeof query
-    }
-
-    const result = await query
-
-    let filtered = result
+    let filtered = query
     if (data?.recipientType) {
-      filtered = filtered.filter((n) => n.recipientType === data.recipientType)
+      filtered = filtered.filter((n: any) => n.recipientType === data.recipientType)
     }
     if (data?.channel) {
-      filtered = filtered.filter((n) => n.channel === data.channel)
+      filtered = filtered.filter((n: any) => n.channel === data.channel)
     }
 
-    return filtered.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    return filtered.sort((a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime())
   })
 
 export const getNotification = createServerFn({ method: 'GET' })

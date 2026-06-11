@@ -1,53 +1,94 @@
+import { useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
-import { Bell, Mail, AlertCircle, CheckCircle2, Clock, XCircle, Loader2 } from 'lucide-react'
+import { Bell, CheckCheck, Trash2, RefreshCw } from 'lucide-react'
+import { useQuery } from '~/lib/hooks'
+import { api } from '~/lib/api'
 import { Card, CardContent } from '~/components/ui/card'
-import { Badge } from '~/components/ui/badge'
+import { Button } from '~/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs'
 import { formatDate } from '~/lib/utils'
-import { api } from '~/lib/api'
-import { useQuery } from '~/lib/hooks'
 
 export const Route = createFileRoute('/dashboard/notifications')({
   component: NotificationsPage,
 })
 
+type NotificationRow = {
+  id: string
+  recipientType: 'tenant' | 'owner' | string
+  channel: 'in_app' | 'email' | string
+  type: string
+  subject: string | null
+  messageContent: string
+  status: string
+  createdAt: Date
+}
+
+type NotifQueryData = { list: NotificationRow[]; unreadCount: number }
+
 function NotificationsPage() {
-  const { data: notifications, loading } = useQuery({
-    queryFn: () => api.notifications.list(),
+  const { data, loading, refetch } = useQuery<NotifQueryData>({
+    queryFn: async () => {
+      const list = await api.notifications.list({ recipientType: 'owner' })
+      const rows: NotificationRow[] = (list || [])
+        .filter((item: any) => item.recipientType === 'owner')
+        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      return { list: rows, unreadCount: rows.length }
+    },
   })
 
-  const typeIcons: Record<string, React.ReactNode> = {
-    bill_reminder: <Bell className="h-4 w-4 text-primary" />,
-    payment_confirm: <CheckCircle2 className="h-4 w-4 text-success" />,
-    announcement: <Mail className="h-4 w-4 text-primary" />,
-    overdue: <AlertCircle className="h-4 w-4 text-destructive" />,
-  }
-  const statusIcons: Record<string, React.ReactNode> = {
-    queued: <Clock className="h-3 w-3 text-muted-foreground" />,
-    sent: <CheckCircle2 className="h-3 w-3 text-primary" />,
-    delivered: <CheckCircle2 className="h-3 w-3 text-success" />,
-    failed: <XCircle className="h-3 w-3 text-destructive" />,
-  }
-  const statusLabels: Record<string, string> = { queued: 'Antrian', sent: 'Terkirim', delivered: 'Diterima', failed: 'Gagal' }
+  const [localUnreadCount, setLocalUnreadCount] = useState(0)
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+  const notifications = data?.list ?? []
+  const unreadCount = data?.unreadCount ?? localUnreadCount
+  const inAppNotifs = notifications.filter((item) => item.channel === 'in_app')
+  const emailNotifs = notifications.filter((item) => item.channel === 'email')
+
+  const markAllAsRead = async () => {
+    await Promise.all(
+      notifications.map((item) => api.notifications.update(item.id, { status: 'delivered' })),
     )
+    setLocalUnreadCount(0)
+    await refetch()
   }
 
-  const allNotifs = notifications || []
-  const inAppNotifs = allNotifs.filter((n: any) => n.channel === 'in_app')
-  const emailNotifs = allNotifs.filter((n: any) => n.channel === 'email')
+  const deleteNotification = async (id: string) => {
+    await api.notifications.delete(id)
+    await refetch()
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Notifikasi</h1>
-        <p className="text-muted-foreground">Riwayat notifikasi email dan in-app</p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Notifikasi</h1>
+          <p className="text-muted-foreground">Kelola notifikasi kamu dan status pembacaan</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={async () => {
+              await refetch()
+            }}
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+          <Button size="sm" className="gap-2" onClick={markAllAsRead} disabled={notifications.length === 0}>
+            <CheckCheck className="h-4 w-4" />
+            Tandai sudah dibaca
+          </Button>
+        </div>
       </div>
+
+      {unreadCount > 0 && (
+        <Card className="border border-blue-100 bg-blue-50/50">
+          <CardContent className="p-4 text-sm text-slate-600">
+            Ada {unreadCount} notifikasi yang belum kamu baca.
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs defaultValue="all">
         <TabsList>
@@ -57,52 +98,91 @@ function NotificationsPage() {
         </TabsList>
 
         <TabsContent value="all" className="space-y-3 mt-4">
-          {allNotifs.length === 0 ? (
-            <Card><CardContent className="p-12 text-center text-muted-foreground">Belum ada notifikasi</CardContent></Card>
+          {loading ? (
+            <Card>
+              <CardContent className="p-12 text-center text-muted-foreground">Memuat notifikasi...</CardContent>
+            </Card>
+          ) : notifications.length === 0 ? (
+            <Card>
+              <CardContent className="p-12 text-center text-muted-foreground">Belum ada notifikasi</CardContent>
+            </Card>
           ) : (
-            allNotifs.map((notif: any) => (
-              <Card key={notif.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">{typeIcons[notif.type]}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          {notif.subject && <p className="font-medium text-sm">{notif.subject}</p>}
-                          <Badge variant="outline" className="text-xs">{notif.channel === 'email' ? 'Email' : 'In-App'}</Badge>
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">{statusIcons[notif.status]}{statusLabels[notif.status]}</div>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">{notif.messageContent}</p>
-                      <p className="text-xs text-muted-foreground mt-2">{formatDate(notif.sentAt || notif.createdAt)}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+            notifications.map((notif) => <NotificationRowCard key={notif.id} notification={notif} onDeleted={() => deleteNotification(notif.id)} />)
           )}
         </TabsContent>
 
         <TabsContent value="in_app" className="space-y-3 mt-4">
-          {inAppNotifs.length === 0 ? (
-            <Card><CardContent className="p-12 text-center text-muted-foreground">Belum ada notifikasi in-app</CardContent></Card>
+          {loading ? (
+            <Card>
+              <CardContent className="p-12 text-center text-muted-foreground">Memuat notifikasi...</CardContent>
+            </Card>
+          ) : inAppNotifs.length === 0 ? (
+            <Card>
+              <CardContent className="p-12 text-center text-muted-foreground">Belum ada notifikasi in-app</CardContent>
+            </Card>
           ) : (
-            inAppNotifs.map((notif: any) => (
-              <Card key={notif.id}><CardContent className="p-4"><div className="flex items-start gap-3"><div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">{typeIcons[notif.type]}</div><div className="flex-1"><p className="text-sm text-muted-foreground">{notif.messageContent}</p><p className="text-xs text-muted-foreground mt-2">{formatDate(notif.sentAt || notif.createdAt)}</p></div></div></CardContent></Card>
-            ))
+            inAppNotifs.map((notif) => <NotificationRowCard key={notif.id} notification={notif} onDeleted={() => deleteNotification(notif.id)} />)
           )}
         </TabsContent>
 
         <TabsContent value="email" className="space-y-3 mt-4">
-          {emailNotifs.length === 0 ? (
-            <Card><CardContent className="p-12 text-center text-muted-foreground">Belum ada notifikasi email</CardContent></Card>
+          {loading ? (
+            <Card>
+              <CardContent className="p-12 text-center text-muted-foreground">Memuat notifikasi...</CardContent>
+            </Card>
+          ) : emailNotifs.length === 0 ? (
+            <Card>
+              <CardContent className="p-12 text-center text-muted-foreground">Belum ada notifikasi email</CardContent>
+            </Card>
           ) : (
-            emailNotifs.map((notif: any) => (
-              <Card key={notif.id}><CardContent className="p-4"><div className="flex items-start gap-3"><div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">{typeIcons[notif.type]}</div><div className="flex-1"><p className="font-medium text-sm">{notif.subject}</p><p className="text-sm text-muted-foreground mt-1">{notif.messageContent}</p><p className="text-xs text-muted-foreground mt-2">{formatDate(notif.sentAt || notif.createdAt)}</p></div></div></CardContent></Card>
-            ))
+            emailNotifs.map((notif) => <NotificationRowCard key={notif.id} notification={notif} onDeleted={() => deleteNotification(notif.id)} />)
           )}
         </TabsContent>
       </Tabs>
     </div>
+  )
+}
+
+function NotificationRowCard({ notification, onDeleted }: { notification: NotificationRow; onDeleted: () => void }) {
+  const channelLabel = notification.channel === 'email' ? 'Email' : 'In-App'
+  const statusColor =
+    notification.status === 'delivered'
+      ? 'text-emerald-600'
+      : notification.status === 'sent'
+        ? 'text-blue-600'
+        : notification.status === 'failed'
+          ? 'text-rose-600'
+          : 'text-slate-500'
+
+  const updatedAtLabel = formatDate(notification.createdAt)
+
+  return (
+    <Card className="border border-slate-200/80">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              {notification.subject ? (
+                <p className="text-sm font-semibold text-slate-900">{notification.subject}</p>
+              ) : (
+                <p className="text-sm font-semibold text-slate-900">{channelLabel}</p>
+              )}
+              <span className={`text-xs font-medium ${statusColor}`}>{notification.status}</span>
+            </div>
+            <p className="text-sm text-muted-foreground">{notification.messageContent}</p>
+            <p className="text-xs text-muted-foreground">{updatedAtLabel}</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-slate-400 hover:text-rose-600"
+            aria-label="Hapus notifikasi"
+            onClick={onDeleted}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

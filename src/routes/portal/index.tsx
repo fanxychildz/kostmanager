@@ -170,6 +170,9 @@ function PortalDashboard() {
   const [chatText, setChatText] = useState('')
   const [aiSuggestion, setAiSuggestion] = useState('')
   const [isSuggestingAI, setIsSuggestingAI] = useState(false)
+  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false)
+  const [isSendingMessage, setIsSendingMessage] = useState(false)
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false)
 
   const [announcementTitle, setAnnouncementTitle] = useState('')
   const [announcementBody, setAnnouncementBody] = useState('')
@@ -384,75 +387,87 @@ function PortalDashboard() {
   // Handle Payment proof submission (Mocked client-side overlay)
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!payingBill || !tenant?.id) return
+    if (!payingBill || !tenant?.id || isSubmittingPayment) return
+    setIsSubmittingPayment(true)
+    try {
+      await api.portal.chat.sendMessage({
+        tenantId: tenant.id,
+        message: `🔔 PEMBERITAHUAN BAYAR: Saya telah mengirim bukti transfer untuk sewa periode ${payingBill.periodMonth}/${payingBill.periodYear} sebesar ${formatRupiah(payingBill.totalAmount)}. Metode: ${paymentMethod === 'bank_transfer' ? 'Transfer Bank' : paymentMethod === 'qris_manual' ? 'QRIS Manual' : 'Metode Lain'}.`,
+        sender: 'Tenant',
+        senderName: tenant.fullName || 'Penghuni',
+      })
 
-    await api.portal.chat.sendMessage({
-      tenantId: tenant.id,
-      message: `🔔 PEMBERITAHUAN BAYAR: Saya telah mengirim bukti transfer untuk sewa periode ${payingBill.periodMonth}/${payingBill.periodYear} sebesar ${formatRupiah(payingBill.totalAmount)}. Metode: ${paymentMethod === 'bank_transfer' ? 'Transfer Bank' : paymentMethod === 'qris_manual' ? 'QRIS Manual' : 'Metode Lain'}.`,
-      sender: 'Tenant',
-      senderName: tenant.fullName || 'Penghuni',
-    })
+      const chat = await loadMessages()
+      setMessages(chat)
 
-    const chat = await loadMessages()
-    setMessages(chat)
-
-    alert('Bukti pembayaran sewa Anda berhasil diunggah! Pemilik kost akan segera melakukan pengecekan mutasi bank dan mengubah status sewa Anda menjadi lunas.')
-    setPayingBill(null)
-    setCustomReceiptUrl('')
-    setPaymentMemo('')
-    refetchBills()
+      alert('Bukti pembayaran sewa Anda berhasil diunggah! Pemilik kost akan segera melakukan pengecekan mutasi bank dan mengubah status sewa Anda menjadi lunas.')
+      setPayingBill(null)
+      setCustomReceiptUrl('')
+      setPaymentMemo('')
+      refetchBills()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsSubmittingPayment(false)
+    }
   }
 
   // Handle new repair ticket submission
   const handleMaintenanceRequestSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newReqTitle || !newReqDesc || !tenant?.id) return
+    if (!newReqTitle || !newReqDesc || !tenant?.id || isSubmittingRequest) return
+    setIsSubmittingRequest(true)
+    try {
+      const newTicket: PortalMaintenanceRequest = {
+        id: `ticket-${Date.now()}`,
+        tenantId: tenant.id,
+        propertyId: property?.id || '',
+        title: newReqTitle,
+        description: newReqDesc,
+        category: newReqCategory,
+        priority: newReqPriority,
+        status: 'Pending',
+        createdAt: new Date().toISOString(),
+        updates: [
+          {
+            id: `update-${Date.now()}`,
+            date: new Date().toISOString(),
+            author: 'Penghuni',
+            text: `Tiket keluhan berhasil dibuat. Pelapor: ${tenant.fullName}.`,
+          },
+        ],
+      }
 
-    const newTicket: PortalMaintenanceRequest = {
-      id: `ticket-${Date.now()}`,
-      tenantId: tenant.id,
-      propertyId: property?.id || '',
-      title: newReqTitle,
-      description: newReqDesc,
-      category: newReqCategory,
-      priority: newReqPriority,
-      status: 'Pending',
-      createdAt: new Date().toISOString(),
-      updates: [
-        {
-          id: `update-${Date.now()}`,
-          date: new Date().toISOString(),
-          author: 'Penghuni',
-          text: `Tiket keluhan berhasil dibuat. Pelapor: ${tenant.fullName}.`,
-        },
-      ],
+      const updatedMaintenance = await createRequest({
+        title: newReqTitle,
+        description: newReqDesc,
+        category: newReqCategory,
+        priority: newReqPriority,
+        photoUrl: null,
+      })
+
+      const maint = await loadMaintenance()
+      setMaintenance(maint)
+
+      await api.portal.chat.sendMessage({
+        tenantId: tenant.id,
+        message: `🛠️ PEMBERITAHUAN PERBAIKAN: Saya membuka tiket perbaikan baru ("${newReqTitle}") kategori ${newReqCategory} dengan prioritas ${newReqPriority}.`,
+        sender: 'Tenant',
+        senderName: tenant.fullName,
+      })
+
+      const chat = await loadMessages()
+      setMessages(chat)
+
+      setNewReqTitle('')
+      setNewReqDesc('')
+      setShowSubmitRequest(false)
+      refetchProfile()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsSubmittingRequest(false)
     }
-
-    const updatedMaintenance = await createRequest({
-      title: newReqTitle,
-      description: newReqDesc,
-      category: newReqCategory,
-      priority: newReqPriority,
-      photoUrl: null,
-    })
-
-    const maint = await loadMaintenance()
-    setMaintenance(maint)
-
-    await api.portal.chat.sendMessage({
-      tenantId: tenant.id,
-      message: `🛠️ PEMBERITAHUAN PERBAIKAN: Saya membuka tiket perbaikan baru ("${newReqTitle}") kategori ${newReqCategory} dengan prioritas ${newReqPriority}.`,
-      sender: 'Tenant',
-      senderName: tenant.fullName,
-    })
-
-    const chat = await loadMessages()
-    setMessages(chat)
-
-    setNewReqTitle('')
-    setNewReqDesc('')
-    setShowSubmitRequest(false)
-    refetchProfile()
   }
 
   // Smart Draft writer suggestion triggers
@@ -468,19 +483,25 @@ function PortalDashboard() {
   // Send message
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!chatText.trim() || !tenant?.id) return
+    if (!chatText.trim() || !tenant?.id || isSendingMessage) return
+    setIsSendingMessage(true)
+    try {
+      await api.portal.chat.sendMessage({
+        tenantId: tenant.id,
+        message: chatText.trim(),
+        sender: 'Tenant',
+        senderName: tenant.fullName,
+      })
 
-    await api.portal.chat.sendMessage({
-      tenantId: tenant.id,
-      message: chatText.trim(),
-      sender: 'Tenant',
-      senderName: tenant.fullName,
-    })
-
-    const chat = await loadMessages()
-    setMessages(chat)
-    setChatText('')
-    setAiSuggestion('')
+      setChatText('')
+      setAiSuggestion('')
+      const chat = await loadMessages()
+      setMessages(chat)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsSendingMessage(false)
+    }
   }
 
   return (
@@ -927,16 +948,18 @@ function PortalDashboard() {
                 <form onSubmit={handleSendMessage} className="flex gap-2">
                   <input
                     type="text"
-                    className="flex-1 border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-slate-350 bg-slate-50 text-slate-800 font-semibold"
+                    disabled={isSendingMessage}
+                    className="flex-1 border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-slate-350 bg-slate-50 text-slate-800 font-semibold disabled:opacity-50"
                     placeholder="Tulis pesan Anda..."
                     value={chatText}
                     onChange={(e) => setChatText(e.target.value)}
                   />
                   <button
                     type="submit"
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 rounded-xl transition cursor-pointer"
+                    disabled={isSendingMessage || !chatText.trim()}
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 rounded-xl transition cursor-pointer disabled:opacity-50"
                   >
-                    Kirim
+                    {isSendingMessage ? 'Kirim...' : 'Kirim'}
                   </button>
                 </form>
               </div>
@@ -1159,9 +1182,10 @@ function PortalDashboard() {
 
               <button
                 type="submit"
-                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg text-xs transition cursor-pointer"
+                disabled={isSubmittingPayment}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg text-xs transition cursor-pointer disabled:opacity-50"
               >
-                Kirim Bukti Pembayaran Ke Pemilik Kost
+                {isSubmittingPayment ? 'Mengirim...' : 'Kirim Bukti Pembayaran Ke Pemilik Kost'}
               </button>
             </form>
           </div>
@@ -1236,9 +1260,10 @@ function PortalDashboard() {
 
               <button
                 type="submit"
-                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg text-xs transition cursor-pointer"
+                disabled={isSubmittingRequest}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg text-xs transition cursor-pointer disabled:opacity-50"
               >
-                Kirim Laporan Kerusakan
+                {isSubmittingRequest ? 'Mengirim...' : 'Kirim Laporan Kerusakan'}
               </button>
             </form>
           </div>

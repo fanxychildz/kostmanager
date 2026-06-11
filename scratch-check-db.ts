@@ -7,7 +7,7 @@ async function run() {
   });
 
   try {
-    const res = await client.execute("SELECT id, full_name, email, user_id FROM tenants;");
+    const res = await client.execute("SELECT id, full_name, email, property_id, unit_id, user_id FROM tenants;");
     console.log('Tenants:', res.rows);
   } catch (err) {
     console.error(err);
@@ -17,3 +17,6 @@ async function run() {
 }
 
 run();
+
+
+

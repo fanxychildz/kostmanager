@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { eq } from 'drizzle-orm'
 import { db } from '../db'
-import { tenants, units, properties, bills, users, maintenanceRequests, maintenanceUpdates } from '../db/schema'
+import { tenants, units, properties, bills, users, maintenanceRequests, maintenanceUpdates, notifications } from '../db/schema'
 import { auth } from './auth'
 import { nanoid } from 'nanoid'
 import { getRequest, setResponseHeader } from '@tanstack/react-start/server'
@@ -128,10 +128,10 @@ export const createPortalMaintenanceRequest = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const request = getRequest()
     const tenant = await requireTenant(request.headers)
-    
+
     const now = new Date()
     const requestId = nanoid()
-    
+
     const [result] = await db
       .insert(maintenanceRequests)
       .values({
@@ -148,7 +148,7 @@ export const createPortalMaintenanceRequest = createServerFn({ method: 'POST' })
         updatedAt: now,
       })
       .returning()
-      
+
     await db.insert(maintenanceUpdates).values({
       id: nanoid(),
       requestId: requestId,
@@ -157,7 +157,30 @@ export const createPortalMaintenanceRequest = createServerFn({ method: 'POST' })
       text: `Tiket keluhan berhasil dibuat. Pelapor: ${tenant.fullName}.`,
       createdAt: now,
     })
-    
+
+    // Notify owner about new maintenance request
+    if (tenant.propertyId) {
+      const ownerResult = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, (await db.select().from(properties).where(eq(properties.id, tenant.propertyId)).limit(1))[0].ownerId))
+        .limit(1)
+
+      if (ownerResult[0]?.id) {
+        await db.insert(notifications).values({
+          id: nanoid(),
+          recipientId: ownerResult[0].id,
+          recipientType: 'owner',
+          channel: 'in_app',
+          type: 'announcement',
+          subject: 'Keluhan Baru',
+          messageContent: `Ada keluhan baru dari ${tenant.fullName}: ${data.title}`,
+          status: 'delivered',
+          createdAt: now,
+        })
+      }
+    }
+
     return result as any
   })
 

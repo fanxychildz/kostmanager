@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { eq, and, inArray, sql } from 'drizzle-orm'
 import { db } from '../db'
-import { maintenanceRequests, maintenanceUpdates, users, properties, tenants } from '../db/schema'
+import { maintenanceRequests, maintenanceUpdates, users, properties, tenants, units } from '../db/schema'
 import { auth } from './auth'
 import { nanoid } from 'nanoid'
 import { getRequest } from '@tanstack/react-start/server'
@@ -40,17 +40,42 @@ export const listMaintenanceRequests = createServerFn({ method: 'GET' })
     const { propertyIds } = await requireOwnerProperties(request.headers)
     if (propertyIds.length === 0) return []
 
+    const conditions = [inArray(maintenanceRequests.propertyId, propertyIds)] as any[]
     let status = data?.status
     const normalizedStatus = parseStatus(status)
+    if (status && normalizedStatus) conditions.push(eq(maintenanceRequests.status, normalizedStatus))
 
-    if (!status || !normalizedStatus) return []
-
-    const conditions = [inArray(maintenanceRequests.propertyId, propertyIds), eq(maintenanceRequests.status, normalizedStatus)] as any[]
     const propertyId = data?.propertyId
     if (propertyId) conditions.push(eq(maintenanceRequests.propertyId, propertyId))
 
-    const rows = db.select().from(maintenanceRequests).where(and(...conditions))
-    return await rows.orderBy(sql`${maintenanceRequests.createdAt} DESC`) as any
+    const rows = await db
+      .select({
+        id: maintenanceRequests.id,
+        tenantId: maintenanceRequests.tenantId,
+        propertyId: maintenanceRequests.propertyId,
+        unitId: maintenanceRequests.unitId,
+        title: maintenanceRequests.title,
+        description: maintenanceRequests.description,
+        category: maintenanceRequests.category,
+        priority: maintenanceRequests.priority,
+        status: maintenanceRequests.status,
+        photoUrl: maintenanceRequests.photoUrl,
+        repairCost: maintenanceRequests.repairCost,
+        createdAt: maintenanceRequests.createdAt,
+        updatedAt: maintenanceRequests.updatedAt,
+        resolvedAt: maintenanceRequests.resolvedAt,
+        tenantName: tenants.fullName,
+        unitNumber: units.unitNumber,
+        propertyName: properties.name,
+      })
+      .from(maintenanceRequests)
+      .leftJoin(tenants, eq(maintenanceRequests.tenantId, tenants.id))
+      .leftJoin(units, eq(maintenanceRequests.unitId, units.id))
+      .leftJoin(properties, eq(maintenanceRequests.propertyId, properties.id))
+      .where(and(...conditions))
+      .orderBy(sql`${maintenanceRequests.createdAt} DESC`)
+
+    return rows as any
   })
 
 export const getMaintenanceRequest = createServerFn({ method: 'GET' })
