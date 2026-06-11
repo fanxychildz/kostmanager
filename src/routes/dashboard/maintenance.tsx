@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useLocation, useNavigate } from '@tanstack/react-router'
 import { Clock, RefreshCw, CheckCircle, ArrowRight, X, Loader2, Wrench } from 'lucide-react'
 import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'motion/react'
@@ -32,6 +32,28 @@ function LandlordMaintenancePage() {
   const [saving, setSaving] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isBulkMode, setIsBulkMode] = useState(false)
+
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  // Automatically open a specific complaint if its ID is provided in URL query parameters (e.g. from notification redirect)
+  useEffect(() => {
+    if (items.length > 0 && !loading) {
+      const searchParams = new URLSearchParams(location.search)
+      const reqId = searchParams.get('requestId')
+      if (reqId) {
+        const found = items.find(item => item.id === reqId)
+        if (found) {
+          setSelectedRequest(found)
+        }
+      }
+    }
+  }, [items, loading, location.search])
+
+  const closeDetails = () => {
+    setSelectedRequest(null)
+    navigate({ to: '/dashboard/maintenance', search: {} as any })
+  }
 
   const handleCardClick = (req: MaintenanceItem) => {
     if (isBulkMode) {
@@ -134,7 +156,7 @@ function LandlordMaintenancePage() {
       await api.maintenance.delete(id)
       const next = items.filter(item => item.id !== id)
       setItems(next)
-      setSelectedRequest(null)
+      closeDetails()
     } catch (err) {
       alert('Gagal menghapus laporan: ' + err)
     } finally {
@@ -407,7 +429,7 @@ function LandlordMaintenancePage() {
                 >
                   Hapus Keluhan
                 </button>
-                <button onClick={() => setSelectedRequest(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+                <button onClick={closeDetails} className="text-slate-400 hover:text-slate-600 cursor-pointer">
                   <X className="w-5 h-5" />
                 </button>
               </div>

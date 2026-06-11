@@ -167,8 +167,9 @@ export const createPortalMaintenanceRequest = createServerFn({ method: 'POST' })
         .limit(1)
 
       if (ownerResult[0]?.id) {
+        const notifId = `maint_${requestId}_${nanoid()}`
         await db.insert(notifications).values({
-          id: nanoid(),
+          id: notifId,
           recipientId: ownerResult[0].id,
           recipientType: 'owner',
           channel: 'in_app',

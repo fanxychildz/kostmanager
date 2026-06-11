@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Bell, CheckCheck, Trash2, RefreshCw } from 'lucide-react'
 import { useQuery } from '~/lib/hooks'
 import { api } from '~/lib/api'
@@ -107,7 +107,7 @@ function NotificationsPage() {
               <CardContent className="p-12 text-center text-muted-foreground">Belum ada notifikasi</CardContent>
             </Card>
           ) : (
-            notifications.map((notif) => <NotificationRowCard key={notif.id} notification={notif} onDeleted={() => deleteNotification(notif.id)} />)
+            notifications.map((notif) => <NotificationRowCard key={notif.id} notification={notif} onDeleted={() => deleteNotification(notif.id)} onRefresh={refetch} />)
           )}
         </TabsContent>
 
@@ -121,7 +121,7 @@ function NotificationsPage() {
               <CardContent className="p-12 text-center text-muted-foreground">Belum ada notifikasi in-app</CardContent>
             </Card>
           ) : (
-            inAppNotifs.map((notif) => <NotificationRowCard key={notif.id} notification={notif} onDeleted={() => deleteNotification(notif.id)} />)
+            inAppNotifs.map((notif) => <NotificationRowCard key={notif.id} notification={notif} onDeleted={() => deleteNotification(notif.id)} onRefresh={refetch} />)
           )}
         </TabsContent>
 
@@ -135,7 +135,7 @@ function NotificationsPage() {
               <CardContent className="p-12 text-center text-muted-foreground">Belum ada notifikasi email</CardContent>
             </Card>
           ) : (
-            emailNotifs.map((notif) => <NotificationRowCard key={notif.id} notification={notif} onDeleted={() => deleteNotification(notif.id)} />)
+            emailNotifs.map((notif) => <NotificationRowCard key={notif.id} notification={notif} onDeleted={() => deleteNotification(notif.id)} onRefresh={refetch} />)
           )}
         </TabsContent>
       </Tabs>
@@ -143,7 +143,16 @@ function NotificationsPage() {
   )
 }
 
-function NotificationRowCard({ notification, onDeleted }: { notification: NotificationRow; onDeleted: () => void }) {
+function NotificationRowCard({
+  notification,
+  onDeleted,
+  onRefresh,
+}: {
+  notification: NotificationRow
+  onDeleted: () => void
+  onRefresh?: () => void
+}) {
+  const navigate = useNavigate()
   const channelLabel = notification.channel === 'email' ? 'Email' : 'In-App'
   const statusColor =
     notification.status === 'delivered'
@@ -155,12 +164,32 @@ function NotificationRowCard({ notification, onDeleted }: { notification: Notifi
           : 'text-slate-500'
 
   const updatedAtLabel = formatDate(notification.createdAt)
+  const isClickable = notification.id.startsWith('maint_')
+
+  const handleNotificationClick = async () => {
+    if (notification.status !== 'delivered') {
+      try {
+        await api.notifications.update(notification.id, { status: 'delivered' })
+        onRefresh?.()
+      } catch (err) {
+        console.error('Gagal memperbarui status notifikasi:', err)
+      }
+    }
+
+    if (isClickable) {
+      const requestId = notification.id.split('_')[1]
+      navigate({ to: '/dashboard/maintenance', search: { requestId } as any })
+    }
+  }
 
   return (
-    <Card className="border border-slate-200/80">
+    <Card className={`border border-slate-200/80 transition duration-150 ${isClickable ? 'hover:border-blue-300 hover:shadow-md' : ''}`}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
+          <div
+            onClick={isClickable ? handleNotificationClick : undefined}
+            className={`space-y-1 flex-1 ${isClickable ? 'cursor-pointer hover:opacity-85' : ''}`}
+          >
             <div className="flex flex-wrap items-center gap-2">
               {notification.subject ? (
                 <p className="text-sm font-semibold text-slate-900">{notification.subject}</p>
@@ -171,11 +200,16 @@ function NotificationRowCard({ notification, onDeleted }: { notification: Notifi
             </div>
             <p className="text-sm text-muted-foreground">{notification.messageContent}</p>
             <p className="text-xs text-muted-foreground">{updatedAtLabel}</p>
+            {isClickable && (
+              <span className="text-[10px] text-blue-600 font-bold block mt-1 hover:underline">
+                Klik untuk memproses keluhan &rarr;
+              </span>
+            )}
           </div>
           <Button
             variant="ghost"
             size="icon"
-            className="text-slate-400 hover:text-rose-600"
+            className="text-slate-400 hover:text-rose-600 shrink-0"
             aria-label="Hapus notifikasi"
             onClick={onDeleted}
           >
