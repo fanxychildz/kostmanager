@@ -1,8 +1,9 @@
 import { createServerFn } from '@tanstack/react-start'
 import { eq } from 'drizzle-orm'
 import { db } from '../db'
-import { tenants, units, properties, bills, users } from '../db/schema'
+import { tenants, units, properties, bills, users, maintenanceRequests, maintenanceUpdates } from '../db/schema'
 import { auth } from './auth'
+import { nanoid } from 'nanoid'
 import { getRequest, setResponseHeader } from '@tanstack/react-start/server'
 
 function forwardAuthCookies(headers: Headers) {
@@ -86,3 +87,77 @@ export const getPortalBills = createServerFn({ method: 'GET' }).handler(async ()
     return b.periodMonth - a.periodMonth
   })
 })
+
+export const listPortalMaintenanceRequests = createServerFn({ method: 'GET' })
+  .handler(async () => {
+    const request = getRequest()
+    const tenant = await requireTenant(request.headers)
+    
+    const results = await db
+      .select()
+      .from(maintenanceRequests)
+      .where(eq(maintenanceRequests.tenantId, tenant.id))
+      
+    const requestsWithUpdates = await Promise.all(
+      results.map(async (req) => {
+        const updates = await db
+          .select()
+          .from(maintenanceUpdates)
+          .where(eq(maintenanceUpdates.requestId, req.id))
+        
+        return {
+          ...req,
+          updates: updates.sort((a, b) => (a.createdAt?.getTime?.() ?? 0) - (b.createdAt?.getTime?.() ?? 0))
+        }
+      })
+    )
+    
+    return requestsWithUpdates.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()) as any
+  })
+
+export const createPortalMaintenanceRequest = createServerFn({ method: 'POST' })
+  .inputValidator(
+    (d: {
+      title: string
+      description: string
+      category: string
+      priority: string
+      photoUrl?: string | null
+    }) => d,
+  )
+  .handler(async ({ data }) => {
+    const request = getRequest()
+    const tenant = await requireTenant(request.headers)
+    
+    const now = new Date()
+    const requestId = nanoid()
+    
+    const [result] = await db
+      .insert(maintenanceRequests)
+      .values({
+        id: requestId,
+        tenantId: tenant.id,
+        propertyId: tenant.propertyId,
+        unitId: tenant.unitId,
+        title: data.title,
+        description: data.description,
+        category: data.category,
+        priority: data.priority,
+        photoUrl: data.photoUrl ?? null,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning()
+      
+    await db.insert(maintenanceUpdates).values({
+      id: nanoid(),
+      requestId: requestId,
+      authorId: tenant.userId!,
+      authorName: tenant.fullName,
+      text: `Tiket keluhan berhasil dibuat. Pelapor: ${tenant.fullName}.`,
+      createdAt: now,
+    })
+    
+    return result as any
+  })
+

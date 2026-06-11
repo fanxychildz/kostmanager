@@ -97,20 +97,18 @@ export const api = {
         chatActions.markChatRead({ data }),
     },
     maintenance: {
-      list: (params?: { status?: string; propertyId?: string }) =>
-        maintenanceActions.listMaintenanceRequests({ data: params }),
+      list: () =>
+        portalActions.listPortalMaintenanceRequests(),
       get: (id: string) =>
         maintenanceActions.getMaintenanceRequest({ data: { id } }),
       create: (data: {
-        propertyId: string
-        unitId: string
         title: string
         description: string
         category: string
         priority: string
         photoUrl?: string | null
       }) =>
-        maintenanceActions.createMaintenanceRequest({ data }),
+        portalActions.createPortalMaintenanceRequest({ data }),
       updateStatus: (id: string, data: {
         status: 'pending' | 'in_progress' | 'resolved'
         noteText?: string | null
@@ -124,6 +122,10 @@ export const api = {
       portalActions.portalRegister({ data }),
     profile: () => portalActions.getPortalProfile(),
     bills: () => portalActions.getPortalBills(),
+    announcements: {
+      list: (params?: { page?: number; limit?: number }) =>
+        (announcementsActions as any).listTenantAnnouncements?.({ data: params }) ?? Promise.resolve({ items: [], total: 0, page: 1, limit: 20 }),
+    },
   },
   maintenance: {
     list: (params?: { status?: string; propertyId?: string }) =>
