@@ -26,6 +26,7 @@ import {
 import { formatDate } from '~/lib/utils'
 import { api } from '~/lib/api'
 import { useQuery } from '~/lib/hooks'
+import { selectCache } from './_cache'
 
 export const Route = createFileRoute('/dashboard/announcements')({
   component: AnnouncementsPage,
