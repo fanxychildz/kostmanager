@@ -24,6 +24,7 @@ function BillDetailPage() {
 
   const { data: billPage, loading, error, refetch } = useQuery({
     queryFn: async () => api.payments.getPaymentsByBill({ billId } as any),
+    deps: [billId],
   })
 
   if (loading) {

@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 interface UseQueryOptions<T> {
   queryFn: () => Promise<T>
   enabled?: boolean
+  deps?: any[]
 }
 
 interface UseQueryResult<T> {
@@ -12,7 +13,7 @@ interface UseQueryResult<T> {
   refetch: () => Promise<void>
 }
 
-export function useQuery<T>({ queryFn, enabled = true }: UseQueryOptions<T>): UseQueryResult<T> {
+export function useQuery<T>({ queryFn, enabled = true, deps = [] }: UseQueryOptions<T>): UseQueryResult<T> {
   const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(enabled)
   const [error, setError] = useState<string | null>(null)
@@ -38,7 +39,8 @@ export function useQuery<T>({ queryFn, enabled = true }: UseQueryOptions<T>): Us
   useEffect(() => {
     if (!enabled) return
     fetchData()
-  }, [enabled, fetchData])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, fetchData, ...deps])
 
   return { data, loading, error, refetch: fetchData }
 }

@@ -18,7 +18,10 @@ function TenantDetailPage() {
   const { tenantId } = Route.useParams()
   const navigate = useNavigate()
 
-  const { data: tenant, loading, error } = useQuery({ queryFn: () => api.tenants.get(tenantId) })
+  const { data: tenant, loading, error } = useQuery({
+    queryFn: () => api.tenants.get(tenantId),
+    deps: [tenantId],
+  })
   const { data: units } = useQuery({ queryFn: () => api.units.list() })
   const { data: properties } = useQuery({ queryFn: () => api.properties.list() })
   const { data: allBills } = useQuery({ queryFn: () => api.bills.list() })

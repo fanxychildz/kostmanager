@@ -33,10 +33,12 @@ function PropertyDetailPage() {
 
   const { data: property, loading: loadingProperty, refetch: refetchProperty } = useQuery({
     queryFn: () => api.properties.get(propertyId),
+    deps: [propertyId],
   })
 
   const { data: units, loading: loadingUnits, refetch: refetchUnits } = useQuery({
     queryFn: () => api.units.list(propertyId),
+    deps: [propertyId],
   })
 
   const { data: tenants } = useQuery({
