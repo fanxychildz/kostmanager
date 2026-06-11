@@ -1,7 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { 
   Home, FileText, Wrench, MessageSquare, CreditCard, Camera, Info, 
-  Sparkles, CheckCircle2, AlertCircle, Clock, Send, Mail, Phone, Calendar, ArrowUpRight, HelpCircle, Loader2
+  Sparkles, CheckCircle2, AlertCircle, Clock, Send, Mail, Phone, Calendar, ArrowUpRight, HelpCircle, Loader2,
+  Settings
 } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
@@ -11,14 +12,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Progress } from '~/components/ui/progress'
 import { formatRupiah, formatDate } from '~/lib/utils'
 import { api } from '~/lib/api'
-import { useQuery } from '~/lib/hooks'
+import { useQuery, useMutation } from '~/lib/hooks'
 import { useAuth } from '~/lib/auth-context'
 
 export const Route = createFileRoute('/portal/')({
   component: PortalDashboard,
 })
 
-type TenantTab = 'lease' | 'billing' | 'maintenance' | 'chat'
+type TenantTab = 'lease' | 'billing' | 'maintenance' | 'announcements' | 'chat' | 'settings'
 
 interface PortalProfile {
   tenant: {
@@ -76,7 +77,7 @@ type PortalChatMessage = {
   read: boolean
 }
 
-type PortalTab = 'lease' | 'billing' | 'maintenance' | 'chat'
+type PortalTab = 'lease' | 'billing' | 'maintenance' | 'chat' | 'settings'
 
 // Client-side dynamic AI suggestion writing assistant (heuristic engine in Indonesian)
 function generateAISuggestion(messages: PortalChatMessage[], respondent: 'Tenant', tenantName: string) {
@@ -103,7 +104,7 @@ function generateAISuggestion(messages: PortalChatMessage[], respondent: 'Tenant
 }
 
 function PortalDashboard() {
-  const { user: authUser } = useAuth()
+  const { user: authUser, refreshSession } = useAuth()
   const [activeTab, setActiveTab] = useState<TenantTab>('lease')
 
   const {
@@ -165,6 +166,91 @@ function PortalDashboard() {
   const tenant = profile?.tenant
   const unit = profile?.unit
   const property = profile?.property
+
+  // Settings tab state
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [profileMsg, setProfileMsg] = useState('')
+  const [profileMsgType, setProfileMsgType] = useState<'success' | 'error' | ''>('')
+  
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordMsg, setPasswordMsg] = useState('')
+  const [passwordMsgType, setPasswordMsgType] = useState<'success' | 'error' | ''>('')
+
+  useEffect(() => {
+    if (tenant) {
+      setName(tenant.fullName || authUser?.name || '')
+      setPhone(tenant.phone || (authUser as any)?.phone || '')
+    }
+  }, [tenant, authUser])
+
+  const profileMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.auth.updateProfile({ name, phone })
+      return res
+    },
+    onSuccess: async () => {
+      setProfileMsg('Data pribadi berhasil diperbarui.')
+      setProfileMsgType('success')
+      await refreshSession()
+      await refetchProfile()
+    },
+    onError: (err: any) => {
+      setProfileMsg(`Gagal memperbarui profil: ${err.message || err}`)
+      setProfileMsgType('error')
+    },
+  })
+
+  const handleUpdateProfileSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setProfileMsg('')
+    setProfileMsgType('')
+    if (!name.trim()) {
+      setProfileMsg('Nama lengkap tidak boleh kosong.')
+      setProfileMsgType('error')
+      return
+    }
+    if (!phone.trim()) {
+      setProfileMsg('Nomor telepon tidak boleh kosong.')
+      setProfileMsgType('error')
+      return
+    }
+    profileMutation.mutate()
+  }
+
+  const passwordMutation = useMutation({
+    mutationFn: () => api.auth.changePassword({ currentPassword, newPassword }),
+    onSuccess: () => {
+      setPasswordMsg('Kata sandi berhasil diperbarui.')
+      setPasswordMsgType('success')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    },
+    onError: (err: any) => {
+      setPasswordMsg(`Gagal memperbarui kata sandi: ${err.message || err}`)
+      setPasswordMsgType('error')
+    },
+  })
+
+  const handleChangePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setPasswordMsg('')
+    setPasswordMsgType('')
+    if (newPassword.length < 8) {
+      setPasswordMsg('Kata sandi baru minimal harus 8 karakter.')
+      setPasswordMsgType('error')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordMsg('Konfirmasi kata sandi baru tidak cocok.')
+      setPasswordMsgType('error')
+      return
+    }
+    passwordMutation.mutate()
+  }
 
   const chatListRef = useRef<HTMLDivElement>(null)
   const prevMessagesLengthRef = useRef(0)
@@ -426,6 +512,13 @@ function PortalDashboard() {
             <span className={`p-1 px-1.5 font-bold text-[10px] rounded-md flex items-center gap-1 ${activeTab === 'chat' ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-600'}`}>
               <Sparkles className="w-3 h-3 text-blue-600" /> AI Draft
             </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 text-xs md:text-sm transition-all cursor-pointer ${activeTab === 'settings' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
+          >
+            <Settings className="w-4 h-4 shrink-0" /> Pengaturan Profil
           </button>
         </nav>
       </aside>
@@ -731,6 +824,158 @@ function PortalDashboard() {
                     className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 rounded-xl transition cursor-pointer"
                   >
                     Kirim
+                  </button>
+                </form>
+              </div>
+            </motion.div>
+          )}
+
+          {/* TAB E: PROFILE SETTINGS */}
+          {activeTab === 'settings' && (
+            <motion.div 
+              key="settings"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.15 }}
+              className="p-6 flex-1 space-y-6"
+            >
+              <div>
+                <h2 className="text-lg font-extrabold text-slate-900 tracking-tight leading-none">Pengaturan Profil & Keamanan</h2>
+                <p className="text-xs text-slate-400 font-semibold mt-1">Perbarui informasi pribadi dan kelola kata sandi akun Anda.</p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-8">
+                {/* Section 1: Personal Data Form */}
+                <form onSubmit={handleUpdateProfileSubmit} className="space-y-4 border border-slate-200 p-5 rounded-2xl bg-white shadow-xs">
+                  <h3 className="font-bold text-slate-900 text-sm border-b pb-2 flex items-center gap-2">
+                    Data Pribadi
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-semibold">
+                    <div className="space-y-1">
+                      <label className="text-slate-500 block">Nama Lengkap</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 bg-slate-50 text-slate-800 font-medium"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-slate-500 block">Email (Tidak Dapat Diubah)</label>
+                      <input
+                        type="email"
+                        disabled
+                        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-slate-100 text-slate-400 font-medium cursor-not-allowed"
+                        value={tenant?.email || authUser?.email || ''}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-slate-500 block">Nomor Telepon</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Contoh: 08123456789"
+                        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 bg-slate-50 text-slate-800 font-medium"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-slate-500 block">Nomor Kamar & Properti</label>
+                      <input
+                        type="text"
+                        disabled
+                        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-slate-100 text-slate-400 font-medium cursor-not-allowed"
+                        value={`Kamar ${unit?.unitNumber || '-'} (${property?.name || '-'})`}
+                      />
+                    </div>
+                  </div>
+
+                  {profileMsg && (
+                    <div className={`p-2.5 rounded-xl border text-xs flex items-center gap-2 font-medium ${
+                      profileMsgType === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-rose-50 border-rose-100 text-rose-600'
+                    }`}>
+                      {profileMsgType === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                      <span>{profileMsg}</span>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={profileMutation.loading}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {profileMutation.loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    Simpan Perubahan
+                  </button>
+                </form>
+
+                {/* Section 2: Change Password Form */}
+                <form onSubmit={handleChangePasswordSubmit} className="space-y-4 border border-slate-200 p-5 rounded-2xl bg-white shadow-xs">
+                  <h3 className="font-bold text-slate-900 text-sm border-b pb-2">
+                    Keamanan & Kata Sandi
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-semibold">
+                    <div className="space-y-1">
+                      <label className="text-slate-500 block">Kata Sandi Saat Ini</label>
+                      <input
+                        type="password"
+                        required
+                        placeholder="••••••••"
+                        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 bg-slate-50 text-slate-800 font-medium"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-slate-500 block">Kata Sandi Baru</label>
+                      <input
+                        type="password"
+                        required
+                        placeholder="Minimal 8 karakter"
+                        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 bg-slate-50 text-slate-800 font-medium"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-slate-500 block">Konfirmasi Kata Sandi Baru</label>
+                      <input
+                        type="password"
+                        required
+                        placeholder="Minimal 8 karakter"
+                        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 bg-slate-50 text-slate-800 font-medium"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  {passwordMsg && (
+                    <div className={`p-2.5 rounded-xl border text-xs flex items-center gap-2 font-medium ${
+                      passwordMsgType === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-rose-50 border-rose-100 text-rose-600'
+                    }`}>
+                      {passwordMsgType === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                      <span>{passwordMsg}</span>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={passwordMutation.loading}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {passwordMutation.loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    Perbarui Kata Sandi
                   </button>
                 </form>
               </div>

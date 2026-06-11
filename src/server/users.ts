@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { eq } from 'drizzle-orm'
 import { db } from '../db'
-import { users } from '../db/schema'
+import { users, tenants } from '../db/schema'
 import { auth } from './auth'
 import { getRequest } from '@tanstack/react-start/server'
 
@@ -26,6 +26,19 @@ export const updateProfile = createServerFn({ method: 'POST' })
       .returning()
 
     if (result.length === 0) throw new Error('Not found')
+
+    if (session.user.role === 'tenant') {
+      const tenantPayload: { fullName?: string; phone?: string; updatedAt: Date } = {
+        updatedAt: new Date(),
+      }
+      if (data.name !== undefined) tenantPayload.fullName = data.name
+      if (data.phone !== undefined) tenantPayload.phone = data.phone
+
+      await db
+        .update(tenants)
+        .set(tenantPayload)
+        .where(eq(tenants.userId, session.user.id))
+    }
 
     return result[0]
   })
