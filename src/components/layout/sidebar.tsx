@@ -13,6 +13,7 @@ import {
   Wrench,
   MessageSquare,
   TrendingDown,
+  Megaphone,
 } from 'lucide-react'
 import { cn } from '~/lib/utils'
 import { Button } from '~/components/ui/button'
@@ -31,6 +32,7 @@ const navItems = [
   { label: 'Notifikasi', href: '/dashboard/notifications', icon: Bell },
   { label: 'Keluhan Perbaikan', href: '/dashboard/maintenance', icon: Wrench },
   { label: 'Chat Penghuni', href: '/dashboard/chat', icon: MessageSquare },
+  { label: 'Pengumuman', href: '/dashboard/announcements', icon: Megaphone },
 ]
 
 const bottomItems = [

@@ -91,7 +91,7 @@ function AnnouncementsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-5">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight leading-none">Papan Pengumuman</h1>
           <p className="text-xs text-slate-400 font-semibold mt-1">Kelola pengumuman properti yang dikirim ke owner/tenant.</p>
@@ -99,7 +99,7 @@ function AnnouncementsPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-1 border border-slate-200 rounded-2xl bg-white">
+        <Card className="lg:col-span-1 border border-slate-200 rounded-2xl bg-white shadow-xs">
           <CardHeader className="border-b border-slate-100 p-5">
             <CardTitle className="text-sm font-extrabold text-slate-900">Buat Pengumuman</CardTitle>
             <CardDescription className="text-xs">Isi detail pengumuman.</CardDescription>
@@ -177,7 +177,7 @@ function AnnouncementsPage() {
               <Button
                 type="submit"
                 disabled={saving || !propertyId}
-                className="w-full bg-slate-900 text-white rounded-xl text-xs font-semibold py-2.5"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold py-2.5 transition cursor-pointer"
               >
                 {saving ? 'Menyimpan...' : 'Publikasikan'}
               </Button>
@@ -185,7 +185,7 @@ function AnnouncementsPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2 border border-slate-200 rounded-2xl bg-white">
+        <Card className="lg:col-span-2 border border-slate-200 rounded-2xl bg-white shadow-xs">
           <CardHeader className="border-b border-slate-100 p-5">
             <CardTitle className="text-sm font-extrabold text-slate-900">Daftar Pengumuman</CardTitle>
             <CardDescription className="text-xs">Pengumuman yang pernah dibuat untuk properti ini.</CardDescription>
@@ -217,12 +217,12 @@ function AnnouncementsPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="icon"
-                          className="h-8 w-8 rounded-lg"
+                          className="h-8 w-8 text-slate-600 hover:text-rose-600 rounded-lg cursor-pointer"
                           onClick={() => handleDelete(ann.id)}
                         >
-                          <Trash2 className="h-4 w-4 text-rose-600" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
