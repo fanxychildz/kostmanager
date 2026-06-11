@@ -7,8 +7,8 @@ async function run() {
   });
 
   try {
-    const res = await client.execute("SELECT id, email, email_verified FROM users;");
-    console.log('Users:', res.rows);
+    const res = await client.execute("SELECT id, full_name, email, user_id FROM tenants;");
+    console.log('Tenants:', res.rows);
   } catch (err) {
     console.error(err);
   } finally {

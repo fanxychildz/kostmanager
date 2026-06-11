@@ -151,9 +151,35 @@ export const expenses = sqliteTable('expenses', {
   propertyId: text('property_id').notNull().references(() => properties.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
   amount: integer('amount').notNull(),
-  category: text('category').notNull().default('other'), // 'operational', 'repair', 'utility', 'salary', 'other'
+  category: text('category').notNull().default('other'),
   date: integer('date', { mode: 'timestamp' }).notNull(),
   notes: text('notes'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+})
+
+export const maintenanceRequests = sqliteTable('maintenance_requests', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').references(() => tenants.id, { onDelete: 'set null' }),
+  propertyId: text('property_id').notNull().references(() => properties.id, { onDelete: 'cascade' }),
+  unitId: text('unit_id').notNull().references(() => units.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  category: text('category').notNull(),
+  priority: text('priority').notNull().default('Medium'),
+  status: text('status').notNull().default('pending'),
+  photoUrl: text('photo_url'),
+  repairCost: integer('repair_cost'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+  resolvedAt: integer('resolved_at', { mode: 'timestamp' }),
+})
+
+export const maintenanceUpdates = sqliteTable('maintenance_updates', {
+  id: text('id').primaryKey(),
+  requestId: text('request_id').notNull().references(() => maintenanceRequests.id, { onDelete: 'cascade' }),
+  authorId: text('author_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  authorName: text('author_name').notNull(),
+  text: text('text').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 })

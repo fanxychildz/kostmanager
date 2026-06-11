@@ -16,13 +16,17 @@ export const listChatMessages = createServerFn({ method: 'GET' })
   .inputValidator((d: { tenantId: string }) => d)
   .handler(async ({ data }) => {
     const request = getRequest()
-    const { session } = await requireOwner(request.headers)
+    const session = await auth.api.getSession({ headers: request.headers })
+    if (!session) throw new Error('Unauthorized')
 
     const tenant = await db.select().from(tenants).where(eq(tenants.id, data.tenantId)).then((r) => r[0])
     if (!tenant) throw new Error('Tenant not found')
 
-    const prop = await db.select().from(properties).where(eq(properties.id, tenant.propertyId)).then((r) => r[0])
-    if (!prop || prop.ownerId !== session.user.id) throw new Error('Forbidden')
+    const isTenantUser = session.user.id === tenant.userId
+    if (!isTenantUser) {
+      const prop = await db.select().from(properties).where(eq(properties.id, tenant.propertyId)).then((r) => r[0])
+      if (!prop || prop.ownerId !== session.user.id) throw new Error('Forbidden')
+    }
 
     const result = await db
       .select()
@@ -46,16 +50,15 @@ export const sendChatMessage = createServerFn({ method: 'POST' })
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session) throw new Error('Unauthorized')
 
-    // If sender is Tenant, the message is being sent by the tenant user account.
-    // Allow it without further ownership checks.
-    if (data.sender !== 'Tenant') {
-      const ownerProps = await db.select().from(properties).where(eq(properties.ownerId, session.user.id))
-      const tenant = await db.select().from(tenants).where(eq(tenants.id, data.tenantId)).then((r) => r[0])
-      if (!tenant || !ownerProps.some((p) => p.id === tenant.propertyId)) throw new Error('Forbidden')
-    }
-
     const tenant = await db.select().from(tenants).where(eq(tenants.id, data.tenantId)).then((r) => r[0])
     if (!tenant) throw new Error('Tenant not found')
+
+    if (data.sender === 'Tenant') {
+      if (tenant.userId !== session.user.id) throw new Error('Forbidden')
+    } else {
+      const ownerProps = await db.select().from(properties).where(eq(properties.ownerId, session.user.id))
+      if (!ownerProps.some((p) => p.id === tenant.propertyId)) throw new Error('Forbidden')
+    }
 
     const now = new Date()
     const [row] = await db

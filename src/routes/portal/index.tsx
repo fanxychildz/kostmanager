@@ -116,9 +116,15 @@ function PortalDashboard() {
     refetch: refetchBills,
   } = useQuery<PortalBill[]>({ queryFn: () => api.portal.bills() })
 
-  const saveMaintenance = async (data: PortalMaintenanceRequest[]) => {
-    await api.portal.maintenance.save(data)
-  }
+  const createRequest = async (data: {
+    propertyId: string
+    unitId: string
+    title: string
+    description: string
+    category: string
+    priority: string
+    photoUrl?: string | null
+  }) => api.portal.maintenance.create(data)
 
   const loadMaintenance = async (): Promise<PortalMaintenanceRequest[]> => {
     const all = await api.portal.maintenance.list()
@@ -246,9 +252,18 @@ function PortalDashboard() {
       ],
     }
 
-    const updatedMaintenance = [...maintenance, newTicket]
-    setMaintenance(updatedMaintenance)
-    await saveMaintenance(updatedMaintenance)
+    const updatedMaintenance = await createRequest({
+      propertyId: property?.id || '',
+      unitId: unit?.id || '',
+      title: newReqTitle,
+      description: newReqDesc,
+      category: newReqCategory,
+      priority: newReqPriority,
+      photoUrl: null,
+    })
+
+    const maint = await loadMaintenance()
+    setMaintenance(maint)
 
     await api.portal.chat.sendMessage({
       tenantId: tenant.id,

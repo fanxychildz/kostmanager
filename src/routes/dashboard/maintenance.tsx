@@ -1,16 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Clock, RefreshCw, CheckCircle, ArrowRight, X, Loader2, Wrench } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'motion/react'
 import { api } from '~/lib/api'
 
-export const Route = createFileRoute('/dashboard/maintenance')({
-  component: LandlordMaintenancePage,
-})
+type MaintenanceStatus = 'Pending' | 'In Progress' | 'Resolved'
 
-interface LocalMaintenanceRequest {
+interface MaintenanceItem {
   id: string
-  tenantId: string
   tenantName: string
   unitNumber: string
   propertyName: string
@@ -18,77 +15,122 @@ interface LocalMaintenanceRequest {
   description: string
   category: string
   priority: string
-  status: 'Pending' | 'In Progress' | 'Resolved'
+  status: MaintenanceStatus
   createdAt: string
   updates: Array<{ id: string; date: string; author: string; text: string }>
 }
 
+export const Route = createFileRoute('/dashboard/maintenance')({
+  component: LandlordMaintenancePage,
+})
+
 function LandlordMaintenancePage() {
-  const [maintenance, setMaintenance] = useState<LocalMaintenanceRequest[]>([])
-  const [selectedRequest, setSelectedRequest] = useState<LocalMaintenanceRequest | null>(null)
+  const [items, setItems] = useState<MaintenanceItem[]>([])
+  const [selectedRequest, setSelectedRequest] = useState<MaintenanceItem | null>(null)
   const [maintenanceNoteText, setMaintenanceNoteText] = useState('')
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
 
-  // Load from localStorage
+  const normalizeItem = (row: any): MaintenanceItem => ({
+    id: String(row.id),
+    tenantName: String(row.tenantName ?? 'Penghuni'),
+    unitNumber: String(row.unitNumber ?? '-'),
+    propertyName: String(row.propertyName ?? 'Properti'),
+    title: String(row.title),
+    description: String(row.description),
+    category: String(row.category),
+    priority: String(row.priority),
+    status: (() => {
+      const s = String(row.status || '').toLowerCase()
+      if (s === 'resolved') return 'Resolved'
+      if (s === 'in_progress' || s === 'in progress') return 'In Progress'
+      return 'Pending'
+    })() as MaintenanceStatus,
+    createdAt: String(row.createdAt || new Date().toISOString()),
+    updates: Array.isArray(row.updates)
+      ? row.updates.map((up: any) => ({
+          id: String(up.id),
+          date: String(up.date || up.createdAt || new Date().toISOString()),
+          author: String(up.author || up.authorName || 'Tim'),
+          text: String(up.text),
+        }))
+      : [],
+  })
+
   useEffect(() => {
-    const storedMaint = localStorage.getItem('km_maintenance')
-    if (storedMaint) {
-      setMaintenance(JSON.parse(storedMaint))
+    let cancelled = false
+    setLoading(true)
+    api.maintenance.list().then(data => {
+      if (!cancelled) {
+        const normalized = (data as any[]).map(normalizeItem)
+        setItems(normalized)
+        setLoading(false)
+      }
+    }).catch(() => {
+      if (!cancelled) setLoading(false)
+    })
+    return () => {
+      cancelled = true
     }
-    setLoading(false)
   }, [])
 
-  const saveMaintenance = (data: LocalMaintenanceRequest[]) => {
-    setMaintenance(data)
-    localStorage.setItem('km_maintenance', JSON.stringify(data))
-  }
-
-  const handleAddMaintenanceUpdate = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!selectedRequest || !maintenanceNoteText.trim()) return
-
-    const updatedRequest: LocalMaintenanceRequest = {
-      ...selectedRequest,
-      updates: [
-        ...selectedRequest.updates,
-        {
-          id: `u-new-${Date.now()}`,
-          date: new Date().toISOString(),
-          author: 'Pemilik Kost',
-          text: maintenanceNoteText
-        }
-      ]
-    }
-
-    const updatedList = maintenance.map(m => m.id === selectedRequest.id ? updatedRequest : m)
-    saveMaintenance(updatedList)
-    setSelectedRequest(updatedRequest)
-    setMaintenanceNoteText('')
-  }
-
-  const changeRequestStatus = (reqId: string, newStatus: 'Pending' | 'In Progress' | 'Resolved') => {
-    const updatedList = maintenance.map(m => {
-      if (m.id === reqId) {
-        const sysNote = {
-          id: `u-status-${Date.now()}`,
-          date: new Date().toISOString(),
-          author: 'Sistem' as const,
-          text: `Status keluhan diubah dari ${m.status} menjadi ${newStatus}.`
-        }
-        const updated: LocalMaintenanceRequest = {
-          ...m,
-          status: newStatus,
-          updates: [...m.updates, sysNote]
-        }
-        if (selectedRequest && selectedRequest.id === reqId) {
-          setSelectedRequest(updated)
-        }
-        return updated
+  const changeRequestStatus = async (reqId: string, newStatus: MaintenanceStatus) => {
+    setSaving(true)
+    try {
+      const dbStatusMap: Record<MaintenanceStatus, 'pending' | 'in_progress' | 'resolved'> = {
+        'Pending': 'pending',
+        'In Progress': 'in_progress',
+        'Resolved': 'resolved',
       }
-      return m
-    })
-    saveMaintenance(updatedList)
+      const updatedRaw = await api.maintenance.updateStatus(reqId, {
+        status: dbStatusMap[newStatus],
+        noteText: `Status diperbarui menjadi ${newStatus}.`,
+        repairCost: undefined,
+      })
+      const updated = normalizeItem(updatedRaw)
+      const next = items.map(item => (item.id === reqId ? updated : item))
+      setItems(next)
+      setSelectedRequest(updated)
+    } finally {
+      setSaving(false)
+    }
   }
+
+  const handleAddMaintenanceUpdate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedRequest || !maintenanceNoteText.trim() || saving) return
+    setSaving(true)
+    try {
+      const created = (await api.maintenance.addUpdate(selectedRequest.id, maintenanceNoteText)) as any
+      const updated: MaintenanceItem = {
+        ...selectedRequest,
+        updates: [
+          ...selectedRequest.updates,
+          {
+            id: String(created.id),
+            date: String(created.createdAt || new Date().toISOString()),
+            author: String(created.authorName || 'Pemilik Kost'),
+            text: maintenanceNoteText,
+          },
+        ],
+      }
+      const next = items.map(item => (item.id === selectedRequest.id ? updated : item))
+      setItems(next)
+      setSelectedRequest(updated)
+      setMaintenanceNoteText('')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const counts = useMemo(
+    () => ({
+      pending: items.filter(item => item.status === 'Pending').length,
+      progress: items.filter(item => item.status === 'In Progress').length,
+      resolved: items.filter(item => item.status === 'Resolved').length,
+    }),
+    [items],
+  )
 
   if (loading) {
     return (
@@ -100,12 +142,12 @@ function LandlordMaintenancePage() {
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.05 } }
+    show: { opacity: 1, transition: { staggerChildren: 0.05 } },
   }
 
   const itemVariants = {
     hidden: { opacity: 0, y: 12 },
-    show: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } }
+    show: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } },
   }
 
   return (
@@ -119,7 +161,7 @@ function LandlordMaintenancePage() {
       </div>
 
       {/* Kanban Board columns */}
-      <motion.div 
+      <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="show"
@@ -132,14 +174,14 @@ function LandlordMaintenancePage() {
               <Clock className="w-4 h-4 text-amber-500" /> Diajukan / Pending
             </span>
             <span className="bg-slate-100 text-slate-600 text-[10px] px-2.5 py-0.5 rounded-full font-bold">
-              {maintenance.filter(m => m.status === 'Pending').length}
+              {counts.pending}
             </span>
           </div>
 
           <div className="space-y-3">
-            {maintenance.filter(m => m.status === 'Pending').map(req => (
-              <motion.div 
-                key={req.id} 
+            {items.filter(item => item.status === 'Pending').map(req => (
+              <motion.div
+                key={req.id}
                 variants={itemVariants}
                 onClick={() => setSelectedRequest(req)}
                 className="border border-slate-200 rounded-2xl p-4 bg-white hover:border-blue-300 shadow-xs cursor-pointer transition hover:shadow-md"
@@ -151,7 +193,7 @@ function LandlordMaintenancePage() {
                   </span>
                 </div>
                 <h4 className="font-bold text-slate-900 text-xs md:text-sm mb-1">{req.title}</h4>
-                <p className="text-[11px] text-slate-450 font-semibold line-clamp-2 mb-3 leading-relaxed">{req.description}</p>
+                <p className="text-[11px] text-slate-500 font-semibold line-clamp-2 mb-3 leading-relaxed">{req.description}</p>
                 <div className="border-t border-slate-50 pt-2 flex items-center justify-between text-[10px] text-slate-400 font-semibold">
                   <span>{req.tenantName} (Kamar {req.unitNumber})</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -168,14 +210,14 @@ function LandlordMaintenancePage() {
               <RefreshCw className="w-4 h-4 text-blue-500 animate-spin-slow" /> Sedang Diproses
             </span>
             <span className="bg-slate-100 text-slate-600 text-[10px] px-2.5 py-0.5 rounded-full font-bold">
-              {maintenance.filter(m => m.status === 'In Progress').length}
+              {counts.progress}
             </span>
           </div>
 
           <div className="space-y-3">
-            {maintenance.filter(m => m.status === 'In Progress').map(req => (
-              <motion.div 
-                key={req.id} 
+            {items.filter(item => item.status === 'In Progress').map(req => (
+              <motion.div
+                key={req.id}
                 variants={itemVariants}
                 onClick={() => setSelectedRequest(req)}
                 className="border border-slate-200 rounded-2xl p-4 bg-white hover:border-blue-300 shadow-xs cursor-pointer transition hover:shadow-md"
@@ -187,7 +229,7 @@ function LandlordMaintenancePage() {
                   </span>
                 </div>
                 <h4 className="font-bold text-slate-900 text-xs md:text-sm mb-1">{req.title}</h4>
-                <p className="text-[11px] text-slate-450 font-semibold line-clamp-2 mb-3 leading-relaxed">{req.description}</p>
+                <p className="text-[11px] text-slate-500 font-semibold line-clamp-2 mb-3 leading-relaxed">{req.description}</p>
                 <div className="border-t border-slate-50 pt-2 flex items-center justify-between text-[10px] text-slate-400 font-semibold">
                   <span>{req.tenantName} (Kamar {req.unitNumber})</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -204,14 +246,14 @@ function LandlordMaintenancePage() {
               <CheckCircle className="w-4 h-4 text-emerald-500" /> Selesai / Resolved
             </span>
             <span className="bg-slate-100 text-slate-600 text-[10px] px-2.5 py-0.5 rounded-full font-bold">
-              {maintenance.filter(m => m.status === 'Resolved').length}
+              {counts.resolved}
             </span>
           </div>
 
           <div className="space-y-3">
-            {maintenance.filter(m => m.status === 'Resolved').map(req => (
-              <motion.div 
-                key={req.id} 
+            {items.filter(item => item.status === 'Resolved').map(req => (
+              <motion.div
+                key={req.id}
                 variants={itemVariants}
                 onClick={() => setSelectedRequest(req)}
                 className="border border-slate-200 rounded-2xl p-4 bg-slate-50 opacity-80 cursor-pointer hover:opacity-100 transition hover:shadow-xs"
@@ -244,7 +286,7 @@ function LandlordMaintenancePage() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="p-5 space-y-5 max-h-[480px] overflow-y-auto font-semibold">
               <div>
                 <h3 className="font-extrabold text-slate-900 text-sm md:text-base mb-1 leading-tight">{selectedRequest.title}</h3>
@@ -258,21 +300,24 @@ function LandlordMaintenancePage() {
 
               {/* Status toggles */}
               <div className="flex flex-wrap items-center justify-between gap-3 text-xs border-y border-slate-100 py-3 font-bold">
-                <span className="text-slate-500">Prioritas: <strong className="text-rose-650">{selectedRequest.priority}</strong></span>
+                <span className="text-slate-500">Prioritas: <strong className="text-rose-700">{selectedRequest.priority}</strong></span>
                 <div className="flex gap-1.5">
                   <button
+                    disabled={saving}
                     onClick={() => changeRequestStatus(selectedRequest.id, 'Pending')}
                     className={`px-3 py-1.5 rounded-lg transition font-bold cursor-pointer ${selectedRequest.status === 'Pending' ? 'bg-amber-100 text-amber-800' : 'bg-slate-50 border hover:bg-slate-100'}`}
                   >
                     Pending
                   </button>
                   <button
+                    disabled={saving}
                     onClick={() => changeRequestStatus(selectedRequest.id, 'In Progress')}
                     className={`px-3 py-1.5 rounded-lg transition font-bold cursor-pointer ${selectedRequest.status === 'In Progress' ? 'bg-blue-100 text-blue-800' : 'bg-slate-50 border hover:bg-slate-100'}`}
                   >
                     Proses
                   </button>
                   <button
+                    disabled={saving}
                     onClick={() => changeRequestStatus(selectedRequest.id, 'Resolved')}
                     className={`px-3 py-1.5 rounded-lg transition font-bold cursor-pointer ${selectedRequest.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-50 border hover:bg-slate-100'}`}
                   >
@@ -313,7 +358,8 @@ function LandlordMaintenancePage() {
                   />
                   <button
                     type="submit"
-                    className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold px-4 rounded-xl transition shrink-0 cursor-pointer"
+                    disabled={saving}
+                    className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold px-4 rounded-xl transition shrink-0 cursor-pointer disabled:opacity-70"
                   >
                     Kirim Log
                   </button>

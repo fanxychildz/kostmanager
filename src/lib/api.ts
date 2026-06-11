@@ -10,6 +10,7 @@ import * as billingActions from '~/server/billing'
 import * as usersActions from '~/server/users'
 import * as portalActions from '~/server/portal'
 import * as expensesActions from '~/server/expenses'
+import * as maintenanceActions from '~/server/maintenance'
 
 export const api = {
   auth: {
@@ -95,13 +96,57 @@ export const api = {
         chatActions.markChatRead({ data }),
     },
     maintenance: {
-      list: () => Promise.resolve([]),
-      save: (data: any[]) => Promise.resolve({ ok: true, count: data.length }),
+      list: (params?: { status?: string; propertyId?: string }) =>
+        maintenanceActions.listMaintenanceRequests({ data: params }),
+      get: (id: string) =>
+        maintenanceActions.getMaintenanceRequest({ data: { id } }),
+      create: (data: {
+        propertyId: string
+        unitId: string
+        title: string
+        description: string
+        category: string
+        priority: string
+        photoUrl?: string | null
+      }) =>
+        maintenanceActions.createMaintenanceRequest({ data }),
+      updateStatus: (id: string, data: {
+        status: 'pending' | 'in_progress' | 'resolved'
+        noteText?: string | null
+        repairCost?: number | null
+      }) =>
+        maintenanceActions.updateMaintenanceStatus({ data: { id, ...data } }),
+      addUpdate: (id: string, text: string) =>
+        maintenanceActions.addMaintenanceUpdate({ data: { id, text } }),
     },
     register: (data: { email: string; password: string }) =>
       portalActions.portalRegister({ data }),
     profile: () => portalActions.getPortalProfile(),
     bills: () => portalActions.getPortalBills(),
+  },
+  maintenance: {
+    list: (params?: { status?: string; propertyId?: string }) =>
+      maintenanceActions.listMaintenanceRequests({ data: params }),
+    get: (id: string) =>
+      maintenanceActions.getMaintenanceRequest({ data: { id } }),
+    create: (data: {
+      propertyId: string
+      unitId: string
+      title: string
+      description: string
+      category: string
+      priority: string
+      photoUrl?: string | null
+    }) =>
+      maintenanceActions.createMaintenanceRequest({ data }),
+    updateStatus: (id: string, data: {
+      status: 'pending' | 'in_progress' | 'resolved'
+      noteText?: string | null
+      repairCost?: number | null
+    }) =>
+      maintenanceActions.updateMaintenanceStatus({ data: { id, ...data } }),
+    addUpdate: (id: string, text: string) =>
+      maintenanceActions.addMaintenanceUpdate({ data: { id, text } }),
   },
   expenses: {
     list: () => expensesActions.listExpenses(),

@@ -16,6 +16,6 @@
       "~/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "app.config.ts", "vite.config.ts"],
-  "exclude": ["node_modules"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "app.config.ts", "vite.config.ts", "server.mjs", ".react-router/**/*"],
+  "exclude": ["node_modules", ".cache", "dist"]
 }
