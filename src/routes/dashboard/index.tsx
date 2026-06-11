@@ -10,12 +10,12 @@ import {
   Clock,
   ArrowRight,
   ChevronRight,
-  Progress,
 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
+import { Progress } from '~/components/ui/progress'
 import { useState } from 'react'
 import { formatRupiah } from '~/lib/utils'
 import { api } from '~/lib/api'

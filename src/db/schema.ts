@@ -254,3 +254,5 @@ export const announcements = sqliteTable('announcements', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 })
+
+export { meterReadings } from '../lib/meter-schema'

@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { formatRupiah, formatDate } from '~/lib/utils'
 import { api } from '~/lib/api'
 import { useQuery, useMutation } from '~/lib/hooks'
-import { selectCache } from './_cache'
+import { selectCache } from '../_cache'
 
 export const Route = createFileRoute('/dashboard/bills/')({
   component: BillsPage,
