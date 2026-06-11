@@ -140,7 +140,25 @@ function PortalDashboard() {
     const all = await api.portal.maintenance.list()
     const tenantId = profile?.tenant?.id
     if (!tenantId) return []
-    return all.filter((item: PortalMaintenanceRequest) => item.tenantId === tenantId)
+    return (all as any[])
+      .filter((item) => item.tenantId === tenantId)
+      .map((item) => ({
+        ...item,
+        status: (() => {
+          const s = String(item.status || '').toLowerCase()
+          if (s === 'resolved') return 'Resolved'
+          if (s === 'in_progress' || s === 'in progress') return 'In Progress'
+          return 'Pending'
+        })(),
+        updates: Array.isArray(item.updates)
+          ? item.updates.map((up: any) => ({
+              id: String(up.id),
+              date: String(up.date || up.createdAt || new Date().toISOString()),
+              author: String(up.author || up.authorName || 'Pengelola'),
+              text: String(up.text),
+            }))
+          : [],
+      }))
   }
 
   const loadMessages = async (): Promise<PortalChatMessage[]> => {
@@ -155,6 +173,7 @@ function PortalDashboard() {
   const [maintenance, setMaintenance] = useState<PortalMaintenanceRequest[]>([])
   const [messages, setMessages] = useState<PortalChatMessage[]>([])
   const [announcements, setAnnouncements] = useState<PortalAnnouncement[]>([])
+  const [maintSubTab, setMaintSubTab] = useState<'active' | 'resolved'>('active')
 
   const [payingBill, setPayingBill] = useState<PortalBill | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<string>('bank_transfer')
@@ -772,52 +791,90 @@ function PortalDashboard() {
                 </button>
               </div>
 
-              {/* List repair tickets */}
-              <div className="space-y-4">
-                {myRequests.length === 0 ? (
-                  <div className="text-center py-16 text-slate-400 border border-dashed rounded-2xl p-6 text-xs flex flex-col items-center justify-center gap-2">
-                    <HelpCircle className="w-8 h-8 text-slate-300" />
-                    <span>Fasilitas kamar Anda dalam kondisi baik. Belum ada keluhan perbaikan terdaftar.</span>
-                  </div>
-                ) : (
-                  myRequests.map((req) => (
-                    <div key={req.id} className="border border-slate-200 rounded-2xl p-4 bg-slate-50 space-y-3 font-semibold text-xs text-slate-750">
-                      <div className="flex items-center justify-between text-[10px]">
-                        <span className="text-slate-400 uppercase tracking-wide font-bold">{req.category}</span>
-                        <span className={`px-2 py-0.5 rounded-md font-bold ${
-                          req.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' :
-                          req.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
-                          'bg-amber-100 text-amber-800'
-                        }`}>
-                          {req.status === 'Pending' ? 'Diajukan' :
-                           req.status === 'In Progress' ? 'Diproses' : 'Selesai'}
-                        </span>
-                      </div>
+              {/* Tab Toggle: Aktif vs Selesai */}
+              {(() => {
+                const activeMaintRequests = myRequests.filter((m) => m.status !== 'Resolved')
+                const resolvedMaintRequests = myRequests.filter((m) => m.status === 'Resolved')
+                const currentMaintRequests = maintSubTab === 'active' ? activeMaintRequests : resolvedMaintRequests
 
-                      <div>
-                        <h4 className="font-bold text-slate-900 text-xs md:text-sm">{req.title}</h4>
-                        <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">{req.description}</p>
-                      </div>
+                return (
+                  <>
+                    <div className="flex border-b border-slate-100 text-[10px] md:text-xs">
+                      <button
+                        onClick={() => setMaintSubTab('active')}
+                        className={`py-2.5 px-4 font-bold border-b-2 transition-all cursor-pointer ${
+                          maintSubTab === 'active'
+                            ? 'border-blue-600 text-blue-600'
+                            : 'border-transparent text-slate-400 hover:text-slate-700'
+                        }`}
+                      >
+                        Keluhan Aktif ({activeMaintRequests.length})
+                      </button>
+                      <button
+                        onClick={() => setMaintSubTab('resolved')}
+                        className={`py-2.5 px-4 font-bold border-b-2 transition-all cursor-pointer ${
+                          maintSubTab === 'resolved'
+                            ? 'border-blue-600 text-blue-600'
+                            : 'border-transparent text-slate-400 hover:text-slate-700'
+                        }`}
+                      >
+                        Riwayat Selesai ({resolvedMaintRequests.length})
+                      </button>
+                    </div>
 
-                      <div className="border-t border-slate-200 pt-2 flex justify-between text-[10px] text-slate-400 font-semibold">
-                        <span>Diajukan: {new Date(req.createdAt).toLocaleDateString()}</span>
-                        <span className="text-rose-650">{req.priority} Priority</span>
-                      </div>
-
-                      {/* Updates Timeline */}
-                      {req.updates.length > 0 && (
-                        <div className="bg-white p-3 rounded-xl border border-slate-200 text-[11px] space-y-1 leading-normal font-normal">
-                          <strong className="text-[9px] text-slate-400 block uppercase font-bold tracking-wider">Log Pemeliharaan Terbaru:</strong>
-                          <p className="text-slate-600 font-medium">
-                            <strong className="text-slate-900 font-bold">{req.updates[req.updates.length - 1].author}:</strong>{' '}
-                            {req.updates[req.updates.length - 1].text}
-                          </p>
+                    {/* List repair tickets */}
+                    <div className="space-y-4">
+                      {currentMaintRequests.length === 0 ? (
+                        <div className="text-center py-16 text-slate-400 border border-dashed rounded-2xl p-6 text-xs flex flex-col items-center justify-center gap-2">
+                          <HelpCircle className="w-8 h-8 text-slate-300" />
+                          <span>
+                            {maintSubTab === 'active'
+                              ? 'Fasilitas kamar Anda dalam kondisi baik. Belum ada keluhan aktif terdaftar.'
+                              : 'Belum ada riwayat keluhan perbaikan yang selesai.'}
+                          </span>
                         </div>
+                      ) : (
+                        currentMaintRequests.map((req) => (
+                          <div key={req.id} className="border border-slate-200 rounded-2xl p-4 bg-slate-50 space-y-3 font-semibold text-xs text-slate-750">
+                            <div className="flex items-center justify-between text-[10px]">
+                              <span className="text-slate-400 uppercase tracking-wide font-bold">{req.category}</span>
+                              <span className={`px-2 py-0.5 rounded-md font-bold ${
+                                req.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' :
+                                req.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
+                                'bg-amber-100 text-amber-800'
+                              }`}>
+                                {req.status === 'Pending' ? 'Diajukan' :
+                                 req.status === 'In Progress' ? 'Diproses' : 'Selesai'}
+                              </span>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold text-slate-900 text-xs md:text-sm">{req.title}</h4>
+                              <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">{req.description}</p>
+                            </div>
+
+                            <div className="border-t border-slate-200 pt-2 flex justify-between text-[10px] text-slate-400 font-semibold">
+                              <span>Diajukan: {new Date(req.createdAt).toLocaleDateString()}</span>
+                              <span className="text-rose-650">{req.priority} Priority</span>
+                            </div>
+
+                            {/* Updates Timeline */}
+                            {req.updates.length > 0 && (
+                              <div className="bg-white p-3 rounded-xl border border-slate-200 text-[11px] space-y-1 leading-normal font-normal">
+                                <strong className="text-[9px] text-slate-400 block uppercase font-bold tracking-wider">Log Pemeliharaan Terbaru:</strong>
+                                <p className="text-slate-600 font-medium">
+                                  <strong className="text-slate-900 font-bold">{req.updates[req.updates.length - 1].author}:</strong>{' '}
+                                  {req.updates[req.updates.length - 1].text}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        ))
                       )}
                     </div>
-                  ))
-                )}
-              </div>
+                  </>
+                )
+              })()}
             </motion.div>
           )}
 
