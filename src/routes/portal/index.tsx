@@ -77,7 +77,7 @@ type PortalChatMessage = {
   read: boolean
 }
 
-type PortalTab = 'lease' | 'billing' | 'maintenance' | 'chat' | 'settings'
+type PortalTab = 'lease' | 'billing' | 'maintenance' | 'announcements' | 'chat' | 'settings'
 
 // Client-side dynamic AI suggestion writing assistant (heuristic engine in Indonesian)
 function generateAISuggestion(messages: PortalChatMessage[], respondent: 'Tenant', tenantName: string) {
