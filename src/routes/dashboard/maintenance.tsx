@@ -1,5 +1,5 @@
 import { createFileRoute, useLocation, useNavigate } from '@tanstack/react-router'
-import { Clock, RefreshCw, CheckCircle, ArrowRight, X, Loader2, Wrench } from 'lucide-react'
+import { Clock, RefreshCw, CheckCircle, ArrowRight, X, Loader2, Wrench, Trash2 } from 'lucide-react'
 import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'motion/react'
 import { api } from '~/lib/api'
@@ -232,13 +232,20 @@ function LandlordMaintenancePage() {
               setIsBulkMode(!isBulkMode)
               setSelectedIds([])
             }}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer border ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer border flex items-center gap-1.5 ${
               isBulkMode
-                ? 'bg-slate-100 border-slate-350 text-slate-700 hover:bg-slate-200'
-                : 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'
+                ? 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200'
+                : 'bg-rose-650 border-rose-650 text-white hover:bg-rose-750'
             }`}
           >
-            {isBulkMode ? 'Selesai Memilih' : 'Hapus Massal (Spam)'}
+            {isBulkMode ? (
+              'Batal'
+            ) : (
+              <>
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete
+              </>
+            )}
           </button>
         </div>
       </div>
