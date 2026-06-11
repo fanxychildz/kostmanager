@@ -9,8 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table'
+import { Label } from '~/components/ui/label'
 import { api } from '~/lib/api'
 import { useQuery, useMutation } from '~/lib/hooks'
+import { selectCache } from '../_cache'
 
 type MeterType = 'electricity' | 'water'
 type MeterReadingForm = {
@@ -19,6 +21,7 @@ type MeterReadingForm = {
   readingDate: string
   tariffPerUnit: number
   notes?: string
+  unitId: string
 }
 
 const meterTypeLabels: Record<MeterType, string> = { electricity: 'Listrik', water: 'Air' }
@@ -28,12 +31,16 @@ export const Route = createFileRoute('/dashboard/meters/')({
 })
 
 function MeterReadingsPage() {
+  const [unitId, setUnitId] = useState('')
   const [type, setType] = useState<MeterType>('electricity')
   const [value, setValue] = useState('')
   const [tariffPerUnit, setTariffPerUnit] = useState('')
   const [readingDate, setReadingDate] = useState(new Date().toISOString().slice(0, 10))
   const [notes, setNotes] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
+
+  const { data: properties } = selectCache.properties(() => api.properties.list())
+  const { data: units } = selectCache.units(() => api.units.list())
 
   const { data: readings, loading, refetch } = useQuery({
     queryKey: ['meterReadings'],
@@ -45,6 +52,7 @@ function MeterReadingsPage() {
     onSuccess: () => {
       toast.success('Catatan meter berhasil ditambahkan')
       refetch()
+      setUnitId('')
       setValue('')
       setTariffPerUnit('')
       setNotes('')
@@ -57,6 +65,10 @@ function MeterReadingsPage() {
   const handleSubmit = () => {
     const tariff = Number.parseInt(tariffPerUnit || '0', 10)
     const meterValue = Number.parseInt(value || '0', 10)
+    if (!unitId) {
+      toast.error('Unit harus dipilih')
+      return
+    }
     if (meterValue < 0 || tariff < 0) {
       toast.error('Nilai meter dan tarif tidak boleh negatif')
       return
@@ -71,6 +83,7 @@ function MeterReadingsPage() {
       readingDate,
       tariffPerUnit: tariff,
       notes: notes || undefined,
+      unitId,
     })
   }
 
@@ -98,32 +111,67 @@ function MeterReadingsPage() {
                 <DialogTitle>Tambah Pembacaan Meter</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                <Select value={type} onValueChange={(val) => setType(val as MeterType)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Jenis meter" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="electricity">Listrik</SelectItem>
-                    <SelectItem value="water">Air</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="Nilai meter (misal 1500)"
-                  value={value}
-                  onChange={(event) => setValue(event.target.value)}
-                />
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="Tarif per satuan (Rp)"
-                  value={tariffPerUnit}
-                  onChange={(event) => setTariffPerUnit(event.target.value)}
-                />
-                <Input type="date" value={readingDate} onChange={(event) => setReadingDate(event.target.value)} />
-                <Input placeholder="Catatan (opsional)" value={notes} onChange={(event) => setNotes(event.target.value)} />
-                <Button className="w-full" onClick={handleSubmit} disabled={createMutation.loading}>
+                <div className="space-y-2">
+                  <Label htmlFor="unit-select">Pilih Unit</Label>
+                  <Select value={unitId} onValueChange={setUnitId}>
+                    <SelectTrigger id="unit-select">
+                      <SelectValue placeholder="Pilih unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(units || []).map((unit: any) => {
+                        const property = properties?.find((p: any) => p.id === unit.propertyId)
+                        return (
+                          <SelectItem key={unit.id} value={unit.id}>
+                            {property?.name} - Unit {unit.unitNumber}
+                          </SelectItem>
+                        )
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="type-select">Jenis Meter</Label>
+                  <Select value={type} onValueChange={(val) => setType(val as MeterType)}>
+                    <SelectTrigger id="type-select">
+                      <SelectValue placeholder="Jenis meter" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="electricity">Listrik</SelectItem>
+                      <SelectItem value="water">Air</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="meter-value">Nilai Meter</Label>
+                  <Input
+                    id="meter-value"
+                    type="number"
+                    inputMode="numeric"
+                    placeholder="Nilai meter (misal 1500)"
+                    value={value}
+                    onChange={(event) => setValue(event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tariff">Tarif per Satuan (Rp)</Label>
+                  <Input
+                    id="tariff"
+                    type="number"
+                    inputMode="numeric"
+                    placeholder="Tarif per satuan (Rp)"
+                    value={tariffPerUnit}
+                    onChange={(event) => setTariffPerUnit(event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="reading-date">Tanggal Pembacaan</Label>
+                  <Input id="reading-date" type="date" value={readingDate} onChange={(event) => setReadingDate(event.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Catatan (opsional)</Label>
+                  <Input id="notes" placeholder="Catatan (opsional)" value={notes} onChange={(event) => setNotes(event.target.value)} />
+                </div>
+                <Button className="w-full mt-4" onClick={handleSubmit} disabled={createMutation.loading}>
                   {createMutation.loading ? 'Menyimpan...' : 'Simpan Pembacaan'}
                 </Button>
               </div>
@@ -141,6 +189,8 @@ function MeterReadingsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Tanggal</TableHead>
+                <TableHead>Properti</TableHead>
+                <TableHead>Unit</TableHead>
                 <TableHead>Jenis</TableHead>
                 <TableHead className="text-right">Nilai</TableHead>
                 <TableHead className="text-right">Tarif</TableHead>
@@ -150,20 +200,26 @@ function MeterReadingsPage() {
             <TableBody>
               {(readings || []).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground">
                     Belum ada data pembacaan.
                   </TableCell>
                 </TableRow>
               ) : (
-                (readings || []).map((item: any) => (
-                  <TableRow key={item.id}>
-                    <TableCell>{new Date(item.readingDate).toLocaleDateString('id-ID')}</TableCell>
-                    <TableCell>{meterTypeLabels[item.type] ?? item.type}</TableCell>
-                    <TableCell className="text-right">{item.value}</TableCell>
-                    <TableCell className="text-right">{formatRupiah(item.tariffPerUnit ?? 0)}</TableCell>
-                    <TableCell className="text-right font-medium">{formatRupiah(item.value * (item.tariffPerUnit ?? 0))}</TableCell>
-                  </TableRow>
-                ))
+                (readings || []).map((item: any) => {
+                  const unit = units?.find((u: any) => u.id === item.unitId)
+                  const property = properties?.find((p: any) => p.id === unit?.propertyId)
+                  return (
+                    <TableRow key={item.id}>
+                      <TableCell>{new Date(item.readingDate).toLocaleDateString('id-ID')}</TableCell>
+                      <TableCell>{property?.name || '-'}</TableCell>
+                      <TableCell>{unit?.unitNumber || '-'}</TableCell>
+                      <TableCell>{meterTypeLabels[item.type] ?? item.type}</TableCell>
+                      <TableCell className="text-right">{item.value}</TableCell>
+                      <TableCell className="text-right">{formatRupiah(item.tariffPerUnit ?? 0)}</TableCell>
+                      <TableCell className="text-right font-medium">{formatRupiah(item.value * (item.tariffPerUnit ?? 0))}</TableCell>
+                    </TableRow>
+                  )
+                })
               )}
             </TableBody>
           </Table>

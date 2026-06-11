@@ -12,6 +12,7 @@ import * as portalActions from '~/server/portal'
 import * as expensesActions from '~/server/expenses'
 import * as maintenanceActions from '~/server/maintenance'
 import * as announcementsActions from '~/server/announcements'
+import * as meterReadingsActions from '~/server/meter-readings'
 export const api = {
   auth: {
     signUp: (data: { email: string; password: string; name: string }) =>
@@ -202,5 +203,17 @@ export const api = {
       targetTenantId?: string | null
     }) => announcementsActions.updateAnnouncement({ data: { id, ...data } }),
     delete: (id: string) => announcementsActions.deleteAnnouncement({ data: { id } }),
+  },
+  meterReadings: {
+    list: (params?: { unitId?: string; type?: 'electricity' | 'water' }) =>
+      meterReadingsActions.listMeterReadings({ data: params }),
+    create: (data: {
+      type: 'electricity' | 'water'
+      value: number
+      readingDate: string
+      tariffPerUnit: number
+      notes?: string
+      unitId: string
+    }) => meterReadingsActions.createMeterReading({ data }),
   },
 }
