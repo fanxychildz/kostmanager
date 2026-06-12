@@ -54,12 +54,14 @@ async function fetchList(
   if (cache[source].inflight) {
     return cache[source].inflight
   }
-  if (cache[source].loading) return cache[source].data
 
-  // Abort previous request for the same key if exists
+  // Abort previous request for the same key if exists and clear stale inflight ref
   if (controllers[source]) {
     controllers[source].abort()
+    controllers[source] = undefined
   }
+  cache[source].inflight = undefined
+
   const controller = new AbortController()
   controllers[source] = controller
 
@@ -67,11 +69,16 @@ async function fetchList(
   cache[source].error = null
   notify()
 
-  const inflight = (async () => {
+  const task = (async () => {
     try {
       const res = await (queryFn as any)({ signal: controller.signal })
-      
+
+      // Ignore resolution from an aborted request and never clobber valid cache with []
       if (controller.signal.aborted) {
+        if (!cache[source].data && !cache[source].error) {
+          cache[source].loading = false
+          notify()
+        }
         return cache[source].data
       }
 
@@ -84,6 +91,10 @@ async function fetchList(
       return cache[source].data
     } catch (e) {
       if (controller.signal.aborted) {
+        // on abort, just release the lock; preserve existing cache/data if any
+        cache[source].loading = false
+        cache[source].inflight = undefined
+        notify()
         return cache[source].data
       }
       cache[source].error = e as Error
@@ -95,8 +106,8 @@ async function fetchList(
     }
   })()
 
-  cache[source].inflight = inflight
-  return inflight
+  cache[source].inflight = task
+  return task
 }
 
 const CACHE_KEYS: Key[] = ['properties', 'tenants', 'units']
