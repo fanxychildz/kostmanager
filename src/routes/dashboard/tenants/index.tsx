@@ -36,8 +36,8 @@ function TenantsPage() {
   }
 
   // Use shared select-cache so units/properties are NOT re-fetched
-  const { data: units } = selectCache.units(() => api.units.list())
-  const { data: properties } = selectCache.properties(() => api.properties.list())
+  const { data: units, loading: loadingUnits } = selectCache.units(() => api.units.list())
+  const { data: properties, loading: loadingProperties } = selectCache.properties(() => api.properties.list())
 
   // Pre-build O(1) lookup Maps instead of per-row .find() calls
   const unitMap = useMemo(() => new Map((units || []).map((u: any) => [u.id, u])), [units])
@@ -54,7 +54,9 @@ function TenantsPage() {
     )
   }, [tenants, debouncedSearch])
 
-  if (loading) {
+  const initializing = loading || loadingUnits || loadingProperties
+
+  if (initializing) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
