@@ -60,6 +60,17 @@ function BillsPage() {
   const [isBulkMode, setIsBulkMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [deleting, setDeleting] = useState(false)
+  const [refetching, setRefetching] = useState(false)
+
+  const handleRefetch = async () => {
+    if (refetching) return
+    setRefetching(true)
+    try {
+      await refetch()
+    } finally {
+      setRefetching(false)
+    }
+  }
 
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
@@ -108,13 +119,12 @@ function BillsPage() {
     status: 'pending',
   })
 
-  // Mutations
   const { mutate: createBill, loading: creating } = useMutation({
     mutationFn: (data: any) => api.bills.create(data),
     onSuccess: () => {
       setCreateDialogOpen(false)
       resetCreateForm()
-      refetch()
+      handleRefetch()
     },
     onError: (err) => {
       alert('Gagal membuat tagihan: ' + err)
@@ -126,12 +136,14 @@ function BillsPage() {
     onSuccess: () => {
       setEditDialogOpen(false)
       setEditingBillId(null)
-      refetch()
+      handleRefetch()
     },
     onError: (err) => {
       alert('Gagal memperbarui tagihan: ' + err)
     },
   })
+
+  const isBusy = loadingBills || loadingTenants || loadingUnitsCache || creating || updating || deleting || refetching
 
   const activeTenants = useMemo(
     () => tenantsList?.filter((t: any) => t.status === 'active') || [],
@@ -230,6 +242,7 @@ function BillsPage() {
   }
 
   const handleItemClick = (billId: string) => {
+    if (isBusy) return
     if (isBulkMode) {
       if (selectedIds.includes(billId)) {
         setSelectedIds(selectedIds.filter(id => id !== billId))
@@ -245,7 +258,7 @@ function BillsPage() {
     if (!confirm('Apakah Anda yakin ingin menghapus tagihan ini secara permanen? Semua riwayat pembayaran terkait akan hilang.')) return
     try {
       await api.bills.delete(id)
-      await refetch()
+      await handleRefetch()
     } catch (err) {
       alert('Gagal menghapus tagihan: ' + err)
     }
@@ -259,7 +272,7 @@ function BillsPage() {
       await api.bills.deleteMultiple(selectedIds)
       setSelectedIds([])
       setIsBulkMode(false)
-      await refetch()
+      await handleRefetch()
     } catch (err) {
       alert('Gagal menghapus tagihan terpilih: ' + err)
     } finally {
@@ -338,6 +351,7 @@ function BillsPage() {
                 setSelectedIds([])
               }}
               className="rounded-xl font-bold text-xs h-9"
+              disabled={isBusy}
             >
               {isBulkMode ? (
                 'Batal'
@@ -356,6 +370,7 @@ function BillsPage() {
               setCreateDialogOpen(true)
             }}
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition h-9"
+            disabled={isBusy}
           >
             <Plus className="mr-1.5 h-4 w-4" />Buat Tagihan
           </Button>
@@ -372,6 +387,7 @@ function BillsPage() {
             className="pl-9 bg-white border-slate-200 rounded-xl text-xs font-semibold"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            disabled={isBusy}
           />
         </div>
 
@@ -386,11 +402,12 @@ function BillsPage() {
             <button
               key={opt.id}
               onClick={() => setFilter(opt.id)}
+              disabled={isBusy}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${
                 filter === opt.id 
                   ? 'bg-slate-950 border-slate-950 text-white shadow-xs' 
                   : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-              }`}
+              } ${isBusy ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {opt.label}
             </button>
@@ -748,6 +765,7 @@ function BillsPage() {
                         checked={isSelected}
                         onChange={() => {}} // Handled by outer click
                         className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer shrink-0"
+                        disabled={isBusy}
                       />
                     )}
                     <div className={`p-2 rounded-xl border ${
@@ -792,6 +810,7 @@ function BillsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          disabled={isBusy}
                           onClick={(e) => {
                             e.stopPropagation()
                             handleOpenEdit(bill)
@@ -802,7 +821,7 @@ function BillsPage() {
                         </Button>
                       )}
 
-                      <Button variant="ghost" size="sm" className="h-7 text-blue-600 font-bold text-xs rounded-lg hover:bg-blue-50" asChild>
+                      <Button variant="ghost" size="sm" disabled={isBusy} className={`h-7 text-blue-600 font-bold text-xs rounded-lg hover:bg-blue-50 ${isBusy ? 'pointer-events-none opacity-50' : ''}`} asChild>
                         <Link 
                           to="/dashboard/bills/$billId" 
                           params={{ billId: bill.id }}
@@ -816,6 +835,7 @@ function BillsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          disabled={isBusy}
                           onClick={(e) => {
                             e.stopPropagation()
                             handleDeleteBill(bill.id)
@@ -841,6 +861,7 @@ function BillsPage() {
           </div>
           <div className="flex items-center gap-2.5">
             <button
+              disabled={isBusy}
               onClick={() => {
                 if (selectedIds.length === filteredBills.length) {
                   setSelectedIds([])
@@ -848,23 +869,24 @@ function BillsPage() {
                   setSelectedIds(filteredBills.map((b: any) => b.id))
                 }
               }}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-semibold cursor-pointer transition border border-slate-750 text-white"
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-semibold cursor-pointer transition border border-slate-750 text-white"
             >
               {selectedIds.length === filteredBills.length ? 'Batal Pilih Semua' : 'Pilih Semua'}
             </button>
             <button
-              disabled={selectedIds.length === 0 || deleting}
+              disabled={selectedIds.length === 0 || isBusy}
               onClick={handleBulkDelete}
               className="px-4 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-red-800/40 disabled:text-red-300/60 disabled:cursor-not-allowed rounded-lg text-xs font-bold cursor-pointer transition flex items-center gap-1.5 text-white"
             >
               {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Hapus Terpilih'}
             </button>
             <button
+              disabled={isBusy}
               onClick={() => {
                 setIsBulkMode(false)
                 setSelectedIds([])
               }}
-              className="px-3 py-1.5 text-slate-400 hover:text-white text-xs font-semibold cursor-pointer transition"
+              className="px-3 py-1.5 text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold cursor-pointer transition"
             >
               Batal
             </button>

@@ -30,6 +30,7 @@ type Key = keyof CacheMap
 
 let cacheVersion = 0
 let listeners: (() => void)[] = []
+const controllers: Partial<Record<Key, AbortController>> = {}
 
 function subscribe(cb: () => void) {
   listeners.push(cb)
@@ -55,29 +56,47 @@ async function fetchList(
   }
   if (cache[source].loading) return cache[source].data
 
+  // Abort previous request for the same key if exists
+  if (controllers[source]) {
+    controllers[source].abort()
+  }
+  const controller = new AbortController()
+  controllers[source] = controller
+
   cache[source].loading = true
   cache[source].error = null
   notify()
 
-  const inflight = queryFn().then((res) => {
-    cache[source].data = Array.isArray(res)
-      ? res
-      : (res as any)?.items || []
-    cache[source].loading = false
-    cache[source].inflight = undefined
-    notify()
-    return cache[source].data
-  }).catch((e) => {
-    cache[source].error = e as Error
-    cache[source].data = []
-    cache[source].loading = false
-    cache[source].inflight = undefined
-    notify()
-    return cache[source].data
-  })
+  const inflight = (async () => {
+    try {
+      const res = await (queryFn as any)({ signal: controller.signal })
+      
+      if (controller.signal.aborted) {
+        return cache[source].data
+      }
 
-  cache[source].inflight = inflight as Promise<any>
-  return inflight as Promise<any>
+      cache[source].data = Array.isArray(res)
+        ? res
+        : (res as any)?.items || []
+      cache[source].loading = false
+      cache[source].inflight = undefined
+      notify()
+      return cache[source].data
+    } catch (e) {
+      if (controller.signal.aborted) {
+        return cache[source].data
+      }
+      cache[source].error = e as Error
+      cache[source].data = []
+      cache[source].loading = false
+      cache[source].inflight = undefined
+      notify()
+      return cache[source].data
+    }
+  })()
+
+  cache[source].inflight = inflight
+  return inflight
 }
 
 const CACHE_KEYS: Key[] = ['properties', 'tenants', 'units']
@@ -101,6 +120,7 @@ export function useSelectCache<K extends Key>(key: K, queryFn: ListApi['queryFn'
       loading: true,
       error: null,
       refresh: async () => {
+        if (cache[key].loading) return
         cache[key].data = undefined
         cache[key].inflight = undefined
         notify()
@@ -130,6 +150,7 @@ export const selectCache = {
   /** Properly re-fetches all entries using the real API */
   refreshAll: async () => {
     CACHE_KEYS.forEach((k) => {
+      if (cache[k].loading) return
       cache[k].data = undefined
       cache[k].inflight = undefined
     })
