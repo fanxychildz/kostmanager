@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react'
+import { useSyncExternalStore, useEffect } from 'react'
 import { api } from '~/lib/api'
 
 export type SelectItem = { id: string; label: string; sub?: string }
@@ -113,25 +113,17 @@ export function useSelectCache<K extends Key>(key: K, queryFn: ListApi['queryFn'
 
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 
-  if (!state.data && !state.loading && !state.error) {
-    fetchList(key, queryFn).catch(() => {})
-    return {
-      data: undefined,
-      loading: true,
-      error: null,
-      refresh: async () => {
-        if (cache[key].loading) return
-        cache[key].data = undefined
-        cache[key].inflight = undefined
-        notify()
-        await fetchList(key, queryFn).catch(() => {})
-      },
+  useEffect(() => {
+    if (!state.data && !state.loading && !state.error) {
+      fetchList(key, queryFn).catch(() => {})
     }
-  }
+  }, [key, queryFn, state.data, state.loading, state.error])
+
+  const isLoading = state.loading || (!state.data && !state.error)
 
   return {
     data: state.data,
-    loading: state.loading,
+    loading: isLoading,
     error: state.error,
     refresh: async () => {
       if (cache[key].loading) return

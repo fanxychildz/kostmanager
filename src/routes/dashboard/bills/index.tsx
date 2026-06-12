@@ -317,6 +317,18 @@ function BillsPage() {
     (currentYear + 1).toString(),
   ]
 
+  // Filter bills — debounced search + memoized to avoid recalculating on every render
+  const filteredBills = useMemo(() => {
+    const q = debouncedSearch.toLowerCase()
+    return bills?.filter((bill: any) => {
+      const matchesSearch = !q ||
+        (bill.tenantName || '').toLowerCase().includes(q) ||
+        (bill.unitNumber || '').toLowerCase().includes(q)
+      const matchesFilter = filter === 'all' || bill.status === filter
+      return matchesSearch && matchesFilter
+    }) || []
+  }, [bills, debouncedSearch, filter])
+
   if (loadingBills) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -332,18 +344,6 @@ function BillsPage() {
       </div>
     )
   }
-
-  // Filter bills — debounced search + memoized to avoid recalculating on every render
-  const filteredBills = useMemo(() => {
-    const q = debouncedSearch.toLowerCase()
-    return bills?.filter((bill: any) => {
-      const matchesSearch = !q ||
-        (bill.tenantName || '').toLowerCase().includes(q) ||
-        (bill.unitNumber || '').toLowerCase().includes(q)
-      const matchesFilter = filter === 'all' || bill.status === filter
-      return matchesSearch && matchesFilter
-    }) || []
-  }, [bills, debouncedSearch, filter])
 
   return (
     <DashboardBootstrap>
