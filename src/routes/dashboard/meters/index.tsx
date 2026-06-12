@@ -13,6 +13,7 @@ import { Label } from '~/components/ui/label'
 import { api } from '~/lib/api'
 import { useQuery, useMutation } from '~/lib/hooks'
 import { selectCache } from '~/lib/cache'
+import { DashboardBootstrap } from '~/lib/dashboard-bootstrap'
 
 type MeterType = 'electricity' | 'water'
 type MeterReadingForm = {
@@ -88,7 +89,8 @@ function MeterReadingsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <DashboardBootstrap>
+      <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Catatan Meter</h1>
@@ -226,5 +228,6 @@ function MeterReadingsPage() {
         </CardContent>
       </Card>
     </div>
+    </DashboardBootstrap>
   )
 }

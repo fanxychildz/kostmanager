@@ -13,6 +13,7 @@ import { api } from '~/lib/api'
 import { useAuth } from '~/lib/auth-context'
 import { useMutation } from '~/lib/hooks'
 import { authClient } from '~/lib/auth-client'
+import { DashboardBootstrap } from '~/lib/dashboard-bootstrap'
 
 export const Route = createFileRoute('/dashboard/settings')({
   component: SettingsPage,
@@ -202,7 +203,8 @@ function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <DashboardBootstrap>
+      <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Pengaturan</h1>
         <p className="text-muted-foreground">Kelola akun dan preferensi Anda</p>
@@ -372,5 +374,6 @@ function SettingsPage() {
         </TabsContent>
       </Tabs>
     </div>
+    </DashboardBootstrap>
   )
 }

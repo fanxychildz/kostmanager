@@ -21,6 +21,7 @@ import { formatRupiah } from '~/lib/utils'
 import { api } from '~/lib/api'
 import { useQuery } from '~/lib/hooks'
 import { selectCache } from '~/lib/cache'
+import { DashboardBootstrap } from '~/lib/dashboard-bootstrap'
 
 export const Route = createFileRoute('/dashboard/')({
   component: DashboardPage,
@@ -103,7 +104,8 @@ function DashboardPage() {
   const isMetricsLoading = loadingBills || loadingPayments || loadingExpenses
 
   return (
-    <div className="space-y-8">
+    <DashboardBootstrap>
+      <div className="space-y-8">
       {/* Title section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
         <div>
@@ -345,5 +347,6 @@ function DashboardPage() {
         </CardContent>
       </Card>
     </div>
+    </DashboardBootstrap>
   )
 }

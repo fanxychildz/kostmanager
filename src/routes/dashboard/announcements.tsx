@@ -27,6 +27,7 @@ import { formatDate } from '~/lib/utils'
 import { api } from '~/lib/api'
 import { useQuery } from '~/lib/hooks'
 import { selectCache } from '~/lib/cache'
+import { DashboardBootstrap } from '~/lib/dashboard-bootstrap'
 
 export const Route = createFileRoute('/dashboard/announcements')({
   component: AnnouncementsPage,
@@ -98,7 +99,8 @@ function AnnouncementsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <DashboardBootstrap>
+      <div className="space-y-6">
       <div className="flex items-center justify-between border-b border-slate-100 pb-5">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight leading-none">Papan Pengumuman</h1>
@@ -252,5 +254,6 @@ function AnnouncementsPage() {
         </Card>
       </div>
     </div>
+    </DashboardBootstrap>
   )
 }

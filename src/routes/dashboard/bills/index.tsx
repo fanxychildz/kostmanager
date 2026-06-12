@@ -12,6 +12,7 @@ import { formatRupiah, formatDate } from '~/lib/utils'
 import { api } from '~/lib/api'
 import { useQuery, useMutation, useDebounce } from '~/lib/hooks'
 import { selectCache } from '~/lib/cache'
+import { DashboardBootstrap } from '~/lib/dashboard-bootstrap'
 
 export const Route = createFileRoute('/dashboard/bills/')({
   component: BillsPage,
@@ -320,7 +321,8 @@ function BillsPage() {
   }, [bills, debouncedSearch, filter])
 
   return (
-    <div className="space-y-8">
+    <DashboardBootstrap>
+      <div className="space-y-8">
       {/* Title section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
         <div>
@@ -870,5 +872,6 @@ function BillsPage() {
         </div>
       )}
     </div>
+    </DashboardBootstrap>
   )
 }

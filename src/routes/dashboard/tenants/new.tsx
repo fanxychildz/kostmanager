@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import { api } from '~/lib/api'
 import { useQuery, useMutation } from '~/lib/hooks'
 import { selectCache } from '~/lib/cache'
+import { DashboardBootstrap } from '~/lib/dashboard-bootstrap'
 
 export const Route = createFileRoute('/dashboard/tenants/new')({
   component: NewTenantPage,
@@ -58,7 +59,8 @@ function NewTenantPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <DashboardBootstrap>
+      <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate({ to: '/dashboard/tenants' })}>
           <ArrowLeft className="h-4 w-4" />
@@ -146,5 +148,6 @@ function NewTenantPage() {
         </Card>
       </div>
     </div>
+    </DashboardBootstrap>
   )
 }

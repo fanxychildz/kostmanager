@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import { formatRupiah, formatDate } from '~/lib/utils'
 import { api } from '~/lib/api'
 import { useQuery } from '~/lib/hooks'
+import { DashboardBootstrap } from '~/lib/dashboard-bootstrap'
 
 export const Route = createFileRoute('/dashboard/tenants/$tenantId')({
   component: TenantDetailPage,
@@ -37,6 +38,26 @@ function TenantDetailPage() {
   const { data: properties } = useQuery({ queryFn: () => api.properties.list() })
   const { data: allBills } = useQuery({ queryFn: () => api.bills.list() })
 
+  const t = tenant as any
+  const unit = units?.find((u: any) => u.id === t?.unitId)
+  const property = properties?.find((p: any) => p.id === t?.propertyId)
+  const bills = allBills?.filter((b: any) => b.tenantId === t?.id) ?? []
+
+  const facilities = useMemo(() => {
+    const raw = unit?.facilities as any
+    if (!raw) return []
+    if (Array.isArray(raw)) return raw
+    if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw)
+        return Array.isArray(parsed) ? parsed : []
+      } catch {
+        return raw.split(',').map((f: string) => f.trim()).filter(Boolean)
+      }
+    }
+    return []
+  }, [unit?.facilities])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -58,28 +79,9 @@ function TenantDetailPage() {
     )
   }
 
-  const t = tenant as any
-  const unit = units?.find((u: any) => u.id === t.unitId)
-  const property = properties?.find((p: any) => p.id === t.propertyId)
-  const bills = allBills?.filter((b: any) => b.tenantId === t.id) ?? []
-
-  const facilities = useMemo(() => {
-    const raw = unit?.facilities as any
-    if (!raw) return []
-    if (Array.isArray(raw)) return raw
-    if (typeof raw === 'string') {
-      try {
-        const parsed = JSON.parse(raw)
-        return Array.isArray(parsed) ? parsed : []
-      } catch {
-        return raw.split(',').map((f: string) => f.trim()).filter(Boolean)
-      }
-    }
-    return []
-  }, [unit?.facilities])
-
   return (
-    <div className="space-y-6">
+    <DashboardBootstrap>
+      <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate({ to: '/dashboard/tenants' })}>
           <ArrowLeft className="h-4 w-4" />
@@ -201,5 +203,6 @@ function TenantDetailPage() {
         </CardContent>
       </Card>
     </div>
+    </DashboardBootstrap>
   )
 }

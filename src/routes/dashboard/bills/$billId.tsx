@@ -15,6 +15,7 @@ import { Label } from '~/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog'
 import { Input } from '~/components/ui/input'
+import { DashboardBootstrap } from '~/lib/dashboard-bootstrap'
 
 export const Route = createFileRoute('/dashboard/bills/$billId')({
   component: BillDetailPage,
@@ -302,7 +303,8 @@ function BillDetailPage() {
   }
 
   return (
-    <div id="kuitansi-area">
+    <DashboardBootstrap>
+      <div id="kuitansi-area">
       {/* Screen view UI (Hidden when printing) */}
       <div className="print:hidden space-y-6">
         <div className="flex items-center justify-between">
@@ -672,5 +674,6 @@ function BillDetailPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </DashboardBootstrap>
   )
 }
