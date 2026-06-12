@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Plus, Loader2, TrendingDown, Trash2, Edit3 } from 'lucide-react'
+import { Plus, TrendingDown, Trash2, Edit3 } from 'lucide-react'
 import { useState } from 'react'
 import { Card, CardContent } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
@@ -14,6 +14,7 @@ import { api } from '~/lib/api'
 import { useQuery, useMutation } from '~/lib/hooks'
 import { selectCache } from '~/lib/cache'
 import { DashboardBootstrap } from '~/lib/dashboard-bootstrap'
+import { Loader2 } from 'lucide-react'
 
 export const Route = createFileRoute('/dashboard/expenses')({
   component: ExpensesPage,
@@ -52,11 +53,13 @@ function ExpensesPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [deleting, setDeleting] = useState(false)
 
-  const { data: properties } = selectCache.properties(() => api.properties.list())
+  const { data: properties, loading: loadingProperties } = selectCache.properties(() => api.properties.list())
 
-  const { data: expenses, loading, refetch } = useQuery({
+  const { data: expenses, loading: loadingExpenses, refetch } = useQuery({
     queryFn: () => api.expenses.list(),
   })
+
+  const initializingCache = loadingProperties
 
   const { mutate: createExpense, loading: creating } = useMutation({
     mutationFn: (data: any) => api.expenses.create(data),
@@ -180,7 +183,7 @@ function ExpensesPage() {
   const totalAmount = expenses?.reduce((sum: number, e: any) => sum + e.amount, 0) || 0
   const avgAmount = expenses && expenses.length > 0 ? Math.round(totalAmount / expenses.length) : 0
 
-  if (loading) {
+  if (loadingExpenses || (!expenses && initializingCache)) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

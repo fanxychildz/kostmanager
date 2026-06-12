@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Plus, RefreshCcw } from 'lucide-react'
+import { Plus, RefreshCcw, Loader2 } from 'lucide-react'
 import { formatRupiah } from '~/lib/utils'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
@@ -40,13 +40,23 @@ function MeterReadingsPage() {
   const [notes, setNotes] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
 
-  const { data: properties } = selectCache.properties(() => api.properties.list())
-  const { data: units } = selectCache.units(() => api.units.list())
+  const { data: properties, loading: loadingProperties } = selectCache.properties(() => api.properties.list())
+  const { data: units, loading: loadingUnits } = selectCache.units(() => api.units.list())
 
-  const { data: readings, loading, refetch } = useQuery({
+  const { data: readings, loading: loadingReadings, refetch } = useQuery({
     cacheKey: 'meterReadings.list',
     queryFn: async () => api.meterReadings.list(),
   })
+
+  const initializingCache = loadingProperties || loadingUnits
+
+  if (loadingReadings || initializingCache) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   const createMutation = useMutation({
     mutationFn: async (payload: MeterReadingForm) => api.meterReadings.create(payload),
@@ -97,9 +107,9 @@ function MeterReadingsPage() {
           <p className="text-muted-foreground">Pembacaan meter listrik dan air per unit.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="secondary" size="sm" onClick={() => refetch()} disabled={loading}>
+          <Button variant="secondary" size="sm" onClick={() => refetch()} disabled={loadingReadings}>
             <RefreshCcw className="mr-2 h-4 w-4" />
-            {loading ? 'Memuat...' : 'Segarkan'}
+            {loadingReadings ? 'Memuat...' : 'Segarkan'}
           </Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
