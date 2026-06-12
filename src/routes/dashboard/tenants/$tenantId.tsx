@@ -47,8 +47,13 @@ function TenantDetailPage() {
 
   if (error || !tenant) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-destructive">Penghuni tidak ditemukan{error ? `: ${error}` : ''}</p>
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <p className="text-destructive font-medium">
+          {error ? `Error: ${error}` : 'Penghuni tidak ditemukan.'}
+        </p>
+        <Button variant="outline" onClick={() => navigate({ to: '/dashboard/tenants' })}>
+          <ArrowLeft className="h-4 w-4 mr-2" /> Kembali ke Daftar Penghuni
+        </Button>
       </div>
     )
   }
