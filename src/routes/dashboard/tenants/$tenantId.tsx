@@ -9,6 +9,7 @@ import { Separator } from '~/components/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table'
 import { formatRupiah, formatDate } from '~/lib/utils'
 import { api } from '~/lib/api'
+import { selectCache } from '~/lib/cache'
 import { useQuery } from '~/lib/hooks'
 import { DashboardBootstrap } from '~/lib/dashboard-bootstrap'
 
@@ -20,7 +21,7 @@ function TenantDetailPage() {
   const { tenantId } = Route.useParams()
   const navigate = useNavigate()
 
-  const { data: tenant, loading, error } = useQuery({
+  const { data: tenant, loading: loadingTenant, error } = useQuery({
     queryFn: () => api.tenants.get(tenantId),
     deps: [tenantId],
   })
@@ -34,9 +35,12 @@ function TenantDetailPage() {
       alert('Gagal menghapus penghuni: ' + err)
     }
   }
-  const { data: units } = useQuery({ queryFn: () => api.units.list() })
-  const { data: properties } = useQuery({ queryFn: () => api.properties.list() })
-  const { data: allBills } = useQuery({ queryFn: () => api.bills.list() })
+  const { data: units, loading: loadingUnits } = selectCache.units(() => api.units.list())
+  const { data: properties, loading: loadingProperties } = selectCache.properties(() => api.properties.list())
+  const { data: allBills, loading: loadingBills } = useQuery({
+    queryFn: () => api.bills.list(),
+    cacheKey: 'bills.list',
+  })
 
   const t = tenant as any
   const unit = units?.find((u: any) => u.id === t?.unitId)
@@ -58,7 +62,9 @@ function TenantDetailPage() {
     return []
   }, [unit?.facilities])
 
-  if (loading) {
+  const initializing = loadingTenant || loadingUnits || loadingProperties || loadingBills
+
+  if (initializing) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
