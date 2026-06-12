@@ -88,23 +88,25 @@ function TenantDetailPage() {
   return (
     <DashboardBootstrap>
       <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate({ to: '/dashboard/tenants' })}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div className="flex-1 flex items-center gap-4">
-          <Avatar className="h-12 w-12">
-            {t.image && <AvatarImage src={t.image} alt={t.fullName} className="object-cover" />}
-            <AvatarFallback className="bg-primary text-primary-foreground text-lg">
-              {t.fullName.split(' ').map((n: any) => n[0]).join('').slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <h1 className="text-2xl font-bold">{t.fullName}</h1>
-            <p className="text-muted-foreground text-sm">{t.occupation || 'Pekerjaan tidak dicatat'}</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate({ to: '/dashboard/tenants' })}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex items-center gap-4">
+            <Avatar className="h-12 w-12">
+              {t.image && <AvatarImage src={t.image} alt={t.fullName} className="object-cover" />}
+              <AvatarFallback className="bg-primary text-primary-foreground text-lg">
+                {t.fullName.split(' ').map((n: any) => n[0]).join('').slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h1 className="text-2xl font-bold">{t.fullName}</h1>
+              <p className="text-muted-foreground text-sm">{t.occupation || 'Pekerjaan tidak dicatat'}</p>
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-start sm:self-auto pl-12 sm:pl-0">
           <Badge variant={t.status === 'active' ? 'success' : 'secondary'}>
             {t.status === 'active' ? 'Aktif' : 'Nonaktif'}
           </Badge>

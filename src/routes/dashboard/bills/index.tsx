@@ -465,7 +465,7 @@ function BillsPage() {
             </div>
 
             {/* Period Month & Year */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-700">Bulan Periode</Label>
                 <Select
@@ -519,7 +519,7 @@ function BillsPage() {
             </div>
 
             {/* Utilities Grid */}
-            <div className="grid grid-cols-2 gap-3 border-t border-dashed border-slate-100 pt-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-dashed border-slate-100 pt-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-700">Biaya Listrik (Rp)</Label>
                 <Input
@@ -542,7 +542,7 @@ function BillsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pb-3 border-b border-dashed border-slate-100">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-3 border-b border-dashed border-slate-100">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-700">Biaya WiFi (Rp)</Label>
                 <Input
@@ -636,7 +636,7 @@ function BillsPage() {
             </div>
 
             {/* Utilities Grid */}
-            <div className="grid grid-cols-2 gap-3 border-t border-dashed border-slate-100 pt-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-dashed border-slate-100 pt-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-700">Biaya Listrik (Rp)</Label>
                 <Input
@@ -659,7 +659,7 @@ function BillsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pb-3 border-b border-dashed border-slate-100">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-3 border-b border-dashed border-slate-100">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-700">Biaya WiFi (Rp)</Label>
                 <Input
@@ -683,7 +683,7 @@ function BillsPage() {
             </div>
 
             {/* Due Date & Status */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-700">Jatuh Tempo</Label>
                 <Input

@@ -132,20 +132,24 @@ function PropertyDetailPage() {
   return (
     <DashboardBootstrap>
       <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate({ to: '/dashboard/properties' })}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold">{property.name}</h1>
-          <div className="flex items-center gap-1 text-muted-foreground text-sm">
-            <MapPin className="h-3 w-3" />
-            {property.address}, {property.city}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate({ to: '/dashboard/properties' })}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">{property.name}</h1>
+            <div className="flex items-center gap-1 text-muted-foreground text-sm mt-1">
+              <MapPin className="h-3 w-3" />
+              {property.address}, {property.city}
+            </div>
           </div>
         </div>
-        <Badge variant={property.type === 'kost' ? 'default' : 'secondary'}>
-          {property.type.charAt(0).toUpperCase() + property.type.slice(1)}
-        </Badge>
+        <div className="self-start sm:self-auto pl-12 sm:pl-0">
+          <Badge variant={property.type === 'kost' ? 'default' : 'secondary'}>
+            {property.type.charAt(0).toUpperCase() + property.type.slice(1)}
+          </Badge>
+        </div>
       </div>
 
       {/* Property Cover Image Banner */}
@@ -302,7 +306,7 @@ function PropertyDetailPage() {
                 required
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="unitType">Tipe Kamar</Label>
                 <Select value={unitForm.type} onValueChange={(value) => setUnitForm({ ...unitForm, type: value })}>

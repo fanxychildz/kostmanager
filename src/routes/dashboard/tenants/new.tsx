@@ -86,7 +86,7 @@ function NewTenantPage() {
               <Label htmlFor="ktpNumber">Nomor KTP</Label>
               <Input id="ktpNumber" placeholder="16 digit nomor KTP" maxLength={16} value={ktpNumber} onChange={(e) => setKtpNumber(e.target.value)} />
             </div>
-            <div className="grid gap-4 grid-cols-2">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="phone">No. HP</Label>
                 <Input id="phone" placeholder="08xxxxxxxxxx" value={phone} onChange={(e) => setPhone(e.target.value)} />

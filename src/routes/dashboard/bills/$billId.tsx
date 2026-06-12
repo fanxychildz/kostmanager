@@ -307,7 +307,7 @@ function BillDetailPage() {
       <div id="kuitansi-area">
       {/* Screen view UI (Hidden when printing) */}
       <div className="print:hidden space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate({ to: '/dashboard/bills' })}>
               <ArrowLeft className="h-4 w-4" />
@@ -609,7 +609,7 @@ function BillDetailPage() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handlePaymentSubmit} className="space-y-4 mt-2">
-            <div className="grid gap-4 grid-cols-2">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-700">Metode Bayar</Label>
                 <Select 

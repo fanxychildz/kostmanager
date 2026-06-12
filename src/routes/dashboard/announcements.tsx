@@ -101,7 +101,7 @@ function AnnouncementsPage() {
   return (
     <DashboardBootstrap>
       <div className="space-y-6">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight leading-none">Papan Pengumuman</h1>
           <p className="text-xs text-slate-400 font-semibold mt-1">Kelola pengumuman properti yang dikirim ke owner/tenant.</p>
@@ -154,7 +154,7 @@ function AnnouncementsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-600">Saluran</label>
                   <Select value={form.channel} onValueChange={(value: any) => setForm({ ...form, channel: value })}>

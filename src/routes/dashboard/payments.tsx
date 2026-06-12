@@ -132,7 +132,7 @@ function PaymentsPage() {
   return (
     <DashboardBootstrap>
       <div className="space-y-6">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight leading-none">Pembayaran</h1>
           <p className="text-xs text-slate-400 font-semibold mt-1">Catat dan pantau pembayaran penghuni</p>
@@ -185,7 +185,7 @@ function PaymentsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid gap-4 grid-cols-2">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Metode Bayar</Label>
                     <Select value={formData.paymentMethod} onValueChange={(value) => setFormData({ ...formData, paymentMethod: value })}>

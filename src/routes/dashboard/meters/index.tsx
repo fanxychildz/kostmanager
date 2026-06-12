@@ -101,7 +101,7 @@ function MeterReadingsPage() {
   return (
     <DashboardBootstrap>
       <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Catatan Meter</h1>
           <p className="text-muted-foreground">Pembacaan meter listrik dan air per unit.</p>
