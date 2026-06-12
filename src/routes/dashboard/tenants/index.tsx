@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Plus, Search, Phone, Mail, Loader2, Users, Calendar, ArrowUpRight } from 'lucide-react'
+import { Plus, Search, Phone, Mail, Loader2, Users, Calendar, ArrowUpRight, Trash2 } from 'lucide-react'
 import { useState, useMemo } from 'react'
 import { Card, CardContent } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
@@ -19,10 +19,20 @@ function TenantsPage() {
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 250)
 
-  const { data: tenants, loading, error } = useQuery({
+  const { data: tenants, loading, error, refetch } = useQuery({
     queryFn: () => api.tenants.list(),
     cacheKey: 'tenants.list',
   })
+
+  const handleDeleteTenant = async (id: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus penghuni ini secara permanen? Unit kamar terkait akan otomatis kosong (Available) kembali.')) return
+    try {
+      await api.tenants.delete(id)
+      await refetch()
+    } catch (err) {
+      alert('Gagal menghapus penghuni: ' + err)
+    }
+  }
 
   // Use shared select-cache so units/properties are NOT re-fetched
   const { data: units } = selectCache.units(() => api.units.list())
@@ -168,11 +178,21 @@ function TenantsPage() {
                           </span>
                         </td>
                         <td className="p-4 text-center">
-                          <Button variant="ghost" size="sm" className="h-7 rounded-lg text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-xs font-bold" asChild>
-                            <Link to="/dashboard/tenants/$tenantId" params={{ tenantId: tenant.id }}>
-                              Detail <ArrowUpRight className="w-3 h-3 ml-0.5" />
-                            </Link>
-                          </Button>
+                          <div className="flex items-center justify-center gap-1">
+                            <Button variant="ghost" size="sm" className="h-7 rounded-lg text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-xs font-bold" asChild>
+                              <Link to="/dashboard/tenants/$tenantId" params={{ tenantId: tenant.id }}>
+                                Detail <ArrowUpRight className="w-3 h-3 ml-0.5" />
+                              </Link>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer"
+                              onClick={() => handleDeleteTenant(tenant.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     )

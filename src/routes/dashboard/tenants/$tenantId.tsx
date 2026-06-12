@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMemo } from 'react'
-import { ArrowLeft, Phone, Mail, Calendar, CreditCard, Building2, Loader2 } from 'lucide-react'
+import { ArrowLeft, Phone, Mail, Calendar, CreditCard, Building2, Loader2, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
 import { Badge } from '~/components/ui/badge'
@@ -23,6 +23,16 @@ function TenantDetailPage() {
     queryFn: () => api.tenants.get(tenantId),
     deps: [tenantId],
   })
+
+  const handleDelete = async () => {
+    if (!confirm('Apakah Anda yakin ingin menghapus penghuni ini secara permanen? Unit kamar terkait akan otomatis kosong (Available) kembali.')) return
+    try {
+      await api.tenants.delete(tenantId)
+      navigate({ to: '/dashboard/tenants' })
+    } catch (err) {
+      alert('Gagal menghapus penghuni: ' + err)
+    }
+  }
   const { data: units } = useQuery({ queryFn: () => api.units.list() })
   const { data: properties } = useQuery({ queryFn: () => api.properties.list() })
   const { data: allBills } = useQuery({ queryFn: () => api.bills.list() })
@@ -81,9 +91,19 @@ function TenantDetailPage() {
             <p className="text-muted-foreground text-sm">{t.occupation || 'Pekerjaan tidak dicatat'}</p>
           </div>
         </div>
-        <Badge variant={t.status === 'active' ? 'success' : 'secondary'}>
-          {t.status === 'active' ? 'Aktif' : 'Nonaktif'}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant={t.status === 'active' ? 'success' : 'secondary'}>
+            {t.status === 'active' ? 'Aktif' : 'Nonaktif'}
+          </Badge>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleDelete}
+            className="rounded-xl font-bold text-xs h-9 px-3"
+          >
+            <Trash2 className="mr-1.5 h-4 w-4" /> Hapus
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
