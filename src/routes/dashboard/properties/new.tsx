@@ -8,6 +8,7 @@ import { Label } from '~/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { api } from '~/lib/api'
 import { useMutation } from '~/lib/hooks'
+import { DashboardBootstrap } from '~/lib/dashboard-bootstrap'
 
 export const Route = createFileRoute('/dashboard/properties/new')({
   component: NewPropertyPage,
@@ -54,7 +55,8 @@ function NewPropertyPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <DashboardBootstrap>
+      <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate({ to: '/dashboard/properties' })}>
           <ArrowLeft className="h-4 w-4" />
@@ -176,5 +178,6 @@ function NewPropertyPage() {
         </CardContent>
       </Card>
     </div>
+    </DashboardBootstrap>
   )
 }

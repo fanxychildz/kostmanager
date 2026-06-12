@@ -7,6 +7,7 @@ import { Progress } from '~/components/ui/progress'
 import { api } from '~/lib/api'
 import { useQuery } from '~/lib/hooks'
 import { motion } from 'motion/react'
+import { DashboardBootstrap } from '~/lib/dashboard-bootstrap'
 
 export const Route = createFileRoute('/dashboard/properties/')({
   component: PropertiesPage,
@@ -53,7 +54,8 @@ function PropertiesPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <DashboardBootstrap>
+      <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight leading-none">Daftar Properti</h1>
@@ -138,5 +140,6 @@ function PropertiesPage() {
         </motion.div>
       )}
     </div>
+    </DashboardBootstrap>
   )
 }

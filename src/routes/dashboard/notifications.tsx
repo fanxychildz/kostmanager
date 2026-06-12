@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Bell, CheckCheck, Trash2, RefreshCw } from 'lucide-react'
 import { useQuery } from '~/lib/hooks'
+import { DashboardBootstrap } from '~/lib/dashboard-bootstrap'
 import { api } from '~/lib/api'
 import { Card, CardContent } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
@@ -57,7 +58,8 @@ function NotificationsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <DashboardBootstrap>
+      <div className="space-y-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Notifikasi</h1>
@@ -140,6 +142,7 @@ function NotificationsPage() {
         </TabsContent>
       </Tabs>
     </div>
+    </DashboardBootstrap>
   )
 }
 

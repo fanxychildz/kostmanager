@@ -3,6 +3,7 @@ import { MessageSquare, Sparkles, Send, Loader2, User } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { api } from '~/lib/api'
 import { useQuery } from '~/lib/hooks'
+import { DashboardBootstrap } from '~/lib/dashboard-bootstrap'
 
 type Sender = 'owner' | 'tenant'
 
@@ -149,7 +150,8 @@ function ChatPage() {
   const unreadTotal = messages.filter((m) => m.sender === 'tenant' && !m.read).length
 
   return (
-    <div className="space-y-6">
+    <DashboardBootstrap>
+      <div className="space-y-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight leading-none">Chat Penghuni</h1>
         <p className="text-xs text-slate-400 font-semibold">Balas pesan penghuni secara langsung. Pesan masuk otomatis ditandai sudah dibaca.</p>
@@ -392,6 +394,7 @@ function ChatPage() {
         </div>
       </div>
     </div>
+    </DashboardBootstrap>
   )
 }
 

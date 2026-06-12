@@ -8,6 +8,7 @@ import { Separator } from '~/components/ui/separator'
 import { formatRupiah } from '~/lib/utils'
 import { api } from '~/lib/api'
 import { useQuery } from '~/lib/hooks'
+import { DashboardBootstrap } from '~/lib/dashboard-bootstrap'
 
 export const Route = createFileRoute('/dashboard/reports')({
   component: ReportsPage,
@@ -37,7 +38,8 @@ function ReportsPage() {
   const sumField = (field: string) => paidBills.reduce((sum: number, b: any) => sum + (b[field] || 0), 0)
 
   return (
-    <div className="space-y-6">
+    <DashboardBootstrap>
+      <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Laporan</h1>
         <p className="text-muted-foreground">Generate dan export laporan keuangan</p>
@@ -123,5 +125,6 @@ function ReportsPage() {
         </CardContent>
       </Card>
     </div>
+    </DashboardBootstrap>
   )
 }

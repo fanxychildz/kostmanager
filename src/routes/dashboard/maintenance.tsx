@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'motion/react'
 import { api } from '~/lib/api'
 import { Button } from '~/components/ui/button'
+import { DashboardBootstrap } from '~/lib/dashboard-bootstrap'
 
 type MaintenanceStatus = 'Pending' | 'In Progress' | 'Resolved'
 
@@ -220,7 +221,8 @@ function LandlordMaintenancePage() {
   }
 
   return (
-    <div className="space-y-8">
+    <DashboardBootstrap>
+      <div className="space-y-8">
       {/* Title section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
         <div>
@@ -561,5 +563,6 @@ function LandlordMaintenancePage() {
         </div>
       )}
     </div>
+    </DashboardBootstrap>
   )
 }

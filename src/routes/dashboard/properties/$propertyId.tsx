@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import { formatRupiah } from '~/lib/utils'
 import { api } from '~/lib/api'
 import { useQuery, useMutation } from '~/lib/hooks'
+import { DashboardBootstrap } from '~/lib/dashboard-bootstrap'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
@@ -129,7 +130,8 @@ function PropertyDetailPage() {
   const statusLabels = { available: 'Tersedia', occupied: 'Terisi', maintenance: 'Maintenance' }
 
   return (
-    <div className="space-y-6">
+    <DashboardBootstrap>
+      <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate({ to: '/dashboard/properties' })}>
           <ArrowLeft className="h-4 w-4" />
@@ -348,5 +350,6 @@ function PropertyDetailPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </DashboardBootstrap>
   )
 }
