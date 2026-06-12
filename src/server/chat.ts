@@ -8,7 +8,7 @@ import { getRequest } from '@tanstack/react-start/server'
 async function requireOwner(headers: Headers) {
   const session = await auth.api.getSession({ headers })
   if (!session) throw new Error('Unauthorized')
-  const ownerProps = await db.select().from(properties).where(eq(properties.ownerId, session.user.id))
+  const ownerProps = await db.select({ id: properties.id }).from(properties).where(eq(properties.ownerId, session.user.id))
   return { session, propertyIds: ownerProps.map((p) => p.id) }
 }
 
@@ -24,7 +24,7 @@ export const listChatMessages = createServerFn({ method: 'GET' })
 
     const isTenantUser = session.user.id === tenant.userId
     if (!isTenantUser) {
-      const prop = await db.select().from(properties).where(eq(properties.id, tenant.propertyId)).then((r) => r[0])
+      const prop = await db.select({ ownerId: properties.ownerId }).from(properties).where(eq(properties.id, tenant.propertyId)).then((r) => r[0])
       if (!prop || prop.ownerId !== session.user.id) throw new Error('Forbidden')
     }
 
@@ -56,7 +56,7 @@ export const sendChatMessage = createServerFn({ method: 'POST' })
     if (data.sender === 'Tenant') {
       if (tenant.userId !== session.user.id) throw new Error('Forbidden')
     } else {
-      const ownerProps = await db.select().from(properties).where(eq(properties.ownerId, session.user.id))
+      const ownerProps = await db.select({ id: properties.id }).from(properties).where(eq(properties.ownerId, session.user.id))
       if (!ownerProps.some((p) => p.id === tenant.propertyId)) throw new Error('Forbidden')
     }
 
@@ -86,7 +86,7 @@ export const markChatRead = createServerFn({ method: 'POST' })
     const tenant = await db.select().from(tenants).where(eq(tenants.id, data.tenantId)).then((r) => r[0])
     if (!tenant) throw new Error('Tenant not found')
 
-    const prop = await db.select().from(properties).where(eq(properties.id, tenant.propertyId)).then((r) => r[0])
+    const prop = await db.select({ ownerId: properties.ownerId }).from(properties).where(eq(properties.id, tenant.propertyId)).then((r) => r[0])
     if (!prop || prop.ownerId !== session.user.id) throw new Error('Forbidden')
 
     await db

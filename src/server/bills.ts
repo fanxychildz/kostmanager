@@ -14,7 +14,7 @@ export const listBills = createServerFn({ method: 'GET' })
     if (!session) throw new Error('Unauthorized')
 
     const ownerProperties = await db
-      .select()
+      .select({ id: properties.id })
       .from(properties)
       .where(eq(properties.ownerId, session.user.id))
     const propertyIds = ownerProperties.map((p) => p.id)
@@ -69,7 +69,7 @@ export const getBill = createServerFn({ method: 'GET' })
     if (tenant.length === 0) throw new Error('Not found')
 
     const prop = await db
-      .select()
+      .select({ id: properties.id })
       .from(properties)
       .where(and(eq(properties.id, tenant[0].propertyId), eq(properties.ownerId, session.user.id)))
 
@@ -106,7 +106,7 @@ export const createBill = createServerFn({ method: 'POST' })
     if (tenant.length === 0) throw new Error('Tenant not found')
 
     const prop = await db
-      .select()
+      .select({ id: properties.id })
       .from(properties)
       .where(and(eq(properties.id, tenant[0].propertyId), eq(properties.ownerId, session.user.id)))
 

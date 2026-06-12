@@ -86,7 +86,17 @@ export const getPaymentsByBill = createServerFn({ method: 'GET' })
     if (tenantRow.length === 0) throw new Error('Not found: Penghuni tidak ditemukan')
 
     const propRow = await db
-      .select()
+      .select({
+        id: properties.id,
+        ownerId: properties.ownerId,
+        name: properties.name,
+        address: properties.address,
+        city: properties.city,
+        province: properties.province,
+        type: properties.type,
+        createdAt: properties.createdAt,
+        updatedAt: properties.updatedAt,
+      })
       .from(properties)
       .where(and(eq(properties.id, tenantRow[0].propertyId), eq(properties.ownerId, session.user.id)))
       .limit(1)
@@ -142,7 +152,7 @@ export const createPayment = createServerFn({ method: 'POST' })
     if (tenant.length === 0) throw new Error('Tenant not found')
 
     const prop = await db
-      .select()
+      .select({ id: properties.id })
       .from(properties)
       .where(and(eq(properties.id, tenant[0].propertyId), eq(properties.ownerId, session.user.id)))
 

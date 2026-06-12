@@ -14,7 +14,7 @@ export const listUnits = createServerFn({ method: 'GET' })
     if (!session) throw new Error('Unauthorized')
 
     const ownerProperties = await db
-      .select()
+      .select({ id: properties.id })
       .from(properties)
       .where(eq(properties.ownerId, session.user.id))
 
@@ -41,7 +41,7 @@ export const getUnit = createServerFn({ method: 'GET' })
     if (result.length === 0) throw new Error('Not found')
 
     const prop = await db
-      .select()
+      .select({ id: properties.id })
       .from(properties)
       .where(and(eq(properties.id, result[0].propertyId), eq(properties.ownerId, session.user.id)))
 
@@ -58,7 +58,7 @@ export const createUnit = createServerFn({ method: 'POST' })
     if (!session) throw new Error('Unauthorized')
 
     const prop = await db
-      .select()
+      .select({ id: properties.id })
       .from(properties)
       .where(and(eq(properties.id, data.propertyId), eq(properties.ownerId, session.user.id)))
 
@@ -93,7 +93,7 @@ export const updateUnit = createServerFn({ method: 'POST' })
     if (existing.length === 0) throw new Error('Not found')
 
     const prop = await db
-      .select()
+      .select({ id: properties.id })
       .from(properties)
       .where(and(eq(properties.id, existing[0].propertyId), eq(properties.ownerId, session.user.id)))
 
@@ -123,7 +123,7 @@ export const deleteUnit = createServerFn({ method: 'POST' })
     if (existing.length === 0) throw new Error('Not found')
 
     const prop = await db
-      .select()
+      .select({ id: properties.id })
       .from(properties)
       .where(and(eq(properties.id, existing[0].propertyId), eq(properties.ownerId, session.user.id)))
 

@@ -67,12 +67,25 @@ export const getPortalProfile = createServerFn({ method: 'GET' }).handler(async 
   const tenant = await requireTenant(request.headers)
 
   const unit = await db.select().from(units).where(eq(units.id, tenant.unitId))
-  const property = await db.select().from(properties).where(eq(properties.id, tenant.propertyId))
+  const property = await db
+    .select({
+      id: properties.id,
+      ownerId: properties.ownerId,
+      name: properties.name,
+      address: properties.address,
+      city: properties.city,
+      province: properties.province,
+      type: properties.type,
+      createdAt: properties.createdAt,
+      updatedAt: properties.updatedAt,
+    })
+    .from(properties)
+    .where(eq(properties.id, tenant.propertyId))
 
   return {
     tenant,
     unit: unit[0] ?? null,
-    property: property[0] ?? null,
+    property: property[0] ? { ...property[0], image: null as string | null } : null,
   }
 })
 
@@ -163,7 +176,7 @@ export const createPortalMaintenanceRequest = createServerFn({ method: 'POST' })
       const ownerResult = await db
         .select()
         .from(users)
-        .where(eq(users.id, (await db.select().from(properties).where(eq(properties.id, tenant.propertyId)).limit(1))[0].ownerId))
+        .where(eq(users.id, (await db.select({ ownerId: properties.ownerId }).from(properties).where(eq(properties.id, tenant.propertyId)).limit(1))[0].ownerId))
         .limit(1)
 
       if (ownerResult[0]?.id) {

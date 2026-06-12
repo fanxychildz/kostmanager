@@ -20,7 +20,6 @@ export const listProperties = createServerFn({ method: 'GET' }).handler(async ()
       city: properties.city,
       province: properties.province,
       type: properties.type,
-      image: properties.image,
       createdAt: properties.createdAt,
       updatedAt: properties.updatedAt,
       totalUnits: sql<number>`count(${units.id})`,
@@ -33,6 +32,7 @@ export const listProperties = createServerFn({ method: 'GET' }).handler(async ()
 
   return propertiesWithCounts.map((row) => ({
     ...row,
+    image: null as string | null,
     totalUnits: Number(row.totalUnits),
     occupiedUnits: Number(row.occupiedUnits ?? 0),
   }))
@@ -46,7 +46,17 @@ export const getProperty = createServerFn({ method: 'GET' })
     if (!session) throw new Error('Unauthorized')
 
     const result = await db
-      .select()
+      .select({
+        id: properties.id,
+        ownerId: properties.ownerId,
+        name: properties.name,
+        address: properties.address,
+        city: properties.city,
+        province: properties.province,
+        type: properties.type,
+        createdAt: properties.createdAt,
+        updatedAt: properties.updatedAt,
+      })
       .from(properties)
       .where(and(eq(properties.id, data.id), eq(properties.ownerId, session.user.id)))
 
@@ -56,6 +66,7 @@ export const getProperty = createServerFn({ method: 'GET' })
 
     return {
       ...result[0],
+      image: null as string | null,
       totalUnits: allUnits.length,
       occupiedUnits: allUnits.filter((u) => u.status === 'occupied').length,
     }
@@ -81,7 +92,17 @@ export const createProperty = createServerFn({ method: 'POST' })
       image: data.image,
       createdAt: now,
       updatedAt: now,
-    }).returning()
+    }).returning({
+      id: properties.id,
+      ownerId: properties.ownerId,
+      name: properties.name,
+      address: properties.address,
+      city: properties.city,
+      province: properties.province,
+      type: properties.type,
+      createdAt: properties.createdAt,
+      updatedAt: properties.updatedAt,
+    })
 
     return result[0]
   })
@@ -103,7 +124,17 @@ export const updateProperty = createServerFn({ method: 'POST' })
         updatedAt: new Date(),
       })
       .where(and(eq(properties.id, id), eq(properties.ownerId, session.user.id)))
-      .returning()
+      .returning({
+        id: properties.id,
+        ownerId: properties.ownerId,
+        name: properties.name,
+        address: properties.address,
+        city: properties.city,
+        province: properties.province,
+        type: properties.type,
+        createdAt: properties.createdAt,
+        updatedAt: properties.updatedAt,
+      })
 
     if (result.length === 0) throw new Error('Not found')
 
@@ -120,7 +151,9 @@ export const deleteProperty = createServerFn({ method: 'POST' })
     const result = await db
       .delete(properties)
       .where(and(eq(properties.id, data.id), eq(properties.ownerId, session.user.id)))
-      .returning()
+      .returning({
+        id: properties.id,
+      })
 
     if (result.length === 0) throw new Error('Not found')
 
