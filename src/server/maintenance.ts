@@ -21,9 +21,14 @@ async function requireOwnerProperties(headers: Headers) {
     id: string
   }[] = await db.select({ id: properties.id }).from(properties).where(eq(properties.ownerId, session.user.id))
 
-  const ownerRow: (Pick<typeof users.$inferSelect, 'name'> & {
-    id: string
-  })[] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1)
+  const ownerRow = await db
+    .select({
+      id: users.id,
+      name: users.name,
+    })
+    .from(users)
+    .where(eq(users.id, session.user.id))
+    .limit(1)
 
   return {
     session,

@@ -23,7 +23,16 @@ export const updateProfile = createServerFn({ method: 'POST' })
       .update(users)
       .set(updatePayload)
       .where(eq(users.id, session.user.id))
-      .returning()
+      .returning({
+        id: users.id,
+        email: users.email,
+        emailVerified: users.emailVerified,
+        name: users.name,
+        phone: users.phone,
+        role: users.role,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+      })
 
     if (result.length === 0) throw new Error('Not found')
 

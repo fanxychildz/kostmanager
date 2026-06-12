@@ -174,7 +174,7 @@ export const createPortalMaintenanceRequest = createServerFn({ method: 'POST' })
     // Notify owner about new maintenance request
     if (tenant.propertyId) {
       const ownerResult = await db
-        .select()
+        .select({ id: users.id })
         .from(users)
         .where(eq(users.id, (await db.select({ ownerId: properties.ownerId }).from(properties).where(eq(properties.id, tenant.propertyId)).limit(1))[0].ownerId))
         .limit(1)

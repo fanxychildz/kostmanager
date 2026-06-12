@@ -24,7 +24,15 @@ async function requireRecipient(headers: Headers) {
   const session = await auth.api.getSession({ headers })
   if (!session) throw new Error('Unauthorized')
 
-  const user: typeof users.$inferSelect | undefined = (await db.select().from(users).where(eq(users.id, session.user.id)).limit(1))[0]
+  const user = (await db
+    .select({
+      id: users.id,
+      name: users.name,
+      role: users.role,
+    })
+    .from(users)
+    .where(eq(users.id, session.user.id))
+    .limit(1))[0]
   if (!user) throw new Error('Unauthorized')
 
   return {
