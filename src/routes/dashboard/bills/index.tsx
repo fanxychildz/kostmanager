@@ -723,7 +723,11 @@ function BillsPage() {
             </div>
           ) : (
             filteredBills.map((bill: any) => {
-              const utilityAmount = bill.electricityAmount + bill.waterAmount + bill.wifiAmount + bill.otherAmount
+              const utilityAmount =
+                (bill.electricityAmount || 0) +
+                (bill.waterAmount || 0) +
+                (bill.wifiAmount || 0) +
+                (bill.otherAmount || 0)
               const isSelected = selectedIds.includes(bill.id)
 
               return (

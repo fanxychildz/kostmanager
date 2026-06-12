@@ -43,12 +43,13 @@ function TenantDetailPage() {
     )
   }
 
-  const unit = units?.find((u: any) => u.id === tenant.unitId)
-  const property = properties?.find((p: any) => p.id === tenant.propertyId)
-  const bills = allBills?.filter((b: any) => b.tenantId === tenant.id) ?? []
+  const t = tenant as any
+  const unit = units?.find((u: any) => u.id === t.unitId)
+  const property = properties?.find((p: any) => p.id === t.propertyId)
+  const bills = allBills?.filter((b: any) => b.tenantId === t.id) ?? []
 
   const facilities = useMemo(() => {
-    const raw = unit?.facilities
+    const raw = unit?.facilities as any
     if (!raw) return []
     if (Array.isArray(raw)) return raw
     if (typeof raw === 'string') {
@@ -70,18 +71,18 @@ function TenantDetailPage() {
         </Button>
         <div className="flex-1 flex items-center gap-4">
           <Avatar className="h-12 w-12">
-            {tenant.image && <AvatarImage src={tenant.image} alt={tenant.fullName} className="object-cover" />}
+            {t.image && <AvatarImage src={t.image} alt={t.fullName} className="object-cover" />}
             <AvatarFallback className="bg-primary text-primary-foreground text-lg">
-              {tenant.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
+              {t.fullName.split(' ').map((n: any) => n[0]).join('').slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div>
-            <h1 className="text-2xl font-bold">{tenant.fullName}</h1>
-            <p className="text-muted-foreground text-sm">{tenant.occupation || 'Pekerjaan tidak dicatat'}</p>
+            <h1 className="text-2xl font-bold">{t.fullName}</h1>
+            <p className="text-muted-foreground text-sm">{t.occupation || 'Pekerjaan tidak dicatat'}</p>
           </div>
         </div>
-        <Badge variant={tenant.status === 'active' ? 'success' : 'secondary'}>
-          {tenant.status === 'active' ? 'Aktif' : 'Nonaktif'}
+        <Badge variant={t.status === 'active' ? 'success' : 'secondary'}>
+          {t.status === 'active' ? 'Aktif' : 'Nonaktif'}
         </Badge>
       </div>
 
@@ -89,12 +90,12 @@ function TenantDetailPage() {
         <Card>
           <CardHeader><CardTitle>Informasi Kontak</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-3"><Phone className="h-4 w-4 text-muted-foreground" /><span className="text-sm">{tenant.phone}</span></div>
-            <div className="flex items-center gap-3"><Mail className="h-4 w-4 text-muted-foreground" /><span className="text-sm">{tenant.email}</span></div>
+            <div className="flex items-center gap-3"><Phone className="h-4 w-4 text-muted-foreground" /><span className="text-sm">{t.phone}</span></div>
+            <div className="flex items-center gap-3"><Mail className="h-4 w-4 text-muted-foreground" /><span className="text-sm">{t.email}</span></div>
             <Separator />
             <div className="space-y-2">
               <h4 className="text-sm font-medium">Identitas KTP</h4>
-              <p className="text-sm text-muted-foreground">{tenant.ktpNumber}</p>
+              <p className="text-sm text-muted-foreground">{t.ktpNumber}</p>
             </div>
           </CardContent>
         </Card>
@@ -112,13 +113,13 @@ function TenantDetailPage() {
             <div className="flex items-center gap-3">
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-sm">Masuk: {formatDate(tenant.checkInDate)}</p>
+                <p className="text-sm">Masuk: {formatDate(t.checkInDate)}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <CreditCard className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-sm font-medium">Deposit: {formatRupiah(tenant.depositAmount)}</p>
+                <p className="text-sm font-medium">Deposit: {formatRupiah(t.depositAmount)}</p>
                 <p className="text-xs text-muted-foreground">Sewa: {formatRupiah(unit?.priceMonthly || 0)}/bulan</p>
               </div>
             </div>
