@@ -86,17 +86,6 @@ function BillsPage() {
   const { data: tenantsList, loading: loadingTenants } = selectCache.tenants(() => api.tenants.list())
   const { data: unitsList, loading: loadingUnitsCache } = selectCache.units(() => api.units.list())
 
-  // Inner bootstrap: when landing directly on /dashboard/bills before cache is warm,
-  // show a loader until bills and its dependencies are ready. This prevents #310
-  // caused by rendering the list with undefined tenant/unit data during cold start.
-  const initializingCache = loadingTenants || loadingUnitsCache
-  if (!bills && initializingCache) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
-  }
 
   // Create Form State
   const [createFormData, setCreateFormData] = useState({
@@ -343,6 +332,18 @@ function BillsPage() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <p className="text-destructive font-semibold">Gagal memuat tagihan: {error}</p>
+      </div>
+    )
+  }
+
+  // On hard refresh or cold start, keep blocking render until the core data
+  // the table depends on is actually present. This avoids #310 where bills
+  // can resolve before tenants/units and the list then renders with undefined relations.
+  const coreDataMissing = !bills || !tenantsList || !unitsList
+  if (coreDataMissing) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
   }
