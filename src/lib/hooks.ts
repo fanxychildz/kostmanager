@@ -62,12 +62,12 @@ export function useQuery<T>({
   const queryFnRef = useRef(queryFn)
   queryFnRef.current = queryFn
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (force = false) => {
     const k = cacheKey ?? getCacheKey(queryFnRef.current)
     const existing = queryCache.get(k)
 
     // Serve fresh cache instantly
-    if (existing && isFresh(existing)) {
+    if (force !== true && existing && isFresh(existing)) {
       setData(existing.data)
       setLoading(false)
       return
@@ -111,7 +111,7 @@ export function useQuery<T>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, fetchData, ...deps])
 
-  return { data, loading, error, refetch: fetchData }
+  return { data, loading, error, refetch: () => fetchData(true) }
 }
 
 // ─── useMutation ─────────────────────────────────────────────────────────────

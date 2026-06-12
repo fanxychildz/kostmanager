@@ -20,6 +20,7 @@ export const listProperties = createServerFn({ method: 'GET' }).handler(async ()
       city: properties.city,
       province: properties.province,
       type: properties.type,
+      image: properties.image,
       createdAt: properties.createdAt,
       updatedAt: properties.updatedAt,
       totalUnits: sql<number>`count(${units.id})`,
@@ -32,7 +33,7 @@ export const listProperties = createServerFn({ method: 'GET' }).handler(async ()
 
   return propertiesWithCounts.map((row) => ({
     ...row,
-    image: null as string | null,
+    image: row.image,
     totalUnits: Number(row.totalUnits),
     occupiedUnits: Number(row.occupiedUnits ?? 0),
   }))
@@ -54,6 +55,7 @@ export const getProperty = createServerFn({ method: 'GET' })
         city: properties.city,
         province: properties.province,
         type: properties.type,
+        image: properties.image,
         createdAt: properties.createdAt,
         updatedAt: properties.updatedAt,
       })
@@ -66,7 +68,7 @@ export const getProperty = createServerFn({ method: 'GET' })
 
     return {
       ...result[0],
-      image: null as string | null,
+      image: result[0].image,
       totalUnits: allUnits.length,
       occupiedUnits: allUnits.filter((u) => u.status === 'occupied').length,
     }
@@ -132,6 +134,7 @@ export const updateProperty = createServerFn({ method: 'POST' })
         city: properties.city,
         province: properties.province,
         type: properties.type,
+        image: properties.image,
         createdAt: properties.createdAt,
         updatedAt: properties.updatedAt,
       })

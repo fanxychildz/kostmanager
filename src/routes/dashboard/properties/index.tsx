@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Plus, Building2, MapPin, Loader2, ChevronRight } from 'lucide-react'
+import { Plus, Building2, MapPin, Loader2, ChevronRight, Trash2 } from 'lucide-react'
 import { Card, CardContent } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
 import { Badge } from '~/components/ui/badge'
 import { Progress } from '~/components/ui/progress'
 import { api } from '~/lib/api'
-import { useQuery } from '~/lib/hooks'
+import { useQuery, useMutation } from '~/lib/hooks'
 import { motion } from 'motion/react'
 import { DashboardBootstrap } from '~/lib/dashboard-bootstrap'
 
@@ -20,9 +20,22 @@ const PLACEHOLDER_IMAGES = [
 ]
 
 function PropertiesPage() {
-  const { data: properties, loading, error } = useQuery({
+  const { data: properties, loading, error, refetch: refetchProperties } = useQuery({
     queryFn: () => api.properties.list(),
   })
+
+  const { mutate: deleteProperty } = useMutation({
+    mutationFn: (id: string) => api.properties.delete(id),
+    onSuccess: () => {
+      refetchProperties()
+    },
+  })
+
+  const handleDeleteProperty = async (id: string, name: string) => {
+    if (confirm(`Apakah Anda yakin ingin menghapus properti "${name}"? Semua data unit dan penyewa di dalamnya juga akan terhapus secara permanen.`)) {
+      await deleteProperty(id)
+    }
+  }
 
   if (loading) {
     return (
@@ -104,6 +117,18 @@ function PropertiesPage() {
                   <Card className="border border-slate-200 rounded-2xl overflow-hidden flex flex-col group hover:shadow-md transition bg-white h-full cursor-pointer">
                     <div className="h-44 bg-slate-100 relative">
                       <img src={coverImage} alt={property.name} className="w-full h-full object-cover group-hover:scale-102 transition duration-500" />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-3 left-3 h-8 w-8 rounded-lg z-10 bg-rose-600/90 hover:bg-rose-700 text-white md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          handleDeleteProperty(property.id, property.name)
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                       <div className="absolute top-3 right-3 bg-slate-900/80 backdrop-blur-xs text-white px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider">
                         {property.type === 'kost' ? 'Kost' : property.type === 'kontrakan' ? 'Kontrakan' : 'Apartemen'}
                       </div>
