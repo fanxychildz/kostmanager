@@ -245,3 +245,146 @@ export const deleteMultipleBills = createServerFn({ method: 'POST' })
     await db.delete(bills).where(inArray(bills.id, data.ids))
     return { success: true }
   })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Auto-Generate Tagihan H-7 Sebelum Jatuh Tempo (Upcoming Bills)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function normalizeDate(d: Date): Date {
+  const res = new Date(d)
+  res.setHours(0, 0, 0, 0)
+  return res
+}
+
+function getLastDayOfMonth(year: number, month: number): number {
+  return new Date(year, month, 0).getDate()
+}
+
+export async function getUpcomingBillsDraft(today: Date = new Date()) {
+  const todayNormalized = normalizeDate(today)
+  const targetDueDate = new Date(todayNormalized)
+  targetDueDate.setDate(targetDueDate.getDate() + 7)
+
+  const activeTenants = await db
+    .select({
+      id: tenants.id,
+      fullName: tenants.fullName,
+      checkInDate: tenants.checkInDate,
+      unitId: tenants.unitId,
+      propertyId: tenants.propertyId,
+    })
+    .from(tenants)
+    .where(eq(tenants.status, 'active'))
+
+  const drafts: any[] = []
+
+  for (const tenant of activeTenants) {
+    const checkIn = new Date(tenant.checkInDate)
+    
+    const targetMonth = targetDueDate.getMonth() + 1
+    const targetYear = targetDueDate.getFullYear()
+    const lastDay = getLastDayOfMonth(targetYear, targetMonth)
+    const dueDay = Math.min(checkIn.getDate(), lastDay)
+    
+    const expectedDueDate = new Date(targetYear, targetMonth - 1, dueDay)
+    
+    if (normalizeDate(expectedDueDate).getTime() === targetDueDate.getTime()) {
+      // Ambil data unit untuk tarif sewa bulanan
+      const [unit] = await db
+        .select({ priceMonthly: units.priceMonthly, unitNumber: units.unitNumber })
+        .from(units)
+        .where(eq(units.id, tenant.unitId))
+        .limit(1)
+
+      if (!unit) continue
+
+      // Cek apakah tagihan bulan tersebut sudah pernah dibuat (Idempotensi)
+      const existing = await db
+        .select({ id: bills.id })
+        .from(bills)
+        .where(
+          and(
+            eq(bills.tenantId, tenant.id),
+            eq(bills.periodMonth, targetMonth),
+            eq(bills.periodYear, targetYear)
+          )
+        )
+        .limit(1)
+
+      drafts.push({
+        tenantId: tenant.id,
+        tenantName: tenant.fullName,
+        unitId: tenant.unitId,
+        unitNumber: unit.unitNumber,
+        propertyId: tenant.propertyId,
+        periodMonth: targetMonth,
+        periodYear: targetYear,
+        rentAmount: unit.priceMonthly,
+        dueDate: expectedDueDate,
+        exists: existing.length > 0,
+      })
+    }
+  }
+
+  return drafts
+}
+
+export const previewUpcomingBills = createServerFn({ method: 'GET' })
+  .inputValidator((d: { date?: string } | undefined) => d)
+  .handler(async ({ data }) => {
+    const request = getRequest()
+    const session = await auth.api.getSession({ headers: request.headers })
+    if (!session) throw new Error('Unauthorized')
+
+    const today = data?.date ? new Date(data.date) : new Date()
+    return await getUpcomingBillsDraft(today)
+  })
+
+export const autoGenerateUpcomingBills = createServerFn({ method: 'POST' })
+  .inputValidator((d: { date?: string } | undefined) => d)
+  .handler(async ({ data }) => {
+    const request = getRequest()
+    const authHeader = request.headers.get('authorization')
+    const isCronSecret = authHeader === `Bearer ${process.env.CRON_SECRET || 'local_secret'}`
+
+    let authenticated = isCronSecret
+    if (!authenticated) {
+      const session = await auth.api.getSession({ headers: request.headers })
+      if (session) authenticated = true
+    }
+
+    if (!authenticated) {
+      throw new Error('Unauthorized')
+    }
+
+    const today = data?.date ? new Date(data.date) : new Date()
+    const drafts = await getUpcomingBillsDraft(today)
+    const toGenerate = drafts.filter((d) => !d.exists)
+
+    let count = 0
+    const now = new Date()
+
+    for (const draft of toGenerate) {
+      await db.insert(bills).values({
+        id: nanoid(),
+        tenantId: draft.tenantId,
+        unitId: draft.unitId,
+        periodMonth: draft.periodMonth,
+        periodYear: draft.periodYear,
+        rentAmount: draft.rentAmount,
+        electricityAmount: 0,
+        waterAmount: 0,
+        wifiAmount: 0,
+        otherAmount: 0,
+        totalAmount: draft.rentAmount,
+        dueDate: draft.dueDate,
+        status: 'pending',
+        createdAt: now,
+        updatedAt: now,
+      })
+      count++
+    }
+
+    console.log(`[Upcoming Bills] Generated ${count} bills`)
+    return { success: true, generatedCount: count }
+  })

@@ -4,5 +4,11 @@
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/index.js" },
     { "source": "/(.*)", "destination": "/api/index.js" }
+  ],
+  "crons": [
+    {
+      "path": "/api/bills/upcoming",
+      "schedule": "0 0 * * *"
+    }
   ]
 }

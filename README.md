@@ -313,6 +313,13 @@ For production, consider:
 - **Backend**: Railway, Render, Fly.io, or any Node.js host
 - **Database**: Neon, Supabase, or managed PostgreSQL
 
+## Auto Bill Generation (Upcoming Bills)
+
+Sistem KostManager dilengkapi dengan auto-generate tagihan H-7 sebelum tanggal jatuh tempo sewa untuk mempermudah persiapan pembayaran.
+- **Jadwal Otomatis**: Auto bills berjalan setiap hari pukul 00:00 (dikonfigurasi menggunakan Vercel Cron di `vercel.json` dan `AUTO_BILL_SCHEDULE` di `.env`).
+- **Trigger Manual**: Untuk menjalankan generate tagihan secara manual kapan saja, panggil request `POST /api/bills/upcoming`.
+- **Preview Draft**: Untuk melihat daftar tagihan H-7 yang akan terbentuk tanpa menyimpannya ke database, panggil request `GET /api/bills/upcoming`.
+
 ## Troubleshooting
 
 ### Port Already in Use
