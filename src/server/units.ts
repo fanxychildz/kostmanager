@@ -6,6 +6,19 @@ import { auth } from './auth'
 import { nanoid } from 'nanoid'
 import { getRequest } from '@tanstack/react-start/server'
 
+// Explicit column selectors to avoid SELECT * hitting missing columns in production DB
+const unitFields = {
+  id: units.id,
+  propertyId: units.propertyId,
+  unitNumber: units.unitNumber,
+  type: units.type,
+  priceMonthly: units.priceMonthly,
+  status: units.status,
+  facilities: units.facilities,
+  createdAt: units.createdAt,
+  updatedAt: units.updatedAt,
+}
+
 export const listUnits = createServerFn({ method: 'GET' })
   .inputValidator((d: { propertyId?: string } | undefined) => d)
   .handler(async ({ data }) => {
@@ -19,13 +32,16 @@ export const listUnits = createServerFn({ method: 'GET' })
       .where(eq(properties.ownerId, session.user.id))
 
     const propertyIds = ownerProperties.map((p) => p.id)
+    if (propertyIds.length === 0) return []
 
-    let query = db.select().from(units)
+    let baseQuery = db.select(unitFields).from(units)
+
     if (data?.propertyId && propertyIds.includes(data.propertyId)) {
-      query = query.where(eq(units.propertyId, data.propertyId)) as typeof query
+      const result = await (baseQuery as any).where(eq(units.propertyId, data.propertyId))
+      return result
     }
 
-    const result = await query
+    const result = await baseQuery
     return result.filter((u) => propertyIds.includes(u.propertyId))
   })
 
@@ -36,7 +52,7 @@ export const getUnit = createServerFn({ method: 'GET' })
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session) throw new Error('Unauthorized')
 
-    const result = await db.select().from(units).where(eq(units.id, data.id))
+    const result = await db.select(unitFields).from(units).where(eq(units.id, data.id))
 
     if (result.length === 0) throw new Error('Not found')
 
@@ -75,7 +91,7 @@ export const createUnit = createServerFn({ method: 'POST' })
       facilities: data.facilities || [],
       createdAt: now,
       updatedAt: now,
-    }).returning()
+    }).returning({ ...unitFields })
 
     return result[0]
   })
@@ -89,7 +105,7 @@ export const updateUnit = createServerFn({ method: 'POST' })
 
     const { id, ...updateData } = data
 
-    const existing = await db.select().from(units).where(eq(units.id, id))
+    const existing = await db.select(unitFields).from(units).where(eq(units.id, id))
     if (existing.length === 0) throw new Error('Not found')
 
     const prop = await db
@@ -107,7 +123,7 @@ export const updateUnit = createServerFn({ method: 'POST' })
         updatedAt: new Date(),
       })
       .where(eq(units.id, id))
-      .returning()
+      .returning({ ...unitFields })
 
     return result[0]
   })
@@ -119,7 +135,7 @@ export const deleteUnit = createServerFn({ method: 'POST' })
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session) throw new Error('Unauthorized')
 
-    const existing = await db.select().from(units).where(eq(units.id, data.id))
+    const existing = await db.select({ id: units.id, propertyId: units.propertyId }).from(units).where(eq(units.id, data.id))
     if (existing.length === 0) throw new Error('Not found')
 
     const prop = await db

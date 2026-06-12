@@ -6,6 +6,57 @@ import { auth } from './auth'
 import { nanoid } from 'nanoid'
 import { getRequest } from '@tanstack/react-start/server'
 
+// Explicit column selectors to avoid SELECT * hitting missing columns in production DB
+const billFields = {
+  id: bills.id,
+  tenantId: bills.tenantId,
+  unitId: bills.unitId,
+  periodMonth: bills.periodMonth,
+  periodYear: bills.periodYear,
+  rentAmount: bills.rentAmount,
+  electricityAmount: bills.electricityAmount,
+  waterAmount: bills.waterAmount,
+  wifiAmount: bills.wifiAmount,
+  otherAmount: bills.otherAmount,
+  totalAmount: bills.totalAmount,
+  dueDate: bills.dueDate,
+  status: bills.status,
+  createdAt: bills.createdAt,
+  updatedAt: bills.updatedAt,
+}
+
+const paymentFields = {
+  id: payments.id,
+  billId: payments.billId,
+  recordedBy: payments.recordedBy,
+  paymentMethod: payments.paymentMethod,
+  amount: payments.amount,
+  paidAt: payments.paidAt,
+  notes: payments.notes,
+  status: payments.status,
+  createdAt: payments.createdAt,
+  updatedAt: payments.updatedAt,
+}
+
+const tenantFields = {
+  id: tenants.id,
+  userId: tenants.userId,
+  unitId: tenants.unitId,
+  propertyId: tenants.propertyId,
+  fullName: tenants.fullName,
+  ktpNumber: tenants.ktpNumber,
+  ktpPhotoUrl: tenants.ktpPhotoUrl,
+  phone: tenants.phone,
+  email: tenants.email,
+  occupation: tenants.occupation,
+  checkInDate: tenants.checkInDate,
+  checkOutDate: tenants.checkOutDate,
+  depositAmount: tenants.depositAmount,
+  status: tenants.status,
+  createdAt: tenants.createdAt,
+  updatedAt: tenants.updatedAt,
+}
+
 async function requireOwnerPropertyIds(headers: Headers) {
   const session = await auth.api.getSession({ headers })
   if (!session) throw new Error('Unauthorized')
@@ -34,16 +85,7 @@ export const listPayments = createServerFn({ method: 'GET' })
 
     const base = db
       .select({
-        id: payments.id,
-        billId: payments.billId,
-        recordedBy: payments.recordedBy,
-        paymentMethod: payments.paymentMethod,
-        amount: payments.amount,
-        paidAt: payments.paidAt,
-        notes: payments.notes,
-        status: payments.status,
-        createdAt: payments.createdAt,
-        updatedAt: payments.updatedAt,
+        ...paymentFields,
         tenantName: tenants.fullName,
         unitNumber: units.unitNumber,
       })
@@ -79,10 +121,10 @@ export const getPaymentsByBill = createServerFn({ method: 'GET' })
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session) throw new Error('Unauthorized')
 
-    const billRow = await db.select().from(bills).where(eq(bills.id, data.billId)).limit(1)
+    const billRow = await db.select(billFields).from(bills).where(eq(bills.id, data.billId)).limit(1)
     if (billRow.length === 0) throw new Error('Not found: Tagihan tidak ditemukan')
 
-    const tenantRow = await db.select().from(tenants).where(eq(tenants.id, billRow[0].tenantId)).limit(1)
+    const tenantRow = await db.select(tenantFields).from(tenants).where(eq(tenants.id, billRow[0].tenantId)).limit(1)
     if (tenantRow.length === 0) throw new Error('Not found: Penghuni tidak ditemukan')
 
     const propRow = await db
@@ -102,9 +144,24 @@ export const getPaymentsByBill = createServerFn({ method: 'GET' })
       .limit(1)
     if (propRow.length === 0) throw new Error('Forbidden: Properti tidak sesuai')
 
-    const unitRow = await db.select().from(units).where(eq(units.id, billRow[0].unitId)).limit(1)
+    const unitRow = await db
+      .select({
+        id: units.id,
+        propertyId: units.propertyId,
+        unitNumber: units.unitNumber,
+        type: units.type,
+        priceMonthly: units.priceMonthly,
+        status: units.status,
+        facilities: units.facilities,
+        createdAt: units.createdAt,
+        updatedAt: units.updatedAt,
+      })
+      .from(units)
+      .where(eq(units.id, billRow[0].unitId))
+      .limit(1)
+
     const paymentRows = await db
-      .select()
+      .select(paymentFields)
       .from(payments)
       .where(eq(payments.billId, data.billId))
       .orderBy(sql`${payments.createdAt} ASC`)
@@ -125,7 +182,7 @@ export const getPayment = createServerFn({ method: 'GET' })
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session) throw new Error('Unauthorized')
 
-    const result = await db.select().from(payments).where(eq(payments.id, data.id))
+    const result = await db.select(paymentFields).from(payments).where(eq(payments.id, data.id))
 
     if (result.length === 0) throw new Error('Not found')
 
@@ -145,10 +202,10 @@ export const createPayment = createServerFn({ method: 'POST' })
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session) throw new Error('Unauthorized')
 
-    const bill = await db.select().from(bills).where(eq(bills.id, data.billId))
+    const bill = await db.select(billFields).from(bills).where(eq(bills.id, data.billId))
     if (bill.length === 0) throw new Error('Bill not found')
 
-    const tenant = await db.select().from(tenants).where(eq(tenants.id, bill[0].tenantId))
+    const tenant = await db.select({ id: tenants.id, propertyId: tenants.propertyId }).from(tenants).where(eq(tenants.id, bill[0].tenantId))
     if (tenant.length === 0) throw new Error('Tenant not found')
 
     const prop = await db
@@ -170,9 +227,9 @@ export const createPayment = createServerFn({ method: 'POST' })
       status: 'recorded',
       createdAt: now,
       updatedAt: now,
-    }).returning()
+    }).returning({ ...paymentFields })
 
-    const allPayments = await db.select().from(payments).where(eq(payments.billId, data.billId))
+    const allPayments = await db.select({ status: payments.status, amount: payments.amount }).from(payments).where(eq(payments.billId, data.billId))
     const totalPaid = allPayments
       .filter((p) => p.status === 'recorded')
       .reduce((sum, p) => sum + p.amount, 0)
@@ -205,7 +262,7 @@ export const updatePayment = createServerFn({ method: 'POST' })
 
     const { id, ...updateData } = data
 
-    const existing = await db.select().from(payments).where(eq(payments.id, id))
+    const existing = await db.select(paymentFields).from(payments).where(eq(payments.id, id))
     if (existing.length === 0) throw new Error('Not found')
 
     const updatePayload: any = { ...updateData, updatedAt: new Date() }
@@ -215,12 +272,12 @@ export const updatePayment = createServerFn({ method: 'POST' })
       .update(payments)
       .set(updatePayload)
       .where(eq(payments.id, id))
-      .returning()
+      .returning({ ...paymentFields })
 
     if (updateData.status === 'void' && existing[0].status === 'recorded') {
-      const bill = await db.select().from(bills).where(eq(bills.id, existing[0].billId))
+      const bill = await db.select(billFields).from(bills).where(eq(bills.id, existing[0].billId))
       if (bill.length > 0) {
-        const allPayments = await db.select().from(payments).where(eq(payments.billId, bill[0].id))
+        const allPayments = await db.select({ status: payments.status, amount: payments.amount, id: payments.id }).from(payments).where(eq(payments.billId, bill[0].id))
         const totalPaid = allPayments
           .filter((p) => p.status === 'recorded' && p.id !== id)
           .reduce((sum, p) => sum + p.amount, 0)
@@ -246,15 +303,15 @@ export const deletePayment = createServerFn({ method: 'POST' })
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session) throw new Error('Unauthorized')
 
-    const existing = await db.select().from(payments).where(eq(payments.id, data.id))
+    const existing = await db.select(paymentFields).from(payments).where(eq(payments.id, data.id))
     if (existing.length === 0) throw new Error('Not found')
 
     await db.delete(payments).where(eq(payments.id, data.id))
 
     if (existing[0].status === 'recorded') {
-      const bill = await db.select().from(bills).where(eq(bills.id, existing[0].billId))
+      const bill = await db.select(billFields).from(bills).where(eq(bills.id, existing[0].billId))
       if (bill.length > 0) {
-        const allPayments = await db.select().from(payments).where(eq(payments.billId, bill[0].id))
+        const allPayments = await db.select({ status: payments.status, amount: payments.amount }).from(payments).where(eq(payments.billId, bill[0].id))
         const totalPaid = allPayments
           .filter((p) => p.status === 'recorded')
           .reduce((sum, p) => sum + p.amount, 0)
@@ -282,16 +339,16 @@ export const deleteMultiplePayments = createServerFn({ method: 'POST' })
 
     if (data.ids.length === 0) return { success: true }
 
-    const targetPayments = await db.select().from(payments).where(inArray(payments.id, data.ids))
+    const targetPayments = await db.select({ id: payments.id, billId: payments.billId, status: payments.status }).from(payments).where(inArray(payments.id, data.ids))
     if (targetPayments.length === 0) return { success: true }
 
     await db.delete(payments).where(inArray(payments.id, data.ids))
 
     const billIds = Array.from(new Set(targetPayments.map((p) => p.billId)))
     for (const billId of billIds) {
-      const bill = await db.select().from(bills).where(eq(bills.id, billId))
+      const bill = await db.select(billFields).from(bills).where(eq(bills.id, billId))
       if (bill.length > 0) {
-        const allPayments = await db.select().from(payments).where(eq(payments.billId, billId))
+        const allPayments = await db.select({ status: payments.status, amount: payments.amount }).from(payments).where(eq(payments.billId, billId))
         const totalPaid = allPayments
           .filter((p) => p.status === 'recorded')
           .reduce((sum, p) => sum + p.amount, 0)

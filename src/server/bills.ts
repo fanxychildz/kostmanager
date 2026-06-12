@@ -6,6 +6,56 @@ import { auth } from './auth'
 import { nanoid } from 'nanoid'
 import { getRequest } from '@tanstack/react-start/server'
 
+// Explicit column selectors to avoid SELECT * hitting missing columns in production DB
+const billFields = {
+  id: bills.id,
+  tenantId: bills.tenantId,
+  unitId: bills.unitId,
+  periodMonth: bills.periodMonth,
+  periodYear: bills.periodYear,
+  rentAmount: bills.rentAmount,
+  electricityAmount: bills.electricityAmount,
+  waterAmount: bills.waterAmount,
+  wifiAmount: bills.wifiAmount,
+  otherAmount: bills.otherAmount,
+  totalAmount: bills.totalAmount,
+  dueDate: bills.dueDate,
+  status: bills.status,
+  createdAt: bills.createdAt,
+  updatedAt: bills.updatedAt,
+}
+
+const tenantFields = {
+  id: tenants.id,
+  userId: tenants.userId,
+  unitId: tenants.unitId,
+  propertyId: tenants.propertyId,
+  fullName: tenants.fullName,
+  ktpNumber: tenants.ktpNumber,
+  ktpPhotoUrl: tenants.ktpPhotoUrl,
+  phone: tenants.phone,
+  email: tenants.email,
+  occupation: tenants.occupation,
+  checkInDate: tenants.checkInDate,
+  checkOutDate: tenants.checkOutDate,
+  depositAmount: tenants.depositAmount,
+  status: tenants.status,
+  createdAt: tenants.createdAt,
+  updatedAt: tenants.updatedAt,
+}
+
+const unitFields = {
+  id: units.id,
+  propertyId: units.propertyId,
+  unitNumber: units.unitNumber,
+  type: units.type,
+  priceMonthly: units.priceMonthly,
+  status: units.status,
+  facilities: units.facilities,
+  createdAt: units.createdAt,
+  updatedAt: units.updatedAt,
+}
+
 export const listBills = createServerFn({ method: 'GET' })
   .inputValidator((d: { status?: string; unitId?: string } | undefined) => d)
   .handler(async ({ data }) => {
@@ -26,21 +76,7 @@ export const listBills = createServerFn({ method: 'GET' })
 
     const rows = await db
       .select({
-        id: bills.id,
-        tenantId: bills.tenantId,
-        unitId: bills.unitId,
-        periodMonth: bills.periodMonth,
-        periodYear: bills.periodYear,
-        rentAmount: bills.rentAmount,
-        electricityAmount: bills.electricityAmount,
-        waterAmount: bills.waterAmount,
-        wifiAmount: bills.wifiAmount,
-        otherAmount: bills.otherAmount,
-        totalAmount: bills.totalAmount,
-        dueDate: bills.dueDate,
-        status: bills.status,
-        createdAt: bills.createdAt,
-        updatedAt: bills.updatedAt,
+        ...billFields,
         tenantName: tenants.fullName,
         unitNumber: units.unitNumber,
       })
@@ -61,11 +97,11 @@ export const getBill = createServerFn({ method: 'GET' })
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session) throw new Error('Unauthorized')
 
-    const result = await db.select().from(bills).where(eq(bills.id, data.id))
+    const result = await db.select(billFields).from(bills).where(eq(bills.id, data.id))
 
     if (result.length === 0) throw new Error('Not found')
 
-    const tenant = await db.select().from(tenants).where(eq(tenants.id, result[0].tenantId))
+    const tenant = await db.select(tenantFields).from(tenants).where(eq(tenants.id, result[0].tenantId))
     if (tenant.length === 0) throw new Error('Not found')
 
     const prop = await db
@@ -75,7 +111,7 @@ export const getBill = createServerFn({ method: 'GET' })
 
     if (prop.length === 0) throw new Error('Not found')
 
-    const unit = await db.select().from(units).where(eq(units.id, result[0].unitId))
+    const unit = await db.select(unitFields).from(units).where(eq(units.id, result[0].unitId))
 
     return {
       ...result[0],
@@ -102,7 +138,7 @@ export const createBill = createServerFn({ method: 'POST' })
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session) throw new Error('Unauthorized')
 
-    const tenant = await db.select().from(tenants).where(eq(tenants.id, data.tenantId))
+    const tenant = await db.select(tenantFields).from(tenants).where(eq(tenants.id, data.tenantId))
     if (tenant.length === 0) throw new Error('Tenant not found')
 
     const prop = await db
@@ -136,7 +172,7 @@ export const createBill = createServerFn({ method: 'POST' })
       status: 'pending',
       createdAt: now,
       updatedAt: now,
-    }).returning()
+    }).returning({ ...billFields })
 
     return result[0]
   })
@@ -159,7 +195,7 @@ export const updateBill = createServerFn({ method: 'POST' })
 
     const { id, ...updateData } = data
 
-    const existing = await db.select().from(bills).where(eq(bills.id, id))
+    const existing = await db.select(billFields).from(bills).where(eq(bills.id, id))
     if (existing.length === 0) throw new Error('Not found')
 
     const updatePayload: any = { ...updateData, updatedAt: new Date() }
@@ -178,7 +214,7 @@ export const updateBill = createServerFn({ method: 'POST' })
       .update(bills)
       .set(updatePayload)
       .where(eq(bills.id, id))
-      .returning()
+      .returning({ ...billFields })
 
     return result[0]
   })
@@ -190,7 +226,7 @@ export const deleteBill = createServerFn({ method: 'POST' })
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session) throw new Error('Unauthorized')
 
-    const existing = await db.select().from(bills).where(eq(bills.id, data.id))
+    const existing = await db.select({ id: bills.id }).from(bills).where(eq(bills.id, data.id))
     if (existing.length === 0) throw new Error('Not found')
 
     await db.delete(bills).where(eq(bills.id, data.id))

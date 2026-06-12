@@ -1,10 +1,42 @@
 import { createServerFn } from '@tanstack/react-start'
 import { eq, and } from 'drizzle-orm'
 import { db } from '../db'
-import { tenants, units, properties, users } from '../db/schema'
+import { tenants, units, properties } from '../db/schema'
 import { auth } from './auth'
 import { nanoid } from 'nanoid'
 import { getRequest } from '@tanstack/react-start/server'
+
+// Explicit column selectors to avoid SELECT * hitting missing columns in production DB
+const tenantFields = {
+  id: tenants.id,
+  userId: tenants.userId,
+  unitId: tenants.unitId,
+  propertyId: tenants.propertyId,
+  fullName: tenants.fullName,
+  ktpNumber: tenants.ktpNumber,
+  ktpPhotoUrl: tenants.ktpPhotoUrl,
+  phone: tenants.phone,
+  email: tenants.email,
+  occupation: tenants.occupation,
+  checkInDate: tenants.checkInDate,
+  checkOutDate: tenants.checkOutDate,
+  depositAmount: tenants.depositAmount,
+  status: tenants.status,
+  createdAt: tenants.createdAt,
+  updatedAt: tenants.updatedAt,
+}
+
+const unitFields = {
+  id: units.id,
+  propertyId: units.propertyId,
+  unitNumber: units.unitNumber,
+  type: units.type,
+  priceMonthly: units.priceMonthly,
+  status: units.status,
+  facilities: units.facilities,
+  createdAt: units.createdAt,
+  updatedAt: units.updatedAt,
+}
 
 export const listTenants = createServerFn({ method: 'GET' }).handler(async () => {
   const request = getRequest()
@@ -19,24 +51,7 @@ export const listTenants = createServerFn({ method: 'GET' }).handler(async () =>
   const propertyIds = ownerProperties.map((p) => p.id)
 
   const result = await db
-    .select({
-      id: tenants.id,
-      userId: tenants.userId,
-      unitId: tenants.unitId,
-      propertyId: tenants.propertyId,
-      fullName: tenants.fullName,
-      ktpNumber: tenants.ktpNumber,
-      ktpPhotoUrl: tenants.ktpPhotoUrl,
-      phone: tenants.phone,
-      email: tenants.email,
-      occupation: tenants.occupation,
-      checkInDate: tenants.checkInDate,
-      checkOutDate: tenants.checkOutDate,
-      depositAmount: tenants.depositAmount,
-      status: tenants.status,
-      createdAt: tenants.createdAt,
-      updatedAt: tenants.updatedAt,
-    })
+    .select(tenantFields)
     .from(tenants)
 
   const filtered = result.filter((t) => propertyIds.includes(t.propertyId))
@@ -52,24 +67,7 @@ export const getTenant = createServerFn({ method: 'GET' })
     if (!session) throw new Error('Unauthorized')
 
     const result = await db
-      .select({
-        id: tenants.id,
-        userId: tenants.userId,
-        unitId: tenants.unitId,
-        propertyId: tenants.propertyId,
-        fullName: tenants.fullName,
-        ktpNumber: tenants.ktpNumber,
-        ktpPhotoUrl: tenants.ktpPhotoUrl,
-        phone: tenants.phone,
-        email: tenants.email,
-        occupation: tenants.occupation,
-        checkInDate: tenants.checkInDate,
-        checkOutDate: tenants.checkOutDate,
-        depositAmount: tenants.depositAmount,
-        status: tenants.status,
-        createdAt: tenants.createdAt,
-        updatedAt: tenants.updatedAt,
-      })
+      .select(tenantFields)
       .from(tenants)
       .where(eq(tenants.id, data.id))
 
@@ -103,7 +101,7 @@ export const createTenant = createServerFn({ method: 'POST' })
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session) throw new Error('Unauthorized')
 
-    const unit = await db.select().from(units).where(eq(units.id, data.unitId))
+    const unit = await db.select(unitFields).from(units).where(eq(units.id, data.unitId))
     if (unit.length === 0) throw new Error('Unit not found')
 
     const prop = await db
@@ -130,7 +128,7 @@ export const createTenant = createServerFn({ method: 'POST' })
       status: 'active',
       createdAt: now,
       updatedAt: now,
-    }).returning()
+    }).returning({ ...tenantFields })
 
     await db.update(units).set({ status: 'occupied', updatedAt: now }).where(eq(units.id, data.unitId))
 
@@ -158,7 +156,7 @@ export const updateTenant = createServerFn({ method: 'POST' })
 
     const { id, ...updateData } = data
 
-    const existing = await db.select().from(tenants).where(eq(tenants.id, id))
+    const existing = await db.select(tenantFields).from(tenants).where(eq(tenants.id, id))
     if (existing.length === 0) throw new Error('Not found')
 
     const prop = await db
@@ -176,7 +174,7 @@ export const updateTenant = createServerFn({ method: 'POST' })
       .update(tenants)
       .set(updatePayload)
       .where(eq(tenants.id, id))
-      .returning()
+      .returning({ ...tenantFields })
 
     if (updateData.status === 'inactive' && existing[0].status === 'active') {
       await db.update(units).set({ status: 'available', updatedAt: new Date() }).where(eq(units.id, existing[0].unitId))
@@ -192,7 +190,7 @@ export const deleteTenant = createServerFn({ method: 'POST' })
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session) throw new Error('Unauthorized')
 
-    const existing = await db.select().from(tenants).where(eq(tenants.id, data.id))
+    const existing = await db.select(tenantFields).from(tenants).where(eq(tenants.id, data.id))
     if (existing.length === 0) throw new Error('Not found')
 
     const prop = await db
