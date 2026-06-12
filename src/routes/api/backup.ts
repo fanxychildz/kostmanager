@@ -111,7 +111,7 @@ export const Route = createFileRoute('/api/backup')({
 
         console.log(`[backup] Download oleh ${userEmail} — ${filename} (${fileSize} bytes)`)
 
-        return new Response(fileBuffer, {
+        return new Response(new Uint8Array(fileBuffer), {
           status: 200,
           headers: {
             'content-type': 'application/octet-stream',

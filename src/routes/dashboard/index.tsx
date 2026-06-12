@@ -70,15 +70,20 @@ function DashboardPage() {
     cacheKey: 'expenses.list',
   })
 
-  // ── Memoized aggregations — only recalculate when source data changes ──
   const stats = useMemo(() => {
+    const paymentList = Array.isArray(payments)
+      ? payments
+      : payments && 'items' in (payments as any) && Array.isArray((payments as any).items)
+      ? (payments as any).items
+      : []
+
     const totalUnits = properties?.reduce((s: number, p: any) => s + p.totalUnits, 0) ?? 0
     const occupiedUnits = properties?.reduce((s: number, p: any) => s + p.occupiedUnits, 0) ?? 0
     const availableUnits = units?.filter((u: any) => u.status === 'available').length ?? 0
     const maintenanceUnits = units?.filter((u: any) => u.status === 'maintenance').length ?? 0
     const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0
 
-    const totalIncome = payments?.reduce((s: number, p: any) => s + p.amount, 0) ?? 0
+    const totalIncome = paymentList.reduce((s: number, p: any) => s + p.amount, 0) ?? 0
     const totalExpenses = expenses?.reduce((s: number, e: any) => s + e.amount, 0) ?? 0
     const netProfit = totalIncome - totalExpenses
 

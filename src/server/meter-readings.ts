@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { eq, sql } from 'drizzle-orm'
+import { eq, sql, and } from 'drizzle-orm'
 import { db } from '../db'
 import { meterReadings } from '../lib/meter-schema'
 import { units } from '../db/schema'
@@ -14,12 +14,16 @@ export const listMeterReadings = createServerFn({ method: 'GET' })
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session) throw new Error('Unauthorized')
 
-    let query = db.select().from(meterReadings)
+    const conditions = []
+    if (data?.unitId) conditions.push(eq(meterReadings.unitId, data.unitId))
+    if (data?.type) conditions.push(eq(meterReadings.type, data.type))
 
-    if (data?.unitId) query = query.where(eq(meterReadings.unitId, data.unitId))
-    if (data?.type) query = query.where(eq(meterReadings.type, data.type))
-
-    return query.orderBy(sql`${meterReadings.readingDate} DESC`).limit(200)
+    return db
+      .select()
+      .from(meterReadings)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(sql`${meterReadings.readingDate} DESC`)
+      .limit(200)
   })
 
 export const createMeterReading = createServerFn({ method: 'POST' })

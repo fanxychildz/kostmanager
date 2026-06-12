@@ -43,7 +43,7 @@ function MeterReadingsPage() {
   const { data: units } = selectCache.units(() => api.units.list())
 
   const { data: readings, loading, refetch } = useQuery({
-    queryKey: ['meterReadings'],
+    cacheKey: 'meterReadings.list',
     queryFn: async () => api.meterReadings.list(),
   })
 
@@ -59,7 +59,7 @@ function MeterReadingsPage() {
       setReadingDate(new Date().toISOString().slice(0, 10))
       setDialogOpen(false)
     },
-    onError: (err) => toast.error(err.message || 'Gagal menyimpan catatan meter'),
+    onError: (err: any) => toast.error(err?.message || String(err) || 'Gagal menyimpan catatan meter'),
   })
 
   const handleSubmit = () => {
@@ -213,7 +213,7 @@ function MeterReadingsPage() {
                       <TableCell>{new Date(item.readingDate).toLocaleDateString('id-ID')}</TableCell>
                       <TableCell>{property?.name || '-'}</TableCell>
                       <TableCell>{unit?.unitNumber || '-'}</TableCell>
-                      <TableCell>{meterTypeLabels[item.type] ?? item.type}</TableCell>
+                      <TableCell>{meterTypeLabels[item.type as MeterType] ?? item.type}</TableCell>
                       <TableCell className="text-right">{item.value}</TableCell>
                       <TableCell className="text-right">{formatRupiah(item.tariffPerUnit ?? 0)}</TableCell>
                       <TableCell className="text-right font-medium">{formatRupiah(item.value * (item.tariffPerUnit ?? 0))}</TableCell>

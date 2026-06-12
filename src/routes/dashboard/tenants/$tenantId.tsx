@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useMemo } from 'react'
 import { ArrowLeft, Phone, Mail, Calendar, CreditCard, Building2, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
@@ -45,6 +46,21 @@ function TenantDetailPage() {
   const unit = units?.find((u: any) => u.id === tenant.unitId)
   const property = properties?.find((p: any) => p.id === tenant.propertyId)
   const bills = allBills?.filter((b: any) => b.tenantId === tenant.id) ?? []
+
+  const facilities = useMemo(() => {
+    const raw = unit?.facilities
+    if (!raw) return []
+    if (Array.isArray(raw)) return raw
+    if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw)
+        return Array.isArray(parsed) ? parsed : []
+      } catch {
+        return raw.split(',').map((f: string) => f.trim()).filter(Boolean)
+      }
+    }
+    return []
+  }, [unit?.facilities])
 
   return (
     <div className="space-y-6">
@@ -113,7 +129,7 @@ function TenantDetailPage() {
           <CardHeader><CardTitle>Fasilitas Unit</CardTitle></CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {unit?.facilities?.map((f: string) => <Badge key={f} variant="outline">{f}</Badge>)}
+              {facilities.map((f: string) => <Badge key={f} variant="outline">{f}</Badge>)}
             </div>
           </CardContent>
         </Card>

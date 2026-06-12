@@ -35,6 +35,13 @@ function PaymentsPage() {
     cacheKey: 'payments.list',
   })
 
+  const paymentList = useMemo(() => {
+    if (!payments) return []
+    if (Array.isArray(payments)) return payments
+    if ('items' in (payments as any) && Array.isArray((payments as any).items)) return (payments as any).items
+    return []
+  }, [payments])
+
   // Re-use cached bills — avoids a duplicate network request
   const { data: billsCache, loading: loadingBillsCache } = useQuery({
     queryFn: () => api.bills.list(),
@@ -101,17 +108,17 @@ function PaymentsPage() {
   }
 
   const handleSelectAll = () => {
-    if (payments) {
-      if (selectedIds.length === payments.length) {
+    if (paymentList.length > 0) {
+      if (selectedIds.length === paymentList.length) {
         setSelectedIds([])
       } else {
-        setSelectedIds(payments.map((p: any) => p.id))
+        setSelectedIds(paymentList.map((p: any) => p.id))
       }
     }
   }
 
-  const totalAmount = payments?.reduce((sum: number, p: any) => sum + p.amount, 0) || 0
-  const avgAmount = payments && payments.length > 0 ? Math.round(totalAmount / payments.length) : 0
+  const totalAmount = paymentList.reduce((sum: number, p: any) => sum + p.amount, 0) || 0
+  const avgAmount = paymentList.length > 0 ? Math.round(totalAmount / paymentList.length) : 0
 
   if (loading) {
     return (
@@ -129,7 +136,7 @@ function PaymentsPage() {
           <p className="text-xs text-slate-400 font-semibold mt-1">Catat dan pantau pembayaran penghuni</p>
         </div>
         <div className="flex items-center gap-2">
-          {payments && payments.length > 0 && (
+          {paymentList.length > 0 && (
             <Button
               variant={isBulkMode ? "outline" : "destructive"}
               onClick={() => {
@@ -240,7 +247,7 @@ function PaymentsPage() {
         <Card className="bg-white border border-slate-200 shadow-xs p-5 rounded-2xl flex flex-col justify-between">
           <div>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Jumlah Transaksi</p>
-            <span className="text-2xl font-extrabold text-slate-900">{payments?.length || 0}</span>
+            <span className="text-2xl font-extrabold text-slate-900">{paymentList.length}</span>
           </div>
         </Card>
         <Card className="bg-white border border-slate-200 shadow-xs p-5 rounded-2xl flex flex-col justify-between">
@@ -251,7 +258,7 @@ function PaymentsPage() {
         </Card>
       </div>
 
-      {payments && payments.length === 0 ? (
+      {paymentList.length === 0 ? (
         <Card className="bg-white border border-slate-200 rounded-2xl shadow-xs">
           <CardContent className="p-12 text-center">
             <CreditCard className="h-12 w-12 text-slate-300 mx-auto mb-4" />
@@ -269,7 +276,7 @@ function PaymentsPage() {
                     <TableHead className="w-[50px]">
                       <input
                         type="checkbox"
-                        checked={!!(payments && payments.length > 0 && selectedIds.length === payments.length)}
+                        checked={selectedIds.length > 0 && selectedIds.length === paymentList.length}
                         onChange={handleSelectAll}
                         className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                       />
@@ -286,7 +293,7 @@ function PaymentsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {payments?.map((payment: any) => {
+                {paymentList.map((payment: any) => {
                   const isSelected = selectedIds.includes(payment.id)
                   return (
                     <TableRow 
@@ -345,14 +352,14 @@ function PaymentsPage() {
       {isBulkMode && (
         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 border border-slate-800">
           <div className="text-xs font-bold">
-            <span className="text-blue-400">{selectedIds.length}</span> dari <span className="text-slate-300">{payments?.length || 0}</span> terpilih
+            <span className="text-blue-400">{selectedIds.length}</span> dari <span className="text-slate-300">{paymentList.length}</span> terpilih
           </div>
           <div className="flex items-center gap-2.5">
             <button
               onClick={handleSelectAll}
               className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-semibold cursor-pointer transition border border-slate-750 text-white"
             >
-              {selectedIds.length === (payments?.length || 0) ? 'Batal Pilih Semua' : 'Pilih Semua'}
+              {selectedIds.length === paymentList.length ? 'Batal Pilih Semua' : 'Pilih Semua'}
             </button>
             <button
               disabled={selectedIds.length === 0 || deleting}

@@ -36,14 +36,12 @@ export const listTenants = createServerFn({ method: 'GET' }).handler(async () =>
       status: tenants.status,
       createdAt: tenants.createdAt,
       updatedAt: tenants.updatedAt,
-      image: users.image,
     })
     .from(tenants)
-    .leftJoin(users, eq(tenants.userId, users.id))
 
   const filtered = result.filter((t) => propertyIds.includes(t.propertyId))
 
-  return filtered
+  return filtered.map((t) => ({ ...t, image: null as string | null }))
 })
 
 export const getTenant = createServerFn({ method: 'GET' })
@@ -71,10 +69,8 @@ export const getTenant = createServerFn({ method: 'GET' })
         status: tenants.status,
         createdAt: tenants.createdAt,
         updatedAt: tenants.updatedAt,
-        image: users.image,
       })
       .from(tenants)
-      .leftJoin(users, eq(tenants.userId, users.id))
       .where(eq(tenants.id, data.id))
 
     if (result.length === 0) throw new Error('Not found')
@@ -86,7 +82,7 @@ export const getTenant = createServerFn({ method: 'GET' })
 
     if (prop.length === 0) throw new Error('Not found')
 
-    return result[0]
+    return { ...result[0], image: null as string | null }
   })
 
 export const createTenant = createServerFn({ method: 'POST' })
