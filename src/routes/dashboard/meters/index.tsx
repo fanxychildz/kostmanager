@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import { Label } from '~/components/ui/label'
 import { api } from '~/lib/api'
 import { useQuery, useMutation } from '~/lib/hooks'
-import { selectCache } from '../_cache'
+import { selectCache } from '~/lib/cache'
 
 type MeterType = 'electricity' | 'water'
 type MeterReadingForm = {

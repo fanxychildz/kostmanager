@@ -8,7 +8,7 @@ import { Label } from '~/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { api } from '~/lib/api'
 import { useQuery, useMutation } from '~/lib/hooks'
-import { selectCache } from '../_cache'
+import { selectCache } from '~/lib/cache'
 
 export const Route = createFileRoute('/dashboard/tenants/new')({
   component: NewTenantPage,

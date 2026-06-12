@@ -20,7 +20,7 @@ import { useMemo } from 'react'
 import { formatRupiah } from '~/lib/utils'
 import { api } from '~/lib/api'
 import { useQuery } from '~/lib/hooks'
-import { selectCache } from './_cache'
+import { selectCache } from '~/lib/cache'
 
 export const Route = createFileRoute('/dashboard/')({
   component: DashboardPage,

@@ -9,7 +9,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '~/components/ui/avatar'
 import { formatRupiah, formatDate } from '~/lib/utils'
 import { api } from '~/lib/api'
 import { useQuery, useDebounce } from '~/lib/hooks'
-import { selectCache } from '../_cache'
+import { selectCache } from '~/lib/cache'
 
 export const Route = createFileRoute('/dashboard/tenants/')({
   component: TenantsPage,
