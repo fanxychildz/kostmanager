@@ -63,10 +63,23 @@ function AnnouncementsPage() {
   const [saving, setSaving] = useState(false)
 
   const propertyId = form.propertyId || properties?.[0]?.id
+
+  const { data: tenantsList } = useQuery<any>({
+    queryFn: () => api.tenants.list(),
+  })
+
+  const { data: unitsList } = useQuery<any>({
+    queryFn: () => api.units.list(propertyId),
+    deps: [propertyId],
+  })
+
   const list = Array.isArray(announcements)
     ? announcements
     : announcements?.items || []
   const visible = propertyId ? list.filter((a: any) => a.propertyId === propertyId) : []
+
+  const filteredTenants = (tenantsList || []).filter((t: any) => t.propertyId === propertyId)
+  const filteredUnits = (unitsList || []).filter((u: any) => u.propertyId === propertyId)
 
   const resetForm = () => setForm({ ...initialForm, propertyId: propertyId || '' })
 
@@ -118,7 +131,7 @@ function AnnouncementsPage() {
             <form onSubmit={handleCreate} className="space-y-3">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-600">Properti</label>
-                <Select value={propertyId} onValueChange={(value) => setForm({ ...form, propertyId: value })}>
+                <Select value={propertyId} onValueChange={(value) => setForm({ ...form, propertyId: value, targetTenantId: '' })}>
                   <SelectTrigger className="rounded-xl">
                     <SelectValue placeholder="Pilih properti" />
                   </SelectTrigger>
@@ -170,7 +183,7 @@ function AnnouncementsPage() {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-600">Penerima</label>
-                  <Select value={form.audience} onValueChange={(value: any) => setForm({ ...form, audience: value })}>
+                  <Select value={form.audience} onValueChange={(value: any) => setForm({ ...form, audience: value, targetTenantId: '' })}>
                     <SelectTrigger className="rounded-xl">
                       <SelectValue />
                     </SelectTrigger>
@@ -184,9 +197,59 @@ function AnnouncementsPage() {
                 </div>
               </div>
 
+              {form.audience === 'tenant' && (
+                <div className="space-y-1.5 animate-fade-in">
+                  <label className="text-xs font-bold text-slate-600">Pilih Penghuni</label>
+                  <Select 
+                    value={form.targetTenantId || ''} 
+                    onValueChange={(value) => setForm({ ...form, targetTenantId: value })}
+                  >
+                    <SelectTrigger className="rounded-xl">
+                      <SelectValue placeholder="Pilih penghuni" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-56 overflow-y-auto">
+                      {filteredTenants.length === 0 ? (
+                        <div className="p-2 text-center text-xs text-slate-400">Tidak ada penghuni di properti ini</div>
+                      ) : (
+                        filteredTenants.map((t: any) => (
+                          <SelectItem key={t.id} value={t.id} className="text-xs font-semibold cursor-pointer">
+                            {t.fullName}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {form.audience === 'unit' && (
+                <div className="space-y-1.5 animate-fade-in">
+                  <label className="text-xs font-bold text-slate-600">Pilih Unit / Kamar</label>
+                  <Select 
+                    value={form.targetTenantId || ''} 
+                    onValueChange={(value) => setForm({ ...form, targetTenantId: value })}
+                  >
+                    <SelectTrigger className="rounded-xl">
+                      <SelectValue placeholder="Pilih unit/kamar" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-56 overflow-y-auto">
+                      {filteredUnits.length === 0 ? (
+                        <div className="p-2 text-center text-xs text-slate-400">Tidak ada unit di properti ini</div>
+                      ) : (
+                        filteredUnits.map((u: any) => (
+                          <SelectItem key={u.id} value={u.id} className="text-xs font-semibold cursor-pointer">
+                            Unit {u.unitNumber} ({u.type})
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <Button
                 type="submit"
-                disabled={saving || !propertyId}
+                disabled={saving || !propertyId || ((form.audience === 'tenant' || form.audience === 'unit') && !form.targetTenantId)}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold py-2.5 transition cursor-pointer"
               >
                 {saving ? 'Menyimpan...' : 'Publikasikan'}
@@ -236,14 +299,40 @@ function AnnouncementsPage() {
                         </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-[10px] font-semibold text-slate-500">
+                    <div className="flex items-center gap-2 text-[10px] font-semibold text-slate-550 flex-wrap">
                       <Badge variant="outline" className="rounded-md">
-                        {ann.channel === 'all' ? ' owner + tenant ' : ann.channel}
+                        {ann.channel === 'all' ? 'owner + tenant' : ann.channel === 'owner' ? 'Pemilik' : 'Penghuni'}
                       </Badge>
-                      <Badge variant="outline" className="rounded-md">
-                        <Building2 className="mr-1 h-3 w-3" />
-                        Property
+                      <Badge variant="outline" className="rounded-md flex items-center gap-1">
+                        {ann.audience === 'all' ? (
+                          'Semua'
+                        ) : ann.audience === 'property' ? (
+                          <>
+                            <Building2 className="h-3 w-3" />
+                            Properti
+                          </>
+                        ) : ann.audience === 'tenant' ? (
+                          <>
+                            <Users className="h-3 w-3" />
+                            Penghuni
+                          </>
+                        ) : (
+                          <>
+                            <Megaphone className="h-3 w-3" />
+                            Unit
+                          </>
+                        )}
                       </Badge>
+                      {ann.audience === 'tenant' && (
+                        <span className="text-slate-400 bg-slate-100/50 px-1.5 py-0.5 rounded text-[9px] font-bold">
+                          Ke: {tenantsList?.find((t: any) => t.id === ann.targetTenantId)?.fullName || 'Memuat...'}
+                        </span>
+                      )}
+                      {ann.audience === 'unit' && (
+                        <span className="text-slate-400 bg-slate-100/50 px-1.5 py-0.5 rounded text-[9px] font-bold">
+                          Unit: {unitsList?.find((u: any) => u.id === ann.targetTenantId)?.unitNumber || 'Memuat...'}
+                        </span>
+                      )}
                       <span className="ml-auto text-[10px] text-slate-400">ID: {ann.id}</span>
                     </div>
                   </div>

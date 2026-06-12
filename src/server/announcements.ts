@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { eq, and, inArray, sql } from 'drizzle-orm'
+import { eq, and, inArray, sql, or } from 'drizzle-orm'
 import { db } from '../db'
 import { announcements, properties, users, tenants } from '../db/schema'
 import { auth } from './auth'
@@ -156,10 +156,13 @@ export const listTenantAnnouncements = createServerFn({ method: 'GET' })
     const offset = (page - 1) * limit
 
     const conditions = [
-      and(
-        eq(announcements.propertyId, tenantRow.propertyId),
-        sql`(${announcements.audience} = 'all' OR ${announcements.audience} = 'property')`,
-      ),
+      eq(announcements.propertyId, tenantRow.propertyId),
+      or(
+        eq(announcements.audience, 'all'),
+        eq(announcements.audience, 'property'),
+        and(eq(announcements.audience, 'tenant'), eq(announcements.targetTenantId, tenantRow.id)),
+        and(eq(announcements.audience, 'unit'), eq(announcements.targetTenantId, tenantRow.unitId))
+      )
     ] as any[]
 
     const countRow = await db.select({ count: sql<number>`count(*)` }).from(announcements).where(and(...conditions))
