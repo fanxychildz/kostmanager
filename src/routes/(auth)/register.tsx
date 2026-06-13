@@ -40,8 +40,8 @@ function RegisterPage() {
     <div className="min-h-screen flex">
       <div className="hidden lg:flex lg:w-1/2 bg-primary items-center justify-center p-12">
         <div className="max-w-md text-primary-foreground">
-          <Link to="/" className="inline-flex items-center p-3.5 bg-white rounded-3xl mb-8 hover:opacity-90 transition-opacity shadow-md">
-            <img src="/logo-stacked.png?v=4" alt="KeKost" className="h-20 w-auto object-contain" />
+          <Link to="/" className="inline-flex items-center mb-8 hover:opacity-90 transition-opacity">
+            <img src="/logo-stacked-white.png?v=4" alt="KeKost" className="h-20 w-auto object-contain" />
           </Link>
           <h2 className="text-3xl font-bold mb-4">Mulai kelola properti Anda hari ini</h2>
           <p className="text-primary-foreground/80">
