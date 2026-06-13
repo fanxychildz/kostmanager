@@ -74,9 +74,9 @@ export function Sidebar() {
   return (
     <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 lg:border-r bg-white">
       {/* Brand logo */}
-      <div className="flex items-center h-16 px-6 border-b border-slate-100">
-        <Link to="/dashboard" className="flex items-center py-1">
-          <img src="/logo.jpg" alt="KeKost" className="h-11 w-auto object-contain" />
+      <div className="flex items-center h-20 px-6 border-b border-slate-100 bg-white">
+        <Link to="/dashboard" className="flex items-center py-1 w-full justify-center lg:justify-start">
+          <img src="/logo.jpg" alt="KeKost" className="h-15 w-auto object-contain" />
         </Link>
       </div>
 

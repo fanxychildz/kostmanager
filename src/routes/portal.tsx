@@ -106,7 +106,7 @@ function PortalLayout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           
           <div className="flex items-center gap-2.5">
-            <img src="/logo.jpg" alt="KeKost" className="h-10 w-auto object-contain" />
+            <img src="/logo.jpg" alt="KeKost" className="h-14 w-auto object-contain" />
             <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[8px] font-bold border border-slate-200 uppercase">
               Portal Penghuni
             </span>

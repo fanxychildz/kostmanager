@@ -58,12 +58,12 @@ function DashboardLayout() {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-            className="mb-8 p-3 bg-white rounded-3xl border border-white/10 shadow-2xl flex items-center justify-center"
+            className="mb-8 p-4.5 bg-white rounded-3xl border border-white/10 shadow-2xl flex items-center justify-center"
           >
-            <img src="/logo.jpg" alt="KeKost" className="h-14 w-auto object-contain" />
+            <img src="/logo.jpg" alt="KeKost" className="h-20 w-auto object-contain" />
           </motion.div>
 
-          <h2 className="text-xl font-bold tracking-tight mb-2">Mempersiapkan KostManager</h2>
+          <h2 className="text-xl font-bold tracking-tight mb-2">Mempersiapkan KeKost</h2>
           <p className="text-xs text-slate-400 font-semibold mb-8">Mengambil data properti, unit, dan keuangan Anda...</p>
           
           {/* Custom linear animated progress bar */}
