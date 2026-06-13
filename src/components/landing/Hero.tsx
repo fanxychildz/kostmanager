@@ -1,5 +1,5 @@
 import { motion, Variants } from "motion/react";
-import { ArrowRight, CheckCircle, Shield, Award } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 export default function Hero() {
   const containerVariants: Variants = {
@@ -93,24 +93,7 @@ export default function Hero() {
             </motion.button>
           </motion.div>
 
-          {/* Trust points */}
-          <motion.div
-            variants={itemVariants}
-            className="flex flex-wrap items-center justify-center gap-y-3 gap-x-8 mb-16 text-slate-400 text-xs font-semibold uppercase tracking-wider"
-          >
-            <div className="flex items-center gap-1.5">
-              <CheckCircle className="w-4 h-4 text-emerald-500" />
-              <span>Tanpa Kartu Kredit</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Shield className="w-4 h-4 text-emerald-500" />
-              <span>Sesuai Regulasi PDP</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Award className="w-4 h-4 text-emerald-500" />
-              <span>Integrasi WhatsApp Resmi</span>
-            </div>
-          </motion.div>
+
 
           {/* Stats Bar Container (Premium white card with inner metrics grid) */}
           <motion.div
