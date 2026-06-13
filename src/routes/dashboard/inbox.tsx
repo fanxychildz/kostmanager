@@ -201,14 +201,14 @@ function InboxPage() {
           <Tabs
             value={activeCategory}
             onValueChange={setActiveCategory}
-            className="w-full md:w-auto overflow-x-auto scrollbar-none pb-0.5 md:pb-0"
+            className="w-full md:w-auto"
           >
-            <TabsList className="bg-transparent gap-1 p-0 flex flex-row flex-nowrap whitespace-nowrap">
-              <TabsTrigger value="all" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm shrink-0">Semua</TabsTrigger>
-              <TabsTrigger value="pengumuman" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm shrink-0">Pengumuman</TabsTrigger>
-              <TabsTrigger value="chat" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm shrink-0">Chat</TabsTrigger>
-              <TabsTrigger value="pembayaran" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm shrink-0">Pembayaran</TabsTrigger>
-              <TabsTrigger value="laporan" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm shrink-0">Laporan</TabsTrigger>
+            <TabsList className="bg-transparent gap-1.5 p-0 grid grid-cols-6 h-auto w-full md:flex md:flex-row md:flex-nowrap md:w-auto md:h-10">
+              <TabsTrigger value="all" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm shrink-0 col-span-2 text-center justify-center w-full md:w-auto md:shrink">Semua</TabsTrigger>
+              <TabsTrigger value="pengumuman" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm shrink-0 col-span-2 text-center justify-center w-full md:w-auto md:shrink">Pengumuman</TabsTrigger>
+              <TabsTrigger value="chat" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm shrink-0 col-span-2 text-center justify-center w-full md:w-auto md:shrink">Chat</TabsTrigger>
+              <TabsTrigger value="pembayaran" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm shrink-0 col-span-3 text-center justify-center w-full md:w-auto md:shrink">Pembayaran</TabsTrigger>
+              <TabsTrigger value="laporan" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm shrink-0 col-span-3 text-center justify-center w-full md:w-auto md:shrink">Laporan</TabsTrigger>
             </TabsList>
           </Tabs>
 
