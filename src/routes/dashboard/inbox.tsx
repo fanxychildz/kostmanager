@@ -161,7 +161,7 @@ function InboxPage() {
 
   return (
     <DashboardBootstrap>
-      <div className="space-y-6 flex flex-col h-[calc(100vh-8rem)]">
+      <div className="space-y-6 flex flex-col h-auto md:h-[calc(100vh-8.5rem)]">
         {/* Top Header Row */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between shrink-0">
           <div>
@@ -201,14 +201,14 @@ function InboxPage() {
           <Tabs
             value={activeCategory}
             onValueChange={setActiveCategory}
-            className="w-full md:w-auto"
+            className="w-full md:w-auto overflow-x-auto scrollbar-none pb-0.5 md:pb-0"
           >
-            <TabsList className="bg-transparent gap-1 p-0 flex-wrap">
-              <TabsTrigger value="all" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm">Semua</TabsTrigger>
-              <TabsTrigger value="pengumuman" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm">Pengumuman</TabsTrigger>
-              <TabsTrigger value="chat" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm">Chat</TabsTrigger>
-              <TabsTrigger value="pembayaran" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm">Pembayaran</TabsTrigger>
-              <TabsTrigger value="laporan" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm">Laporan</TabsTrigger>
+            <TabsList className="bg-transparent gap-1 p-0 flex flex-row flex-nowrap whitespace-nowrap">
+              <TabsTrigger value="all" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm shrink-0">Semua</TabsTrigger>
+              <TabsTrigger value="pengumuman" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm shrink-0">Pengumuman</TabsTrigger>
+              <TabsTrigger value="chat" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm shrink-0">Chat</TabsTrigger>
+              <TabsTrigger value="pembayaran" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm shrink-0">Pembayaran</TabsTrigger>
+              <TabsTrigger value="laporan" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm shrink-0">Laporan</TabsTrigger>
             </TabsList>
           </Tabs>
 
@@ -227,14 +227,14 @@ function InboxPage() {
         </div>
 
         {/* Split Pane View */}
-        <div className="flex-1 flex gap-6 overflow-hidden min-h-0">
+        <div className="flex-1 flex flex-col md:flex-row gap-6 overflow-visible md:overflow-hidden min-h-0">
           {/* Left Panel: List of Messages */}
           <div
-            className={`flex-1 flex flex-col min-w-0 bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm ${
+            className={`flex-1 flex flex-col min-w-0 bg-white border border-slate-200/80 rounded-2xl overflow-visible md:overflow-hidden shadow-sm ${
               selectedMessageId ? 'hidden md:flex md:w-5/12 md:max-w-md shrink-0' : 'flex'
             }`}
           >
-            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+            <div className="flex-1 overflow-y-visible md:overflow-y-auto p-3 space-y-2">
               {loading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="p-4 border border-slate-100 rounded-xl animate-pulse space-y-3">
@@ -326,7 +326,7 @@ function InboxPage() {
 
           {/* Right Panel: Detail Message */}
           <div
-            className={`flex-1 flex flex-col bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm ${
+            className={`flex-1 flex flex-col bg-white border border-slate-200/80 rounded-2xl overflow-visible md:overflow-hidden shadow-sm ${
               !selectedMessageId ? 'hidden md:flex' : 'flex'
             }`}
           >
@@ -375,7 +375,7 @@ function InboxPage() {
                 </div>
 
                 {/* Message Body Content */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                <div className="flex-1 overflow-y-visible md:overflow-y-auto p-6 space-y-6">
                   {/* Sender & Meta details */}
                   <div className="flex items-start justify-between gap-4 flex-wrap border-b border-slate-100 pb-5">
                     <div className="flex items-center gap-3">

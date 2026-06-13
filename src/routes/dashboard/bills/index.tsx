@@ -407,7 +407,7 @@ function BillsPage() {
         </div>
 
         {/* Filter Pills */}
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-row overflow-x-auto gap-1.5 scrollbar-none w-full whitespace-nowrap pb-1 md:pb-0">
           {([
             { id: 'all', label: 'Semua' },
             { id: 'pending', label: 'Belum Dibayar' },
@@ -418,7 +418,7 @@ function BillsPage() {
               key={opt.id}
               onClick={() => setFilter(opt.id)}
               disabled={isBusy}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition shrink-0 ${
                 filter === opt.id 
                   ? 'bg-slate-950 border-slate-950 text-white shadow-xs' 
                   : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
