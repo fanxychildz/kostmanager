@@ -74,16 +74,10 @@ export function Sidebar() {
   return (
     <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 lg:border-r bg-white">
       {/* Brand logo */}
-      <div className="flex items-center gap-2.5 h-16 px-6 border-b border-slate-100">
-        <div className="p-2 bg-blue-600 rounded-xl text-white">
-          <Building2 className="w-5 h-5" />
-        </div>
-        <div>
-          <span className="text-lg font-extrabold text-slate-900 tracking-tight leading-none">
-            Kost<span className="text-blue-600 font-semibold">Manager</span>
-          </span>
-          <span className="text-[10px] text-slate-400 font-bold tracking-wider uppercase block mt-0.5">Admin Hub</span>
-        </div>
+      <div className="flex items-center h-16 px-6 border-b border-slate-100">
+        <Link to="/dashboard" className="flex items-center py-1">
+          <img src="/logo.jpg" alt="KeKost" className="h-11 w-auto object-contain" />
+        </Link>
       </div>
 
       <div className="flex-1 flex flex-col justify-between p-4 overflow-y-auto">

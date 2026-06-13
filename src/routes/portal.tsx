@@ -106,13 +106,10 @@ function PortalLayout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-slate-900 rounded-xl text-white">
-              <Building2 className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="font-extrabold text-sm md:text-lg text-slate-900 tracking-tight leading-none">KostManager</h1>
-              <span className="text-[9px] text-slate-400 font-bold tracking-wider uppercase block mt-1">Portal Penghuni</span>
-            </div>
+            <img src="/logo.jpg" alt="KeKost" className="h-10 w-auto object-contain" />
+            <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[8px] font-bold border border-slate-200 uppercase">
+              Portal Penghuni
+            </span>
           </div>
 
           {/* Sync indicator clocks */}

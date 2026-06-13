@@ -59,20 +59,10 @@ export default function Navigation({ activeSection }: NavigationProps) {
             {/* Logo */}
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              className="flex items-center gap-2.5 text-left group cursor-pointer border-0 bg-transparent p-0"
+              className="flex items-center text-left group cursor-pointer border-0 bg-transparent p-0"
               id="nav-logo-btn"
             >
-              <div className="bg-blue-600 text-white p-2 rounded-xl transition-all duration-300 group-hover:scale-105 group-hover:bg-blue-700 shadow-md shadow-blue-500/10 flex items-center justify-center">
-                <Building2 className="w-5 h-5" />
-              </div>
-              <div>
-                <span className="font-extrabold text-xl tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors duration-200">
-                  Kost<span className="text-blue-600 font-semibold">Manager</span>
-                </span>
-                <p className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase -mt-1 flex items-center gap-1">
-                  SaaS Indonesia
-                </p>
-              </div>
+              <img src="/logo.jpg" alt="KeKost" className="h-11 w-auto object-contain" />
             </button>
 
             {/* Desktop Navigation */}
