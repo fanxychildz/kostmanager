@@ -25,6 +25,7 @@ function NewPropertyPage() {
     image: '',
   })
   const [imageError, setImageError] = useState('')
+  const [imageSource, setImageSource] = useState<'upload' | 'url'>('upload')
 
   const { mutate: createProperty, loading, error } = useMutation({
     mutationFn: (data: typeof formData) => api.properties.create(data),
@@ -136,6 +137,27 @@ function NewPropertyPage() {
 
             <div className="space-y-2 pt-2">
               <Label>Foto Properti (Kost / Kontrakan)</Label>
+              <div className="flex gap-2 mb-2">
+                <Button 
+                  type="button" 
+                  variant={imageSource === 'upload' ? 'default' : 'outline'} 
+                  size="sm" 
+                  onClick={() => { setImageSource('upload'); setFormData((prev) => ({ ...prev, image: '' })); setImageError(''); }}
+                  className="text-xs rounded-xl"
+                >
+                  Unggah Berkas
+                </Button>
+                <Button 
+                  type="button" 
+                  variant={imageSource === 'url' ? 'default' : 'outline'} 
+                  size="sm" 
+                  onClick={() => { setImageSource('url'); setFormData((prev) => ({ ...prev, image: '' })); setImageError(''); }}
+                  className="text-xs rounded-xl"
+                >
+                  Link URL Foto
+                </Button>
+              </div>
+
               <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                 {formData.image ? (
                   <div className="relative w-44 h-28 rounded-xl overflow-hidden border bg-slate-50">
@@ -153,9 +175,24 @@ function NewPropertyPage() {
                     Belum ada foto
                   </div>
                 )}
-                <div className="space-y-1">
-                  <Input type="file" accept="image/*" onChange={handleImageChange} className="w-auto text-xs" />
-                  <p className="text-[10px] text-slate-400 font-medium">Format: JPG, PNG, WEBP. Maksimal 2MB.</p>
+                <div className="space-y-1 w-full sm:w-auto flex-1">
+                  {imageSource === 'upload' ? (
+                    <>
+                      <Input type="file" accept="image/*" onChange={handleImageChange} className="w-auto text-xs" />
+                      <p className="text-[10px] text-slate-400 font-medium">Format: JPG, PNG, WEBP. Maksimal 2MB.</p>
+                    </>
+                  ) : (
+                    <>
+                      <Input 
+                        type="url" 
+                        placeholder="Tempel link foto di sini (contoh: https://contoh.com/foto.jpg)" 
+                        value={formData.image} 
+                        onChange={(e) => setFormData({ ...formData, image: e.target.value })} 
+                        className="w-full text-xs max-w-md" 
+                      />
+                      <p className="text-[10px] text-slate-400 font-medium">Masukkan URL gambar publik langsung (URL berakhiran .jpg, .png, dsb).</p>
+                    </>
+                  )}
                   {imageError && <p className="text-xs text-destructive">{imageError}</p>}
                 </div>
               </div>

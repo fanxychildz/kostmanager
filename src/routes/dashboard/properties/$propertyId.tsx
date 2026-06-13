@@ -31,6 +31,9 @@ function PropertyDetailPage() {
     facilities: '',
   })
   const [createUnitError, setCreateUnitError] = useState('')
+  const [photoDialogOpen, setPhotoDialogOpen] = useState(false)
+  const [photoSource, setPhotoSource] = useState<'upload' | 'url'>('upload')
+  const [tempPhotoUrl, setTempPhotoUrl] = useState('')
 
   const { data: property, loading: loadingProperty, refetch: refetchProperty } = useQuery({
     queryFn: () => api.properties.get(propertyId),
@@ -163,11 +166,19 @@ function PropertyDetailPage() {
           </div>
         )}
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-          <label className="cursor-pointer bg-white/90 hover:bg-white text-slate-900 px-4 py-2.5 rounded-xl text-sm font-bold shadow-md transition flex items-center gap-2">
+          <button 
+            type="button"
+            onClick={() => {
+              setPhotoDialogOpen(true)
+              setTempPhotoUrl(property.image || '')
+              setPhotoSource(property.image?.startsWith('data:image') ? 'upload' : 'url')
+              setUploadError('')
+            }}
+            className="bg-white/90 hover:bg-white text-slate-900 px-4 py-2.5 rounded-xl text-sm font-bold shadow-md transition flex items-center gap-2 border-0 cursor-pointer"
+          >
             <Camera className="h-4 w-4 text-slate-700" />
-            {uploading ? 'Mengupload...' : 'Ganti Foto Properti'}
-            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
-          </label>
+            Ganti Foto Properti
+          </button>
           {property.image && (
             <button
               type="button"
@@ -351,6 +362,118 @@ function PropertyDetailPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Ganti Foto Properti */}
+      <Dialog open={photoDialogOpen} onOpenChange={setPhotoDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ubah Foto Properti</DialogTitle>
+            <DialogDescription>
+              Ubah foto cover utama untuk properti Anda.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="flex gap-2">
+              <Button 
+                type="button" 
+                variant={photoSource === 'upload' ? 'default' : 'outline'} 
+                size="sm" 
+                onClick={() => { setPhotoSource('upload'); setTempPhotoUrl(''); setUploadError(''); }}
+                className="text-xs rounded-xl"
+              >
+                Unggah Berkas
+              </Button>
+              <Button 
+                type="button" 
+                variant={photoSource === 'url' ? 'default' : 'outline'} 
+                size="sm" 
+                onClick={() => { setPhotoSource('url'); setTempPhotoUrl(''); setUploadError(''); }}
+                className="text-xs rounded-xl"
+              >
+                Link URL Foto
+              </Button>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+              {tempPhotoUrl ? (
+                <div className="relative w-32 h-20 rounded-xl overflow-hidden border bg-slate-50">
+                  <img src={tempPhotoUrl} alt="Preview" className="w-full h-full object-cover" />
+                  <button 
+                    type="button" 
+                    onClick={() => setTempPhotoUrl('')}
+                    className="absolute top-1 right-1 bg-rose-600 hover:bg-rose-700 text-white rounded-full p-1 text-[8px] font-bold px-2 transition border-0 cursor-pointer"
+                  >
+                    Hapus
+                  </button>
+                </div>
+              ) : (
+                <div className="w-32 h-20 bg-slate-50 border border-dashed border-slate-200 rounded-xl flex items-center justify-center text-slate-400 text-[10px] font-semibold">
+                  Belum ada foto
+                </div>
+              )}
+              <div className="space-y-1 w-full sm:w-auto flex-1">
+                {photoSource === 'upload' ? (
+                  <>
+                    <Input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        setUploadError('')
+                        if (!file) return
+                        if (file.size > 2 * 1024 * 1024) {
+                          setUploadError('Ukuran file foto maksimal 2MB')
+                          return
+                        }
+                        const reader = new FileReader()
+                        reader.onload = () => {
+                          setTempPhotoUrl(reader.result as string)
+                        }
+                        reader.readAsDataURL(file)
+                      }} 
+                      className="w-auto text-xs" 
+                    />
+                    <p className="text-[10px] text-slate-400 font-medium">Format: JPG, PNG, WEBP. Maksimal 2MB.</p>
+                  </>
+                ) : (
+                  <>
+                    <Input 
+                      type="url" 
+                      placeholder="Tempel link foto di sini (contoh: https://contoh.com/foto.jpg)" 
+                      value={tempPhotoUrl} 
+                      onChange={(e) => setTempPhotoUrl(e.target.value)} 
+                      className="w-full text-xs" 
+                    />
+                    <p className="text-[10px] text-slate-400 font-medium">Masukkan URL gambar langsung (.jpg, .png, dsb).</p>
+                  </>
+                )}
+                {uploadError && <p className="text-xs text-destructive">{uploadError}</p>}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setPhotoDialogOpen(false)}>Batal</Button>
+            <Button 
+              type="button" 
+              disabled={uploading} 
+              onClick={async () => {
+                setUploading(true)
+                try {
+                  await updateProperty({ image: tempPhotoUrl })
+                  setPhotoDialogOpen(false)
+                } catch (err: any) {
+                  setUploadError(err.message || 'Gagal mengubah foto')
+                } finally {
+                  setUploading(false)
+                }
+              }}
+            >
+              {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Simpan Foto
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
