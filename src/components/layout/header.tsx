@@ -118,7 +118,7 @@ export function Header() {
                   className="flex items-center py-1 justify-start hover:opacity-95 transition-opacity" 
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <img src="/logo-horizontal.png?v=4" alt="KeKost" className="h-9 w-auto object-contain" />
+                  <img src="/logo-horizontal.png?v=5" alt="KeKost" className="h-9 w-auto object-contain" />
                 </Link>
                 <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => setMobileMenuOpen(false)}>
                   <X className="h-5 w-5 text-slate-700" />
