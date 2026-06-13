@@ -1,7 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { readFile, stat } from 'node:fs/promises'
-import { join } from 'node:path'
-import { auth } from '~/server/auth'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/backup
@@ -25,6 +22,9 @@ export const Route = createFileRoute('/api/backup')({
   server: {
     handlers: {
       GET: async ({ request }: { request: Request }) => {
+        const { readFile, stat } = await import('node:fs/promises')
+        const { join } = await import('node:path')
+        const { auth } = await import('~/server/auth')
         // ── 1. Cek session login ──────────────────────────────────────────
         let session: any = null
         try {

@@ -1,14 +1,15 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { auth } from '~/server/auth'
-import { db } from '~/db'
-import { payments, bills, tenants, inbox } from '~/db/schema'
-import { eq, and } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 
 export const Route = createFileRoute('/api/payments/$id/status')({
   server: {
     handlers: {
       PATCH: async ({ request, params }: { request: Request; params: { id: string } }) => {
+        const { auth } = await import('~/server/auth')
+        const { db } = await import('~/db')
+        const { payments, bills, tenants, inbox } = await import('~/db/schema')
+        const { eq, and } = await import('drizzle-orm')
+
         let session: any = null
         try {
           session = await auth.api.getSession({ headers: request.headers })

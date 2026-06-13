@@ -42,6 +42,29 @@ function preventServerLeakPlugin() {
   }
 }
 
+function clientAliasPlugin() {
+  return {
+    name: 'client-alias',
+    enforce: 'pre' as const,
+    resolveId(source: string, importer: any, options: any) {
+      if (options?.ssr) {
+        return null
+      }
+      if (
+        source === 'drizzle-orm' ||
+        source.startsWith('drizzle-orm/') ||
+        source === '@libsql/client' ||
+        source.startsWith('@libsql/client/') ||
+        source === 'better-sqlite3' ||
+        source.startsWith('better-sqlite3/')
+      ) {
+        return resolve(__dirname, './src/lib/empty.ts')
+      }
+      return null
+    }
+  }
+}
+
 export default defineConfig({
   server: {
     port: 3000,
@@ -53,6 +76,7 @@ export default defineConfig({
   },
   plugins: [
     tailwindcss(),
+    clientAliasPlugin(),
     tanstackStart({
       srcDirectory: 'src',
       router: {
