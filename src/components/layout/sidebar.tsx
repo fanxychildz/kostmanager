@@ -76,7 +76,7 @@ export function Sidebar() {
       {/* Brand logo */}
       <div className="flex items-center h-20 px-6 border-b border-slate-100 bg-white">
         <Link to="/dashboard" className="flex items-center py-1 w-full justify-center lg:justify-start">
-          <img src="/logo-horizontal.png?v=5" alt="KeKost" className="h-9 w-auto object-contain" />
+          <img src="/logo-horizontal.png?v=6" alt="KeKost" className="h-9 w-auto object-contain" />
         </Link>
       </div>
 
