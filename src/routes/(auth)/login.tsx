@@ -54,7 +54,7 @@ function LoginPage() {
       <div className="hidden lg:flex lg:w-1/2 bg-primary items-center justify-center p-12">
         <div className="max-w-md text-primary-foreground">
           <Link to="/" className="inline-flex items-center p-3.5 bg-white rounded-3xl mb-8 hover:opacity-90 transition-opacity shadow-md">
-            <img src="/logo-stacked.png?v=3" alt="KeKost" className="h-20 w-auto object-contain" />
+            <img src="/logo-stacked.png?v=4" alt="KeKost" className="h-20 w-auto object-contain" />
           </Link>
           <h2 className="text-3xl font-bold mb-4">Kelola properti Anda dengan lebih baik</h2>
           <p className="text-primary-foreground/80">
@@ -66,7 +66,7 @@ function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <Link to="/" className="lg:hidden flex items-center mb-8 justify-center hover:opacity-90 transition-opacity">
-            <img src="/logo-stacked.png?v=3" alt="KeKost" className="h-20 w-auto object-contain" />
+            <img src="/logo-stacked.png?v=4" alt="KeKost" className="h-20 w-auto object-contain" />
           </Link>
 
           <Card>

@@ -62,7 +62,7 @@ export default function Navigation({ activeSection }: NavigationProps) {
               className="flex items-center text-left group cursor-pointer border-0 bg-transparent p-0"
               id="nav-logo-btn"
             >
-              <img src="/logo-horizontal.png?v=3" alt="KeKost" className="h-10 md:h-[42px] w-auto object-contain" />
+              <img src="/logo-horizontal.png?v=4" alt="KeKost" className="h-10 md:h-[42px] w-auto object-contain" />
             </button>
 
             {/* Desktop Navigation */}
