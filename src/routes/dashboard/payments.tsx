@@ -85,15 +85,6 @@ function PaymentsPage() {
     cacheKey: 'bills.list',
   })
 
-  const isBootstrappingPayments = loading || loadingBillsCache
-  if (isBootstrappingPayments) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
-  }
-
   const { mutate: createPayment, loading: creating } = useMutation({
     mutationFn: (data: any) => api.payments.create(data),
     onSuccess: () => {
@@ -102,6 +93,15 @@ function PaymentsPage() {
       refetch()
     },
   })
+
+  const isBootstrappingPayments = loading || loadingBillsCache
+  if (isBootstrappingPayments) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   const methodLabels: Record<string, string> = { cash: 'Cash', bank_transfer: 'Transfer Bank', qris_manual: 'QRIS', other: 'Lainnya' }
 
