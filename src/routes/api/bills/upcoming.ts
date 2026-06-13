@@ -39,7 +39,6 @@ export const Route = createFileRoute('/api/bills/upcoming')({
           const drafts = await getUpcomingBillsDraft(today)
 
           if (runGenerate) {
-            // Jalankan generasi tagihan (Upcoming Bills)
             const toGenerate = drafts.filter((d) => !d.exists)
             let count = 0
             const now = new Date()
@@ -63,39 +62,11 @@ export const Route = createFileRoute('/api/bills/upcoming')({
                 updatedAt: now,
               })
 
-              const [tenantRow] = await db
-                .select({ userId: tenants.userId, propertyId: tenants.propertyId })
-                .from(tenants)
-                .where(eq(tenants.id, draft.tenantId))
-                .limit(1)
-
-              if (tenantRow?.userId) {
-                const dueDateFormatted = new Date(draft.dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
-                await db.insert(inbox).values({
-                  id: nanoid(),
-                  createdAt: now,
-                  updatedAt: now,
-                  userId: tenantRow.userId,
-                  propertyId: tenantRow.propertyId,
-                  senderId: session?.user?.id || 'system',
-                  senderName: session?.user?.name || 'Sistem KostManager',
-                  recipientType: 'tenant',
-                  recipientPropertyId: tenantRow.propertyId,
-                  recipientTenantId: draft.tenantId,
-                  subject: 'Tagihan Baru Diterbitkan (Mendatang)',
-                  body: `Tagihan otomatis untuk periode ${draft.periodMonth}/${draft.periodYear} sebesar Rp ${draft.rentAmount.toLocaleString('id-ID')} telah diterbitkan. Jatuh tempo: ${dueDateFormatted}.`,
-                  category: 'pembayaran',
-                  isRead: false,
-                  readAt: null,
-                  priority: 'normal',
-                  status: 'unread',
-                })
-              }
-
               count++
             }
 
             console.log(`[Upcoming Bills] Generated ${count} bills`)
+
             return new Response(
               JSON.stringify({ success: true, generatedCount: count }),
               {
@@ -105,7 +76,6 @@ export const Route = createFileRoute('/api/bills/upcoming')({
             )
           }
 
-          // Tampilkan preview draft
           return new Response(JSON.stringify(drafts), {
             status: 200,
             headers: { 'content-type': 'application/json' },
@@ -178,35 +148,6 @@ export const Route = createFileRoute('/api/bills/upcoming')({
               createdAt: now,
               updatedAt: now,
             })
-
-            const [tenantRow] = await db
-              .select({ userId: tenants.userId, propertyId: tenants.propertyId })
-              .from(tenants)
-              .where(eq(tenants.id, draft.tenantId))
-              .limit(1)
-
-            if (tenantRow?.userId) {
-              const dueDateFormatted = new Date(draft.dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
-              await db.insert(inbox).values({
-                id: nanoid(),
-                createdAt: now,
-                updatedAt: now,
-                userId: tenantRow.userId,
-                propertyId: tenantRow.propertyId,
-                senderId: session?.user?.id || 'system',
-                senderName: session?.user?.name || 'Sistem KostManager',
-                recipientType: 'tenant',
-                recipientPropertyId: tenantRow.propertyId,
-                recipientTenantId: draft.tenantId,
-                subject: 'Tagihan Baru Diterbitkan (Mendatang)',
-                body: `Tagihan otomatis untuk periode ${draft.periodMonth}/${draft.periodYear} sebesar Rp ${draft.rentAmount.toLocaleString('id-ID')} telah diterbitkan. Jatuh tempo: ${dueDateFormatted}.`,
-                category: 'pembayaran',
-                isRead: false,
-                readAt: null,
-                priority: 'normal',
-                status: 'unread',
-              })
-            }
 
             count++
           }

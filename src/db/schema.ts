@@ -53,6 +53,29 @@ export const ensurePerformanceIndexes = async () => {
   }
 }
 
+export const ensureInboxIndexes = async () => {
+  try {
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_inbox_user
+      ON inbox (user_id)
+    `
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_inbox_property
+      ON inbox (property_id)
+    `
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_inbox_read
+      ON inbox (is_read)
+    `
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_inbox_created
+      ON inbox (created_at)
+    `
+  } catch (e) {
+    console.error('ensureInboxIndexes failed', e)
+  }
+}
+
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
   email: text('email').notNull().unique(),

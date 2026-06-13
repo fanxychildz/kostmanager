@@ -15,9 +15,11 @@ export const Route = createFileRoute('/')({
 
 function LandingPage() {
   const navigate = useNavigate()
-  const [ready, setReady] = useState(false)
   const [activeSection, setActiveSection] = useState<string>("fitur")
 
+  // Check auth session on client only — redirect logged-in users to dashboard.
+  // We no longer gate the entire render on this check so SSR can emit the full
+  // landing page HTML (previously it returned null → white screen).
   useEffect(() => {
     let cancelled = false
     api.auth.getSession()
@@ -27,17 +29,12 @@ function LandingPage() {
         }
       })
       .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setReady(true)
-      })
     return () => {
       cancelled = true
     }
   }, [navigate])
 
   useEffect(() => {
-    if (!ready) return
-
     const handleScroll = () => {
       const sections = ["fitur", "cara-kerja", "harga", "faq"]
       const scrollPosition = window.scrollY + 220 
@@ -60,9 +57,7 @@ function LandingPage() {
     window.addEventListener("scroll", handleScroll)
     handleScroll()
     return () => window.removeEventListener("scroll", handleScroll)
-  }, [ready])
-
-  if (!ready) return null
+  }, [])
 
   return (
     <div className="relative min-h-screen bg-[#fafbfd] text-slate-900 select-none antialiased">

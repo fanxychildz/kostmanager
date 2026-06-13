@@ -181,7 +181,10 @@ export const listTenantAnnouncements = createServerFn({ method: 'GET' })
 
     const conditions = [
       eq(announcements.propertyId, tenantRow.propertyId),
-      sql`1=1`
+      and(
+        eq(announcements.channel, 'tenant'),
+        eq(announcements.audience, 'property'),
+      ),
     ] as any[]
 
     const countRow = await db.select({ count: sql<number>`count(*)` }).from(announcements).where(and(...conditions))
