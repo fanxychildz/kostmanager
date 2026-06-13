@@ -27,8 +27,7 @@ function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      await signIn(email, password)
-      const session = await api.auth.getSession()
+      const session = await signIn(email, password)
       if (session && (session.user as { role?: string }).role === 'tenant') {
         await signOut()
         setError('Akun ini adalah akun penghuni. Silakan masuk melalui Portal Penghuni.')

@@ -24,11 +24,15 @@ function isFresh(entry: CacheEntry<any>): boolean {
 /** Invalidate all cache entries (call after mutations) */
 export function invalidateCache(keySubstring?: string) {
   if (!keySubstring) {
-    queryCache.clear()
+    for (const [key, entry] of queryCache.entries()) {
+      queryCache.set(key, { ...entry, timestamp: 0 })
+    }
     return
   }
-  for (const key of queryCache.keys()) {
-    if (key.includes(keySubstring)) queryCache.delete(key)
+  for (const [key, entry] of queryCache.entries()) {
+    if (key.includes(keySubstring)) {
+      queryCache.set(key, { ...entry, timestamp: 0 })
+    }
   }
 }
 

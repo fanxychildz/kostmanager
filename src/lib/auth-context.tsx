@@ -24,10 +24,10 @@ interface AuthContextType {
   user: User | null
   session: Session | null
   loading: boolean
-  signIn: (email: string, password: string) => Promise<void>
+  signIn: (email: string, password: string) => Promise<any>
   signUp: (email: string, password: string, name: string) => Promise<void>
   signOut: () => Promise<void>
-  refreshSession: () => Promise<void>
+  refreshSession: () => Promise<any>
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -43,13 +43,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data && data.user && data.session) {
         setUser(data.user as User)
         setSession(data.session as Session)
+        return data
       } else {
         setUser(null)
         setSession(null)
+        return null
       }
     } catch (error) {
       setUser(null)
       setSession(null)
+      return null
     } finally {
       setLoading(false)
     }
@@ -69,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession({ token: data.token, userId: data.user.id } as Session)
       }
     }
-    await refreshSession()
+    return await refreshSession()
   }
 
   const signUp = async (email: string, password: string, name: string) => {
