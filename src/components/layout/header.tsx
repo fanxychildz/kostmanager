@@ -8,6 +8,7 @@ import {
   CreditCard,
   BarChart3,
   Bell,
+  Inbox,
   Settings,
   LogOut,
   Home,
@@ -23,6 +24,7 @@ import { Button } from '~/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '~/components/ui/avatar'
 import { useAuth } from '~/lib/auth-context'
 import { api } from '~/lib/api'
+import { useQuery } from '~/lib/hooks'
 
 function getInitials(nameOrEmail?: string | null) {
   const source = nameOrEmail || 'KostManager'
@@ -39,7 +41,7 @@ const navItems = [
   { label: 'Pembayaran', href: '/dashboard/payments', icon: CreditCard },
   { label: 'Pengeluaran', href: '/dashboard/expenses', icon: TrendingDown },
   { label: 'Laporan', href: '/dashboard/reports', icon: BarChart3 },
-  { label: 'Notifikasi', href: '/dashboard/notifications', icon: Bell },
+  { label: 'Inbox', href: '/dashboard/inbox', icon: Inbox },
   { label: 'Keluhan Perbaikan', href: '/dashboard/maintenance', icon: Wrench },
   { label: 'Chat Penghuni', href: '/dashboard/chat', icon: MessageSquare },
   { label: 'Pengumuman', href: '/dashboard/announcements', icon: Megaphone },
@@ -54,30 +56,8 @@ export function Header() {
   const initials = getInitials(name)
   const displayLabel = name === 'KostManager' ? '' : name
 
-  const [unreadCount, setUnreadCount] = useState(0)
-
-  useEffect(() => {
-    if (!user || (user as any).role === 'tenant') return
-    let active = true
-    const fetchUnread = async () => {
-      try {
-        const list = await api.notifications.list({ recipientType: 'owner' })
-        if (!active) return
-        const count = (list || []).filter((item: any) => item.status !== 'delivered').length
-        setUnreadCount(count)
-      } catch (err) {
-        // ignore
-      }
-    }
-    fetchUnread()
-    
-    // Refresh notifications every 45 seconds
-    const interval = setInterval(fetchUnread, 45000)
-    return () => {
-      active = false
-      clearInterval(interval)
-    }
-  }, [user])
+  const { data: inboxCountData } = useQuery({ queryFn: () => api.inbox.count() })
+  const unreadCount = inboxCountData?.count || 0
 
   const handleSignOut = async () => {
     await signOut()
@@ -100,8 +80,8 @@ export function Header() {
 
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="text-slate-600 hover:text-slate-900 rounded-xl relative" asChild>
-            <Link to="/dashboard/notifications">
-              <Bell className="h-5 w-5" />
+            <Link to="/dashboard/inbox">
+              <Inbox className="h-5 w-5" />
               {unreadCount > 0 && (
                 <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white ring-2 ring-white">
                   {unreadCount}
@@ -133,17 +113,13 @@ export function Header() {
           <div className="fixed inset-y-0 left-0 w-64 bg-white p-4 flex flex-col justify-between shadow-2xl">
             <div className="space-y-6">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 bg-blue-600 rounded-xl text-white">
-                    <Building2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-sm font-extrabold text-slate-900 tracking-tight leading-none">
-                      Kost<span className="text-blue-600 font-semibold">Manager</span>
-                    </span>
-                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block mt-0.5">Admin Hub</span>
-                  </div>
-                </div>
+                <Link 
+                  to="/dashboard" 
+                  className="flex items-center py-1 justify-start hover:opacity-95 transition-opacity" 
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <img src="/logo-horizontal.png?v=4" alt="KeKost" className="h-9 w-auto object-contain" />
+                </Link>
                 <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => setMobileMenuOpen(false)}>
                   <X className="h-5 w-5 text-slate-700" />
                 </Button>
@@ -159,14 +135,21 @@ export function Header() {
                       to={item.href}
                       onClick={() => setMobileMenuOpen(false)}
                       className={cn(
-                        'flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all',
+                        'flex items-center justify-between rounded-xl px-4 py-2.5 text-sm font-semibold transition-all',
                         isActive
                           ? 'bg-blue-600 text-white shadow-md'
                           : 'text-slate-600 hover:bg-slate-100'
                       )}
                     >
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      {item.label}
+                      <div className="flex items-center gap-3">
+                        <item.icon className="h-4 w-4 shrink-0" />
+                        {item.label}
+                      </div>
+                      {item.label === 'Inbox' && unreadCount > 0 && (
+                        <span className="flex h-5 min-w-5 px-1.5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white ring-1 ring-white">
+                          {unreadCount}
+                        </span>
+                      )}
                     </Link>
                   )
                 })}
