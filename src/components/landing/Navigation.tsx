@@ -62,7 +62,7 @@ export default function Navigation({ activeSection }: NavigationProps) {
               className="flex items-center text-left group cursor-pointer border-0 bg-transparent p-0"
               id="nav-logo-btn"
             >
-              <img src="/logo.png?v=3" alt="KeKost" className="h-14 w-auto object-contain" />
+              <img src="/logo-horizontal.png?v=3" alt="KeKost" className="h-10 md:h-[42px] w-auto object-contain" />
             </button>
 
             {/* Desktop Navigation */}
@@ -123,7 +123,7 @@ export default function Navigation({ activeSection }: NavigationProps) {
               </Link>
               <Link
                 to="/register"
-                className="bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-bold px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg hover:shadow-blue-500/15 transition-all flex items-center gap-1.5 cursor-pointer decoration-none"
+                className="bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-bold px-5 py-2 rounded-xl shadow-md hover:shadow-lg hover:shadow-blue-500/15 transition-all flex items-center gap-1.5 cursor-pointer decoration-none"
                 id="btn-nav-cta"
               >
                 <motion.span
