@@ -15,9 +15,9 @@ export const Route = createFileRoute('/dashboard/reports')({
 })
 
 function ReportsPage() {
-  const { data: bills, loading: loadingBills } = useQuery({ queryFn: () => api.bills.list() })
-  const { data: properties } = useQuery({ queryFn: () => api.properties.list() })
-  const { data: expenses, loading: loadingExpenses } = useQuery({ queryFn: () => api.expenses.list() })
+  const { data: bills, loading: loadingBills } = useQuery({ queryFn: () => api.bills.list(), cacheKey: 'bills.list' })
+  const { data: properties } = useQuery({ queryFn: () => api.properties.list(), cacheKey: 'properties.list' })
+  const { data: expenses, loading: loadingExpenses } = useQuery({ queryFn: () => api.expenses.list(), cacheKey: 'expenses.list' })
 
   if (loadingBills || loadingExpenses) {
     return (

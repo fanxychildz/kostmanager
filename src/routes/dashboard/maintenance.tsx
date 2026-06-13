@@ -5,6 +5,7 @@ import { motion } from 'motion/react'
 import { api } from '~/lib/api'
 import { Button } from '~/components/ui/button'
 import { DashboardBootstrap } from '~/lib/dashboard-bootstrap'
+import { useQuery } from '~/lib/hooks'
 
 type MaintenanceStatus = 'Pending' | 'In Progress' | 'Resolved'
 
@@ -27,16 +28,50 @@ export const Route = createFileRoute('/dashboard/maintenance')({
 })
 
 function LandlordMaintenancePage() {
-  const [items, setItems] = useState<MaintenanceItem[]>([])
+  const { data: rawItems, loading, refetch } = useQuery<any[]>({
+    queryFn: () => api.maintenance.list(),
+    cacheKey: 'maintenance.list',
+  })
+
   const [selectedRequest, setSelectedRequest] = useState<MaintenanceItem | null>(null)
   const [maintenanceNoteText, setMaintenanceNoteText] = useState('')
-  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isBulkMode, setIsBulkMode] = useState(false)
 
   const location = useLocation()
   const navigate = useNavigate()
+
+  const normalizeItem = (row: any): MaintenanceItem => ({
+    id: String(row.id),
+    tenantName: String(row.tenantName ?? 'Penghuni'),
+    unitNumber: String(row.unitNumber ?? '-'),
+    propertyName: String(row.propertyName ?? 'Properti'),
+    title: String(row.title),
+    description: String(row.description),
+    category: String(row.category),
+    priority: String(row.priority),
+    status: (() => {
+      const s = String(row.status || '').toLowerCase()
+      if (s === 'resolved') return 'Resolved'
+      if (s === 'in_progress' || s === 'in progress') return 'In Progress'
+      return 'Pending'
+    })() as MaintenanceStatus,
+    createdAt: String(row.createdAt || new Date().toISOString()),
+    updates: Array.isArray(row.updates)
+      ? row.updates.map((up: any) => ({
+          id: String(up.id),
+          date: String(up.date || up.createdAt || new Date().toISOString()),
+          author: String(up.author || up.authorName || 'Tim'),
+          text: String(up.text),
+        }))
+      : [],
+  })
+
+  const items = useMemo(() => {
+    if (!rawItems) return []
+    return rawItems.map(normalizeItem)
+  }, [rawItems])
 
   // Automatically open a specific complaint if its ID is provided in URL query parameters (e.g. from notification redirect)
   useEffect(() => {
@@ -75,8 +110,7 @@ function LandlordMaintenancePage() {
     setSaving(true)
     try {
       await api.maintenance.deleteMultiple(selectedIds)
-      const next = items.filter(item => !selectedIds.includes(item.id))
-      setItems(next)
+      await refetch()
       setSelectedIds([])
       setIsBulkMode(false)
     } catch (err) {
@@ -85,49 +119,6 @@ function LandlordMaintenancePage() {
       setSaving(false)
     }
   }
-
-  const normalizeItem = (row: any): MaintenanceItem => ({
-    id: String(row.id),
-    tenantName: String(row.tenantName ?? 'Penghuni'),
-    unitNumber: String(row.unitNumber ?? '-'),
-    propertyName: String(row.propertyName ?? 'Properti'),
-    title: String(row.title),
-    description: String(row.description),
-    category: String(row.category),
-    priority: String(row.priority),
-    status: (() => {
-      const s = String(row.status || '').toLowerCase()
-      if (s === 'resolved') return 'Resolved'
-      if (s === 'in_progress' || s === 'in progress') return 'In Progress'
-      return 'Pending'
-    })() as MaintenanceStatus,
-    createdAt: String(row.createdAt || new Date().toISOString()),
-    updates: Array.isArray(row.updates)
-      ? row.updates.map((up: any) => ({
-          id: String(up.id),
-          date: String(up.date || up.createdAt || new Date().toISOString()),
-          author: String(up.author || up.authorName || 'Tim'),
-          text: String(up.text),
-        }))
-      : [],
-  })
-
-  useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    api.maintenance.list().then(data => {
-      if (!cancelled) {
-        const normalized = (data as any[]).map(normalizeItem)
-        setItems(normalized)
-        setLoading(false)
-      }
-    }).catch(() => {
-      if (!cancelled) setLoading(false)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   const changeRequestStatus = async (reqId: string, newStatus: MaintenanceStatus) => {
     setSaving(true)
@@ -143,8 +134,7 @@ function LandlordMaintenancePage() {
         repairCost: undefined,
       })
       const updated = normalizeItem(updatedRaw)
-      const next = items.map(item => (item.id === reqId ? updated : item))
-      setItems(next)
+      await refetch()
       setSelectedRequest(updated)
     } finally {
       setSaving(false)
@@ -156,8 +146,7 @@ function LandlordMaintenancePage() {
     setSaving(true)
     try {
       await api.maintenance.delete(id)
-      const next = items.filter(item => item.id !== id)
-      setItems(next)
+      await refetch()
       closeDetails()
     } catch (err) {
       alert('Gagal menghapus laporan: ' + err)
@@ -184,8 +173,7 @@ function LandlordMaintenancePage() {
           },
         ],
       }
-      const next = items.map(item => (item.id === selectedRequest.id ? updated : item))
-      setItems(next)
+      await refetch()
       setSelectedRequest(updated)
       setMaintenanceNoteText('')
     } finally {

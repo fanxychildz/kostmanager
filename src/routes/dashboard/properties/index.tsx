@@ -22,6 +22,7 @@ const PLACEHOLDER_IMAGES = [
 function PropertiesPage() {
   const { data: properties, loading, error, refetch: refetchProperties } = useQuery({
     queryFn: () => api.properties.list(),
+    cacheKey: 'properties.list',
   })
 
   const { mutate: deleteProperty } = useMutation({

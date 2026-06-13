@@ -57,6 +57,7 @@ function AnnouncementsPage() {
   const { data: properties, loading } = selectCache.properties(() => api.properties.list())
   const { data: announcements, refetch } = useQuery<any>({
     queryFn: () => api.announcements.list(),
+    cacheKey: 'announcements.list',
   })
 
   const [form, setForm] = useState<FormState>(initialForm)
@@ -66,11 +67,13 @@ function AnnouncementsPage() {
 
   const { data: tenantsList } = useQuery<any>({
     queryFn: () => api.tenants.list(),
+    cacheKey: 'tenants.list',
   })
 
   const { data: unitsList } = useQuery<any>({
     queryFn: () => api.units.list(propertyId),
     deps: [propertyId],
+    cacheKey: `units.list-${propertyId}`,
   })
 
   const list = Array.isArray(announcements)

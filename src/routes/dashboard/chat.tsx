@@ -21,8 +21,8 @@ export const Route = createFileRoute('/dashboard/chat')({
 })
 
 function ChatPage() {
-  const { data: tenants, loading: loadingTenants } = useQuery({ queryFn: () => api.tenants.list() })
-  const { data: allMessages, refetch: refetchSummaries } = useQuery<any[]>({ queryFn: () => api.chat.listConversations() })
+  const { data: tenants, loading: loadingTenants } = useQuery({ queryFn: () => api.tenants.list(), cacheKey: 'tenants.list' })
+  const { data: allMessages, refetch: refetchSummaries } = useQuery<any[]>({ queryFn: () => api.chat.listConversations(), cacheKey: 'chat.conversations' })
   const [selectedTenantId, setSelectedTenantId] = useState<string>('')
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [chatInputText, setChatInputText] = useState('')
