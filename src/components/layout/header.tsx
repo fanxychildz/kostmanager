@@ -27,7 +27,7 @@ import { api } from '~/lib/api'
 import { useQuery } from '~/lib/hooks'
 
 function getInitials(nameOrEmail?: string | null) {
-  const source = nameOrEmail || 'KostManager'
+  const source = nameOrEmail || 'KeKost'
   const parts = source.split(' ').filter(Boolean)
   if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.slice(0, 2).toUpperCase()
   return source.slice(0, 2).toUpperCase()
@@ -52,9 +52,9 @@ export function Header() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
-  const name = user?.name || user?.email || 'KostManager'
+  const name = user?.name || user?.email || 'KeKost'
   const initials = getInitials(name)
-  const displayLabel = name === 'KostManager' ? '' : name
+  const displayLabel = name === 'KeKost' ? '' : name
 
   const { data: inboxCountData } = useQuery({ queryFn: () => api.inbox.count() })
   const unreadCount = inboxCountData?.count || 0

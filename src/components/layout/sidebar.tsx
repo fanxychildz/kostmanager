@@ -40,7 +40,7 @@ const bottomItems = [
 ]
 
 function getInitials(name?: string | null) {
-  const source = name || 'KostManager'
+  const source = name || 'KeKost'
   const parts = source.split(' ').filter(Boolean)
   if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.slice(0, 2).toUpperCase()
   return source.slice(0, 2).toUpperCase()
@@ -50,7 +50,7 @@ export function Sidebar() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
-  const displayName = user?.name || user?.email || 'KostManager'
+  const displayName = user?.name || user?.email || 'KeKost'
   const initials = getInitials(displayName)
   const roleLabel = (user as any)?.role === 'tenant' ? 'Penghuni' : 'Pemilik Kost'
 
@@ -86,11 +86,11 @@ export function Sidebar() {
           <div className="bg-slate-50 text-slate-900 rounded-2xl p-4 shadow-sm border border-slate-200/60">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                <Building2 className="w-4 h-4" />
+                <Home className="w-4 h-4" />
               </div>
               <div>
                 <h4 className="font-bold text-xs leading-none text-slate-900">Akun Pemilik</h4>
-                <span className="text-[9px] text-blue-600 font-semibold mt-1 block">KostManager Administrator</span>
+                <span className="text-[9px] text-blue-600 font-semibold mt-1 block">KeKost Administrator</span>
               </div>
             </div>
             
