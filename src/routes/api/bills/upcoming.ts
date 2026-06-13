@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { auth } from '~/server/auth'
-import { getUpcomingBillsDraft } from '~/server/bills'
+import { getUpcomingBillsDraft } from '~/server/bills-db'
 import { db } from '~/db'
 import { bills } from '~/db/schema'
 import { nanoid } from 'nanoid'

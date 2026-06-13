@@ -4,7 +4,6 @@ import { db } from '~/db'
 import { payments, bills, tenants, properties, units } from '~/db/schema'
 import { eq, and, inArray, desc } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
-import { saveProofImage, recalculateBillStatus } from '~/server/payments'
 
 export const Route = createFileRoute('/api/payments')({
   server: {
@@ -151,6 +150,7 @@ export const Route = createFileRoute('/api/payments')({
 
           // 4. Simpan gambar bukti transfer jika ada
           let proofImageUrl: string | null = null
+          const { saveProofImage, recalculateBillStatus } = await import('~/server/payments-db')
           if (proofImage) {
             proofImageUrl = await saveProofImage(proofImage)
           }

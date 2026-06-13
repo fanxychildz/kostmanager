@@ -3,7 +3,6 @@ import { auth } from '~/server/auth'
 import { db } from '~/db'
 import { payments } from '~/db/schema'
 import { eq } from 'drizzle-orm'
-import { recalculateBillStatus } from '~/server/payments'
 
 export const Route = createFileRoute('/api/payments/$id/status')({
   server: {
@@ -71,6 +70,7 @@ export const Route = createFileRoute('/api/payments/$id/status')({
             .where(eq(payments.id, id))
 
           // 3. Sinkronisasi status tagihan terkait
+          const { recalculateBillStatus } = await import('~/server/payments-db')
           await recalculateBillStatus(existing[0].billId)
 
           return new Response(
