@@ -801,8 +801,8 @@ function BillsPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
-                    <div className="text-right space-y-0.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full md:w-auto md:flex-row md:justify-end md:gap-6 border-t border-slate-100/50 pt-3 sm:border-t-0 sm:pt-0 mt-1 sm:mt-0">
+                    <div className="text-left md:text-right space-y-0.5">
                       <div className="font-extrabold text-slate-950 text-xs md:text-sm">
                         {formatRupiah(bill.totalAmount)}
                       </div>
@@ -811,7 +811,7 @@ function BillsPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                         bill.status === 'paid' ? 'bg-emerald-100 text-emerald-800' :
                         bill.status === 'overdue' ? 'bg-rose-100 text-rose-800' :
