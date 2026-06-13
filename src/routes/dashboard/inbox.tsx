@@ -24,7 +24,6 @@ import { api } from '~/lib/api'
 import { Card, CardContent } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
 import { Badge } from '~/components/ui/badge'
-import { Tabs, TabsList, TabsTrigger } from '~/components/ui/tabs'
 import { formatDate } from '~/lib/utils'
 
 export const Route = createFileRoute('/dashboard/inbox')({
@@ -198,19 +197,33 @@ function InboxPage() {
 
         {/* Filter Toolbar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0 bg-slate-50 p-2 rounded-2xl border border-slate-200/60">
-          <Tabs
-            value={activeCategory}
-            onValueChange={setActiveCategory}
-            className="w-full md:w-auto"
-          >
-            <TabsList className="bg-transparent gap-1.5 p-0 grid grid-cols-6 h-auto w-full md:flex md:flex-row md:flex-nowrap md:w-auto md:h-10">
-              <TabsTrigger value="all" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm shrink-0 col-span-2 text-center justify-center w-full md:w-auto md:shrink">Semua</TabsTrigger>
-              <TabsTrigger value="pengumuman" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm shrink-0 col-span-2 text-center justify-center w-full md:w-auto md:shrink">Pengumuman</TabsTrigger>
-              <TabsTrigger value="chat" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm shrink-0 col-span-2 text-center justify-center w-full md:w-auto md:shrink">Chat</TabsTrigger>
-              <TabsTrigger value="pembayaran" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm shrink-0 col-span-3 text-center justify-center w-full md:w-auto md:shrink">Pembayaran</TabsTrigger>
-              <TabsTrigger value="laporan" className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm shrink-0 col-span-3 text-center justify-center w-full md:w-auto md:shrink">Laporan</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="grid grid-cols-2 md:flex md:flex-row gap-1.5 w-full md:w-auto">
+            {([
+              { id: 'pengumuman', label: 'Pengumuman' },
+              { id: 'chat', label: 'Chat' },
+              { id: 'pembayaran', label: 'Pembayaran' },
+              { id: 'laporan', label: 'Laporan' },
+            ] as const).map((opt) => (
+              <button
+                key={opt.id}
+                onClick={() => {
+                  if (activeCategory === opt.id) {
+                    setActiveCategory('all')
+                  } else {
+                    setActiveCategory(opt.id)
+                  }
+                }}
+                disabled={loading}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition text-center w-full md:w-auto shrink-0 md:shrink ${
+                  activeCategory === opt.id 
+                    ? 'bg-slate-950 border-slate-950 text-white shadow-xs' 
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
 
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-slate-500 font-semibold">Status:</span>
