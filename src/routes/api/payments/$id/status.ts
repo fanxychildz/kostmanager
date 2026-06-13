@@ -1,8 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { auth } from '~/server/auth'
 import { db } from '~/db'
-import { payments } from '~/db/schema'
-import { eq } from 'drizzle-orm'
+import { payments, bills, tenants, inbox } from '~/db/schema'
+import { eq, and } from 'drizzle-orm'
+import { nanoid } from 'nanoid'
 
 export const Route = createFileRoute('/api/payments/$id/status')({
   server: {
@@ -72,6 +73,41 @@ export const Route = createFileRoute('/api/payments/$id/status')({
           // 3. Sinkronisasi status tagihan terkait
           const { recalculateBillStatus } = await import('~/server/payments-db')
           await recalculateBillStatus(existing[0].billId)
+
+          // 4. Kirim notifikasi inbox ke tenant mengenai perubahan status pembayaran
+          const [tenantRow] = await db
+            .select({ id: tenants.id, userId: tenants.userId, propertyId: tenants.propertyId })
+            .from(tenants)
+            .innerJoin(bills, eq(bills.tenantId, tenants.id))
+            .where(eq(bills.id, existing[0].billId))
+            .limit(1)
+
+          if (tenantRow?.userId) {
+            const subjectText = status === 'paid' ? 'Pembayaran Dikonfirmasi' : 'Pembayaran Ditolak'
+            const bodyText = status === 'paid'
+              ? 'Bukti pembayaran Anda telah dikonfirmasi dan status tagihan Anda telah diperbarui menjadi lunas.'
+              : 'Bukti pembayaran Anda ditolak oleh pengelola. Mohon unggah bukti pembayaran yang valid.'
+
+            await db.insert(inbox).values({
+              id: nanoid(),
+              createdAt: now,
+              updatedAt: now,
+              userId: tenantRow.userId,
+              propertyId: tenantRow.propertyId,
+              senderId: session.user.id,
+              senderName: session.user.name || 'Pengelola Kost',
+              recipientType: 'tenant',
+              recipientPropertyId: tenantRow.propertyId,
+              recipientTenantId: tenantRow.id,
+              subject: subjectText,
+              body: bodyText,
+              category: 'pembayaran',
+              isRead: false,
+              readAt: null,
+              priority: 'normal',
+              status: 'unread',
+            })
+          }
 
           return new Response(
             JSON.stringify({

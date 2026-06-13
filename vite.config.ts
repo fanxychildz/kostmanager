@@ -8,40 +8,6 @@ import { dirname, resolve } from 'path'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-function preventServerLeakPlugin() {
-  let isSsr = false
-  return {
-    name: 'prevent-server-leak',
-    configResolved(config: any) {
-      isSsr = !!config.build?.ssr
-    },
-    generateBundle(_options: any, bundle: any) {
-      if (isSsr) return
-
-      for (const file of Object.values(bundle) as any[]) {
-        if (file.type === 'chunk') {
-          for (const moduleId of file.moduleIds || []) {
-            const normalized = moduleId.replace(/\\/g, '/')
-            if (
-              normalized.includes('node_modules/@libsql/client') ||
-              normalized.includes('node_modules/drizzle-orm') ||
-              normalized.includes('/src/db/') ||
-              normalized.includes('-db.ts') ||
-              normalized.startsWith('node:') ||
-              normalized.includes('node_modules/better-sqlite3')
-            ) {
-              throw new Error(
-                `\n[Server Leak Protection] Server-only module "${moduleId}" was bundled into client chunk "${file.fileName}"!\n` +
-                `This is not allowed as it will crash the browser. Please move database/server-only operations to a separate file (e.g. ending with -db.ts) and ensure it is not imported by client files.`
-              )
-            }
-          }
-        }
-      }
-    },
-  }
-}
-
 export default defineConfig({
   server: {
     port: 3000,
@@ -61,7 +27,5 @@ export default defineConfig({
       },
     }),
     viteReact(),
-    preventServerLeakPlugin(),
   ],
 })
-

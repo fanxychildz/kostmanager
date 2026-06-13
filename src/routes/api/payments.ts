@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { auth } from '~/server/auth'
 import { db } from '~/db'
-import { payments, bills, tenants, properties, units } from '~/db/schema'
+import { payments, bills, tenants, properties, units, inbox } from '~/db/schema'
 import { eq, and, inArray, desc } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 
@@ -106,6 +106,7 @@ export const Route = createFileRoute('/api/payments')({
               id: bills.id,
               totalAmount: bills.totalAmount,
               status: bills.status,
+              tenantId: bills.tenantId,
             })
             .from(bills)
             .where(eq(bills.id, billId))
@@ -179,6 +180,45 @@ export const Route = createFileRoute('/api/payments')({
           // 6. Sinkronisasi status tagihan jika diinput langsung oleh pengelola (lunas)
           if (initialStatus === 'paid') {
             await recalculateBillStatus(billId)
+          }
+
+          // 7. Insert to inbox for payment notification (if uploaded by tenant)
+          if (session.user.role === 'tenant') {
+            const [tenantRow] = await db
+              .select({ id: tenants.id, fullName: tenants.fullName, propertyId: tenants.propertyId })
+              .from(tenants)
+              .where(eq(tenants.id, bill.tenantId))
+              .limit(1)
+
+            if (tenantRow) {
+              const [propRow] = await db
+                .select({ ownerId: properties.ownerId })
+                .from(properties)
+                .where(eq(properties.id, tenantRow.propertyId))
+                .limit(1)
+
+              if (propRow?.ownerId) {
+                await db.insert(inbox).values({
+                  id: nanoid(),
+                  createdAt: now,
+                  updatedAt: now,
+                  userId: propRow.ownerId,
+                  propertyId: tenantRow.propertyId,
+                  senderId: session.user.id,
+                  senderName: tenantRow.fullName,
+                  recipientType: 'owner',
+                  recipientPropertyId: tenantRow.propertyId,
+                  recipientTenantId: tenantRow.id,
+                  subject: 'Pembayaran Baru Masuk',
+                  body: `Penghuni ${tenantRow.fullName} telah mengirimkan bukti pembayaran sebesar Rp ${paymentAmount.toLocaleString('id-ID')}. Silakan periksa dan konfirmasi.`,
+                  category: 'pembayaran',
+                  isRead: false,
+                  readAt: null,
+                  priority: 'normal',
+                  status: 'unread',
+                })
+              }
+            }
           }
 
           return new Response(

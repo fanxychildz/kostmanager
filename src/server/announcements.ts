@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
-import { eq, and, inArray, sql, or } from 'drizzle-orm'
+import { eq, and, sql, inArray } from 'drizzle-orm'
 import { db } from '../db'
-import { announcements, properties, users, tenants } from '../db/schema'
+import { announcements, properties, users, tenants, inbox } from '../db/schema'
 import { auth } from './auth'
 import { nanoid } from 'nanoid'
 import { getRequest } from '@tanstack/react-start/server'
@@ -88,7 +88,7 @@ export const createAnnouncement = createServerFn({ method: 'POST' })
     }) => d,
   )
   .handler(async ({ data }) => {
-    const { propertyIds } = await requireOwnerProperties(getRequest().headers)
+    const { propertyIds, userId, userName } = await requireOwnerProperties(getRequest().headers)
 
     if (!propertyIds.includes(data.propertyId)) {
       throw new Error('Forbidden: Properti tidak sesuai')
@@ -96,6 +96,30 @@ export const createAnnouncement = createServerFn({ method: 'POST' })
 
     const now = new Date()
     const [result] = await db.insert(announcements).values({ id: nanoid(), ...data, createdAt: now, updatedAt: now }).returning()
+
+    // Send to owner if channel is 'owner' or 'all'
+    if (data.channel === 'owner' || data.channel === 'all') {
+      await persistAnnouncementInbox({
+        propertyId: data.propertyId,
+        title: data.title,
+        body: data.body,
+        senderId: userId,
+        senderName: userName,
+        recipientType: 'owner',
+      })
+    }
+
+    // Send to tenants if channel is 'tenant' or 'all'
+    if (data.channel === 'tenant' || data.channel === 'all') {
+      await persistAnnouncementInbox({
+        propertyId: data.propertyId,
+        title: data.title,
+        body: data.body,
+        senderId: userId,
+        senderName: userName,
+        recipientType: 'tenant',
+      })
+    }
 
     return result as any
   })
@@ -157,12 +181,7 @@ export const listTenantAnnouncements = createServerFn({ method: 'GET' })
 
     const conditions = [
       eq(announcements.propertyId, tenantRow.propertyId),
-      or(
-        eq(announcements.audience, 'all'),
-        eq(announcements.audience, 'property'),
-        and(eq(announcements.audience, 'tenant'), eq(announcements.targetTenantId, tenantRow.id)),
-        and(eq(announcements.audience, 'unit'), eq(announcements.targetTenantId, tenantRow.unitId))
-      )
+      sql`1=1`
     ] as any[]
 
     const countRow = await db.select({ count: sql<number>`count(*)` }).from(announcements).where(and(...conditions))
@@ -170,3 +189,88 @@ export const listTenantAnnouncements = createServerFn({ method: 'GET' })
 
     return { items: items as any[], total: Number((countRow[0]?.count as any) || 0), page, limit }
   })
+
+export async function persistAnnouncementInbox({
+  propertyId,
+  title,
+  body,
+  senderId,
+  senderName,
+  recipientType,
+  recipientPropertyId,
+  recipientTenantId,
+}: {
+  propertyId: string
+  title: string
+  body: string
+  senderId: string
+  senderName: string
+  recipientType: 'owner' | 'tenant'
+  recipientPropertyId?: string
+  recipientTenantId?: string
+}) {
+  const now = new Date()
+
+  if (recipientType === 'tenant') {
+    const rows = await db.select().from(tenants).where(eq(tenants.propertyId, propertyId))
+
+    for (const tenant of rows) {
+      const recipientUserId = tenant.userId || tenant.id
+
+      await db.insert(inbox).values({
+        id: nanoid(),
+        createdAt: now,
+        updatedAt: now,
+        userId: recipientUserId,
+        propertyId,
+        senderId,
+        senderName,
+        recipientType,
+        recipientPropertyId,
+        recipientTenantId,
+        subject: title,
+        body,
+        category: 'pengumuman',
+        isRead: false,
+        readAt: null,
+        priority: 'normal',
+        status: 'unread',
+      })
+    }
+    return
+  }
+
+  const [propRow] = await db
+    .select({ ownerId: properties.ownerId })
+    .from(properties)
+    .where(eq(properties.id, propertyId))
+    .limit(1)
+  const ownerId = propRow?.ownerId
+
+  if (!ownerId) return
+
+  await db.insert(inbox).values({
+    id: nanoid(),
+    createdAt: now,
+    updatedAt: now,
+    userId: ownerId,
+    propertyId,
+    senderId,
+    senderName,
+    recipientType,
+    recipientPropertyId,
+    recipientTenantId,
+    subject: title,
+    body,
+    category: 'pengumuman',
+    isRead: false,
+    readAt: null,
+    priority: 'normal',
+    status: 'unread',
+  })
+}
+
+export async function markInboxAsRead(messageId: string) {
+  const now = new Date()
+  await db.update(inbox).set({ isRead: true, readAt: now, updatedAt: now, status: 'read' }).where(eq(inbox.id, messageId))
+}

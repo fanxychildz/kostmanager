@@ -256,4 +256,24 @@ export const announcements = sqliteTable('announcements', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 })
 
+export const inbox = sqliteTable('inbox', {
+  id: text('id').primaryKey(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  propertyId: text('property_id').references(() => properties.id, { onDelete: 'cascade' }),
+  senderId: text('sender_id').references(() => users.id, { onDelete: 'set null' }),
+  senderName: text('sender_name').notNull(),
+  recipientType: text('recipient_type', { enum: ['owner', 'tenant'] }).notNull(),
+  recipientPropertyId: text('recipient_property_id').references(() => properties.id, { onDelete: 'set null' }),
+  recipientTenantId: text('recipient_tenant_id').references(() => tenants.id, { onDelete: 'set null' }),
+  subject: text('subject').notNull(),
+  body: text('body').notNull(),
+  category: text('category', { enum: ['pengumuman', 'chat', 'pembayaran', 'laporan', 'lainnya'] }).notNull().default('lainnya'),
+  isRead: integer('is_read', { mode: 'boolean' }).notNull().default(false),
+  readAt: integer('read_at', { mode: 'timestamp' }),
+  priority: text('priority', { enum: ['normal', 'penting'] }).notNull().default('normal'),
+  status: text('status').notNull().default('unread'),
+})
+
 export { meterReadings } from '../lib/meter-schema'

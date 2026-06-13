@@ -6,7 +6,7 @@ import {
   FileText,
   CreditCard,
   BarChart3,
-  Bell,
+  Inbox,
   Settings,
   LogOut,
   Home,
@@ -29,7 +29,7 @@ const navItems = [
   { label: 'Pembayaran', href: '/dashboard/payments', icon: CreditCard },
   { label: 'Pengeluaran', href: '/dashboard/expenses', icon: TrendingDown },
   { label: 'Laporan', href: '/dashboard/reports', icon: BarChart3 },
-  { label: 'Notifikasi', href: '/dashboard/notifications', icon: Bell },
+  { label: 'Inbox', href: '/dashboard/inbox', icon: Inbox },
   { label: 'Keluhan Perbaikan', href: '/dashboard/maintenance', icon: Wrench },
   { label: 'Chat Penghuni', href: '/dashboard/chat', icon: MessageSquare },
   { label: 'Pengumuman', href: '/dashboard/announcements', icon: Megaphone },
@@ -57,14 +57,14 @@ export function Sidebar() {
   // Real-time stats dynamically queried from DB
   const { data: properties } = useQuery({ queryFn: () => api.properties.list() })
   const { data: tenants } = useQuery({ queryFn: () => api.tenants.list() })
-  const { data: notificationsList } = useQuery({ queryFn: () => api.notifications.list({ recipientType: 'owner' }) })
+  const { data: inboxCountData } = useQuery({ queryFn: () => api.inbox.count() })
 
   const propertiesCount = properties?.length || 0
   const activeTenantsCount = tenants?.filter((t: any) => t.status === 'active').length || 0
   const totalUnits = properties?.reduce((sum: number, p: any) => sum + (p.totalUnits || 0), 0) || 0
   const occupiedUnits = properties?.reduce((sum: number, p: any) => sum + (p.occupiedUnits || 0), 0) || 0
   const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0
-  const unreadCount = notificationsList?.filter((item: any) => item.status !== 'delivered').length || 0
+  const unreadCount = inboxCountData?.count || 0
 
   const handleSignOut = async () => {
     await signOut()
@@ -138,7 +138,7 @@ export function Sidebar() {
                     <item.icon className="h-4 w-4 shrink-0" />
                     {item.label}
                   </div>
-                  {item.label === 'Notifikasi' && unreadCount > 0 && (
+                  {item.label === 'Inbox' && unreadCount > 0 && (
                     <span className="flex h-5 min-w-5 px-1.5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white ring-1 ring-white">
                       {unreadCount}
                     </span>

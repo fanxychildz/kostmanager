@@ -2,8 +2,9 @@ import { createFileRoute } from '@tanstack/react-router'
 import { auth } from '~/server/auth'
 import { getUpcomingBillsDraft } from '~/server/bills-db'
 import { db } from '~/db'
-import { bills } from '~/db/schema'
+import { bills, tenants, inbox } from '~/db/schema'
 import { nanoid } from 'nanoid'
+import { eq } from 'drizzle-orm'
 
 export const Route = createFileRoute('/api/bills/upcoming')({
   server: {
@@ -61,6 +62,36 @@ export const Route = createFileRoute('/api/bills/upcoming')({
                 createdAt: now,
                 updatedAt: now,
               })
+
+              const [tenantRow] = await db
+                .select({ userId: tenants.userId, propertyId: tenants.propertyId })
+                .from(tenants)
+                .where(eq(tenants.id, draft.tenantId))
+                .limit(1)
+
+              if (tenantRow?.userId) {
+                const dueDateFormatted = new Date(draft.dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+                await db.insert(inbox).values({
+                  id: nanoid(),
+                  createdAt: now,
+                  updatedAt: now,
+                  userId: tenantRow.userId,
+                  propertyId: tenantRow.propertyId,
+                  senderId: session?.user?.id || 'system',
+                  senderName: session?.user?.name || 'Sistem KostManager',
+                  recipientType: 'tenant',
+                  recipientPropertyId: tenantRow.propertyId,
+                  recipientTenantId: draft.tenantId,
+                  subject: 'Tagihan Baru Diterbitkan (Mendatang)',
+                  body: `Tagihan otomatis untuk periode ${draft.periodMonth}/${draft.periodYear} sebesar Rp ${draft.rentAmount.toLocaleString('id-ID')} telah diterbitkan. Jatuh tempo: ${dueDateFormatted}.`,
+                  category: 'pembayaran',
+                  isRead: false,
+                  readAt: null,
+                  priority: 'normal',
+                  status: 'unread',
+                })
+              }
+
               count++
             }
 
@@ -147,6 +178,36 @@ export const Route = createFileRoute('/api/bills/upcoming')({
               createdAt: now,
               updatedAt: now,
             })
+
+            const [tenantRow] = await db
+              .select({ userId: tenants.userId, propertyId: tenants.propertyId })
+              .from(tenants)
+              .where(eq(tenants.id, draft.tenantId))
+              .limit(1)
+
+            if (tenantRow?.userId) {
+              const dueDateFormatted = new Date(draft.dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+              await db.insert(inbox).values({
+                id: nanoid(),
+                createdAt: now,
+                updatedAt: now,
+                userId: tenantRow.userId,
+                propertyId: tenantRow.propertyId,
+                senderId: session?.user?.id || 'system',
+                senderName: session?.user?.name || 'Sistem KostManager',
+                recipientType: 'tenant',
+                recipientPropertyId: tenantRow.propertyId,
+                recipientTenantId: draft.tenantId,
+                subject: 'Tagihan Baru Diterbitkan (Mendatang)',
+                body: `Tagihan otomatis untuk periode ${draft.periodMonth}/${draft.periodYear} sebesar Rp ${draft.rentAmount.toLocaleString('id-ID')} telah diterbitkan. Jatuh tempo: ${dueDateFormatted}.`,
+                category: 'pembayaran',
+                isRead: false,
+                readAt: null,
+                priority: 'normal',
+                status: 'unread',
+              })
+            }
+
             count++
           }
 

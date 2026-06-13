@@ -1,9 +1,10 @@
 import { createServerFn } from '@tanstack/react-start'
 import { eq, and, desc, asc, sql, inArray } from 'drizzle-orm'
 import { db } from '../db'
-import { chatMessages, tenants, properties, users } from '../db/schema'
+import { chatMessages, tenants, properties, users, inbox } from '../db/schema'
 import { auth } from './auth'
 import { getRequest } from '@tanstack/react-start/server'
+import { nanoid } from 'nanoid'
 
 async function requireOwner(headers: Headers) {
   const session = await auth.api.getSession({ headers })
@@ -73,6 +74,36 @@ export const sendChatMessage = createServerFn({ method: 'POST' })
         createdAt: now,
       })
       .returning()
+
+    if (data.sender === 'Tenant') {
+      const [prop] = await db
+        .select({ ownerId: properties.ownerId })
+        .from(properties)
+        .where(eq(properties.id, tenant.propertyId))
+        .limit(1)
+
+      if (prop?.ownerId) {
+        await db.insert(inbox).values({
+          id: nanoid(),
+          createdAt: now,
+          updatedAt: now,
+          userId: prop.ownerId,
+          propertyId: tenant.propertyId,
+          senderId: session.user.id,
+          senderName: data.senderName,
+          recipientType: 'owner',
+          recipientPropertyId: tenant.propertyId,
+          recipientTenantId: tenant.id,
+          subject: 'Pesan Baru dari Penghuni',
+          body: data.message,
+          category: 'chat',
+          isRead: false,
+          readAt: null,
+          priority: 'normal',
+          status: 'unread',
+        })
+      }
+    }
 
     return row
   })

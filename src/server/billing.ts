@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { eq } from 'drizzle-orm'
 import { db } from '../db'
-import { bills, tenants, units } from '../db/schema'
+import { bills, tenants, units, inbox } from '../db/schema'
 import { auth } from './auth'
 import { nanoid } from 'nanoid'
 import { getRequest } from '@tanstack/react-start/server'
@@ -67,6 +67,30 @@ export const generateMonthlyBills = createServerFn({ method: 'POST' }).handler(a
       createdAt: now,
       updatedAt: now,
     }).returning()
+
+    // Notify tenant about the monthly bill
+    if (tenant.userId) {
+      const dueDateFormatted = dueDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+      await db.insert(inbox).values({
+        id: nanoid(),
+        createdAt: now,
+        updatedAt: now,
+        userId: tenant.userId,
+        propertyId: tenant.propertyId,
+        senderId: session?.user?.id || 'system',
+        senderName: session?.user?.name || 'Sistem KostManager',
+        recipientType: 'tenant',
+        recipientPropertyId: tenant.propertyId,
+        recipientTenantId: tenant.id,
+        subject: 'Tagihan Bulanan Baru Diterbitkan',
+        body: `Tagihan bulanan baru untuk periode ${currentMonth}/${currentYear} sebesar Rp ${totalAmount.toLocaleString('id-ID')} telah diterbitkan. Jatuh tempo: ${dueDateFormatted}.`,
+        category: 'pembayaran',
+        isRead: false,
+        readAt: null,
+        priority: 'normal',
+        status: 'unread',
+      })
+    }
 
     generatedBills.push(bill[0])
     console.log(`Generated bill for ${tenant.fullName}: Rp ${totalAmount}`)

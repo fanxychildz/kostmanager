@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { eq, and, sql, inArray, desc } from 'drizzle-orm'
 import { db } from '../db'
-import { payments, bills, tenants, units, properties } from '../db/schema'
+import { payments, bills, tenants, units, properties, inbox } from '../db/schema'
 import { auth } from './auth'
 import { nanoid } from 'nanoid'
 import { getRequest } from '@tanstack/react-start/server'
@@ -209,7 +209,7 @@ export const createPayment = createServerFn({ method: 'POST' })
     const bill = await db.select(billFields).from(bills).where(eq(bills.id, data.billId))
     if (bill.length === 0) throw new Error('Bill not found')
 
-    const tenant = await db.select({ id: tenants.id, propertyId: tenants.propertyId }).from(tenants).where(eq(tenants.id, bill[0].tenantId))
+    const tenant = await db.select({ id: tenants.id, userId: tenants.userId, propertyId: tenants.propertyId }).from(tenants).where(eq(tenants.id, bill[0].tenantId))
     if (tenant.length === 0) throw new Error('Tenant not found')
 
     const prop = await db
@@ -234,6 +234,29 @@ export const createPayment = createServerFn({ method: 'POST' })
     }).returning({ ...paymentFields })
 
     await recalculateBillStatus(data.billId)
+
+    // Notify the tenant that their payment was recorded by the owner
+    if (tenant[0].userId) {
+      await db.insert(inbox).values({
+        id: nanoid(),
+        createdAt: now,
+        updatedAt: now,
+        userId: tenant[0].userId,
+        propertyId: tenant[0].propertyId,
+        senderId: session.user.id,
+        senderName: session.user.name || 'Pengelola Kost',
+        recipientType: 'tenant',
+        recipientPropertyId: tenant[0].propertyId,
+        recipientTenantId: tenant[0].id,
+        subject: 'Pembayaran Dicatat',
+        body: `Pembayaran sebesar Rp ${data.amount.toLocaleString('id-ID')} telah dicatat oleh pengelola untuk tagihan Anda.`,
+        category: 'pembayaran',
+        isRead: false,
+        readAt: null,
+        priority: 'normal',
+        status: 'unread',
+      })
+    }
 
     return result[0]
   })

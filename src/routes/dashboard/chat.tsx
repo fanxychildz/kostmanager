@@ -23,7 +23,7 @@ export const Route = createFileRoute('/dashboard/chat')({
 function ChatPage() {
   const { data: tenants, loading: loadingTenants } = useQuery({ queryFn: () => api.tenants.list() })
   const { data: allMessages, refetch: refetchSummaries } = useQuery<any[]>({ queryFn: () => api.chat.listConversations() })
-  const [selectedTenantId, setSelectedTenantId] = useState<string>(tenants?.[0]?.id ?? '')
+  const [selectedTenantId, setSelectedTenantId] = useState<string>('')
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [chatInputText, setChatInputText] = useState('')
   const [sending, setSending] = useState(false)
@@ -31,6 +31,18 @@ function ChatPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search)
+      const urlTenantId = searchParams.get('tenantId')
+      if (urlTenantId) {
+        setSelectedTenantId(urlTenantId)
+      } else if (tenants && tenants.length > 0 && !selectedTenantId) {
+        setSelectedTenantId(tenants[0].id)
+      }
+    }
+  }, [tenants])
 
   const selectedTenant = tenants?.find((t: any) => t.id === selectedTenantId)
   const currentTenantLabel = selectedTenant ? `${selectedTenant.fullName} (${selectedTenant.phone})` : ''

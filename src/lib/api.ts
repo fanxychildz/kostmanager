@@ -13,6 +13,8 @@ import * as expensesActions from '~/server/expenses'
 import * as maintenanceActions from '~/server/maintenance'
 import * as announcementsActions from '~/server/announcements'
 import * as meterReadingsActions from '~/server/meter-readings'
+import * as inboxActions from '~/server/inbox'
+
 export const api = {
   auth: {
     signUp: (data: { email: string; password: string; name: string }) =>
@@ -66,6 +68,16 @@ export const api = {
     delete: (id: string) => paymentsActions.deletePayment({ data: { id } }),
     deleteMultiple: (ids: string[]) => paymentsActions.deleteMultiplePayments({ data: { ids } }),
   },
+  inbox: {
+    list: (params?: { propertyId?: string; category?: string; isRead?: boolean }) => inboxActions.listInbox({ data: params }),
+    count: () => inboxActions.getInboxCount(),
+    get: (id: string) => inboxActions.getInboxMessage({ data: { id } }),
+    create: (data: any) => inboxActions.createInbox({ data }),
+    markRead: (id: string) => inboxActions.markInboxRead({ data: { id } }),
+    markAllRead: () => inboxActions.markAllInboxRead(),
+    delete: (id: string) => inboxActions.deleteInbox({ data: { id } }),
+  },
+
   notifications: {
     list: (params?: { recipientType?: string; channel?: string }) =>
       notificationsActions.listNotifications({ data: params }),
