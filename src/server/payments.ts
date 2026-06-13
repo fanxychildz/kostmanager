@@ -34,9 +34,86 @@ const paymentFields = {
   paidAt: payments.paidAt,
   notes: payments.notes,
   status: payments.status,
+  proofImage: payments.proofImage,
   createdAt: payments.createdAt,
   updatedAt: payments.updatedAt,
 }
+
+export async function saveProofImage(base64OrUrl: string): Promise<string> {
+  if (base64OrUrl.startsWith('http') || base64OrUrl.startsWith('/uploads/')) {
+    return base64OrUrl
+  }
+
+  if (!base64OrUrl.startsWith('data:image/')) {
+    throw new Error('Format gambar tidak valid. Harus diawali dengan data:image/')
+  }
+
+  const match = base64OrUrl.match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/)
+  if (!match) {
+    throw new Error('Format base64 tidak valid')
+  }
+
+  const contentType = match[1]
+  const base64Data = match[2]
+
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+  if (!allowedTypes.includes(contentType)) {
+    throw new Error('Format berkas tidak didukung. Hanya JPEG, PNG, dan WEBP yang diperbolehkan.')
+  }
+
+  const sizeInBytes = (base64Data.length * 3) / 4
+  if (sizeInBytes > 5 * 1024 * 1024) {
+    throw new Error('Ukuran berkas terlalu besar. Maksimal 5MB.')
+  }
+
+  let ext = 'png'
+  if (contentType === 'image/jpeg') ext = 'jpg'
+  else if (contentType === 'image/webp') ext = 'webp'
+
+  const filename = `${nanoid()}.${ext}`
+
+  // Dynamic imports to prevent Vite client-side bundle errors
+  const { writeFile, mkdir } = await import('node:fs/promises')
+  const { join } = await import('node:path')
+
+  const uploadsSubdir = join('uploads', 'payments')
+  const publicDir = join(process.cwd(), 'public', uploadsSubdir)
+  const distDir = join(process.cwd(), 'dist', 'client', uploadsSubdir)
+
+  await mkdir(publicDir, { recursive: true })
+  await mkdir(distDir, { recursive: true })
+
+  const buffer = Buffer.from(base64Data, 'base64')
+  
+  await writeFile(join(publicDir, filename), buffer)
+  try {
+    await writeFile(join(distDir, filename), buffer)
+  } catch (err) {
+    console.warn('Could not write to distDir:', err)
+  }
+
+  return `/uploads/payments/${filename}`
+}
+
+export async function recalculateBillStatus(billId: string) {
+  const billRow = await db.select(billFields).from(bills).where(eq(bills.id, billId)).limit(1)
+  if (billRow.length === 0) return
+
+  const allPayments = await db.select({ status: payments.status, amount: payments.amount }).from(payments).where(eq(payments.billId, billId))
+  const totalPaid = allPayments
+    .filter((p) => p.status === 'recorded' || p.status === 'paid')
+    .reduce((sum, p) => sum + p.amount, 0)
+
+  let newStatus: 'pending' | 'paid' | 'partial' = 'pending'
+  if (totalPaid >= billRow[0].totalAmount) {
+    newStatus = 'paid'
+  } else if (totalPaid > 0) {
+    newStatus = 'partial'
+  }
+
+  await db.update(bills).set({ status: newStatus, updatedAt: new Date() }).where(eq(bills.id, billId))
+}
+
 
 const tenantFields = {
   id: tenants.id,
@@ -229,19 +306,7 @@ export const createPayment = createServerFn({ method: 'POST' })
       updatedAt: now,
     }).returning({ ...paymentFields })
 
-    const allPayments = await db.select({ status: payments.status, amount: payments.amount }).from(payments).where(eq(payments.billId, data.billId))
-    const totalPaid = allPayments
-      .filter((p) => p.status === 'recorded')
-      .reduce((sum, p) => sum + p.amount, 0)
-
-    let newStatus: 'pending' | 'paid' | 'partial' = 'pending'
-    if (totalPaid >= bill[0].totalAmount) {
-      newStatus = 'paid'
-    } else if (totalPaid > 0) {
-      newStatus = 'partial'
-    }
-
-    await db.update(bills).set({ status: newStatus, updatedAt: now }).where(eq(bills.id, data.billId))
+    await recalculateBillStatus(data.billId)
 
     return result[0]
   })
@@ -274,24 +339,7 @@ export const updatePayment = createServerFn({ method: 'POST' })
       .where(eq(payments.id, id))
       .returning({ ...paymentFields })
 
-    if (updateData.status === 'void' && existing[0].status === 'recorded') {
-      const bill = await db.select(billFields).from(bills).where(eq(bills.id, existing[0].billId))
-      if (bill.length > 0) {
-        const allPayments = await db.select({ status: payments.status, amount: payments.amount, id: payments.id }).from(payments).where(eq(payments.billId, bill[0].id))
-        const totalPaid = allPayments
-          .filter((p) => p.status === 'recorded' && p.id !== id)
-          .reduce((sum, p) => sum + p.amount, 0)
-
-        let newStatus: 'pending' | 'paid' | 'partial' = 'pending'
-        if (totalPaid >= bill[0].totalAmount) {
-          newStatus = 'paid'
-        } else if (totalPaid > 0) {
-          newStatus = 'partial'
-        }
-
-        await db.update(bills).set({ status: newStatus, updatedAt: new Date() }).where(eq(bills.id, bill[0].id))
-      }
-    }
+    await recalculateBillStatus(existing[0].billId)
 
     return result[0]
   })
@@ -308,24 +356,7 @@ export const deletePayment = createServerFn({ method: 'POST' })
 
     await db.delete(payments).where(eq(payments.id, data.id))
 
-    if (existing[0].status === 'recorded') {
-      const bill = await db.select(billFields).from(bills).where(eq(bills.id, existing[0].billId))
-      if (bill.length > 0) {
-        const allPayments = await db.select({ status: payments.status, amount: payments.amount }).from(payments).where(eq(payments.billId, bill[0].id))
-        const totalPaid = allPayments
-          .filter((p) => p.status === 'recorded')
-          .reduce((sum, p) => sum + p.amount, 0)
-
-        let newStatus: 'pending' | 'paid' | 'partial' = 'pending'
-        if (totalPaid >= bill[0].totalAmount) {
-          newStatus = 'paid'
-        } else if (totalPaid > 0) {
-          newStatus = 'partial'
-        }
-
-        await db.update(bills).set({ status: newStatus, updatedAt: new Date() }).where(eq(bills.id, bill[0].id))
-      }
-    }
+    await recalculateBillStatus(existing[0].billId)
 
     return { success: true }
   })
@@ -346,22 +377,7 @@ export const deleteMultiplePayments = createServerFn({ method: 'POST' })
 
     const billIds = Array.from(new Set(targetPayments.map((p) => p.billId)))
     for (const billId of billIds) {
-      const bill = await db.select(billFields).from(bills).where(eq(bills.id, billId))
-      if (bill.length > 0) {
-        const allPayments = await db.select({ status: payments.status, amount: payments.amount }).from(payments).where(eq(payments.billId, billId))
-        const totalPaid = allPayments
-          .filter((p) => p.status === 'recorded')
-          .reduce((sum, p) => sum + p.amount, 0)
-
-        let newStatus: 'pending' | 'paid' | 'partial' = 'pending'
-        if (totalPaid >= bill[0].totalAmount) {
-          newStatus = 'paid'
-        } else if (totalPaid > 0) {
-          newStatus = 'partial'
-        }
-
-        await db.update(bills).set({ status: newStatus, updatedAt: new Date() }).where(eq(bills.id, billId))
-      }
+      await recalculateBillStatus(billId)
     }
 
     return { success: true }

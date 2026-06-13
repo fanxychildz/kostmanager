@@ -1,8 +1,9 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 import { Badge } from '~/components/ui/badge'
 import { Table, TableBody, TableCell, TableRow } from '~/components/ui/table'
+import { Button } from '~/components/ui/button'
 import { formatRupiah, formatDate } from '~/lib/utils'
 import { api } from '~/lib/api'
 import { useQuery } from '~/lib/hooks'
@@ -43,16 +44,25 @@ function PortalBillsPage() {
                   <CardTitle className="text-lg">Periode {bill.periodMonth}/{bill.periodYear}</CardTitle>
                   <CardDescription>Jatuh tempo: {formatDate(bill.dueDate)}</CardDescription>
                 </div>
-                <Badge
-                  variant={
-                    bill.status === 'paid' ? 'success' :
-                    bill.status === 'overdue' ? 'destructive' :
-                    'warning'
-                  }
-                >
-                  {bill.status === 'paid' ? 'Lunas' :
-                   bill.status === 'overdue' ? 'Jatuh Tempo' : 'Belum Dibayar'}
-                </Badge>
+                <div className="flex items-center gap-3">
+                  {bill.status !== 'paid' && (
+                    <Link to="/portal/payments/$billId" params={{ billId: bill.id }}>
+                      <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition cursor-pointer">
+                        Bayar Sekarang
+                      </Button>
+                    </Link>
+                  )}
+                  <Badge
+                    variant={
+                      bill.status === 'paid' ? 'success' :
+                      bill.status === 'overdue' ? 'destructive' :
+                      'warning'
+                    }
+                  >
+                    {bill.status === 'paid' ? 'Lunas' :
+                     bill.status === 'overdue' ? 'Jatuh Tempo' : 'Belum Dibayar'}
+                  </Badge>
+                </div>
               </div>
             </CardHeader>
             <CardContent>

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Outlet, createRootRoute, HeadContent, Scripts } from '@tanstack/react-router'
 import { AuthProvider } from '~/lib/auth-context'
+import { Toaster } from 'sonner'
 // Side-effect import so the framework injects the correct hashed stylesheet for
 // both SSR and the client build (a manual `?url` link can desync the hash
 // between the server and client build passes).
@@ -38,6 +39,7 @@ function RootComponent() {
     <RootDocument>
       <AuthProvider>
         <Outlet />
+        <Toaster richColors position="top-right" />
       </AuthProvider>
     </RootDocument>
   )

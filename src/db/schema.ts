@@ -176,7 +176,8 @@ export const payments = sqliteTable('payments', {
   amount: integer('amount').notNull(),
   paidAt: integer('paid_at', { mode: 'timestamp' }).notNull(),
   notes: text('notes'),
-  status: text('status', { enum: ['recorded', 'void'] }).notNull().default('recorded'),
+  status: text('status', { enum: ['pending', 'paid', 'rejected', 'recorded', 'void'] }).notNull().default('pending'),
+  proofImage: text('proof_image'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 })

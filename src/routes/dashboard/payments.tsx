@@ -31,6 +31,42 @@ function PaymentsPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [deleting, setDeleting] = useState(false)
 
+  const [proofDialogOpen, setProofDialogOpen] = useState(false)
+  const [activeProofUrl, setActiveProofUrl] = useState('')
+  const [activeTenantName, setActiveTenantName] = useState('')
+  const [updatingStatus, setUpdatingStatus] = useState(false)
+
+  const handleViewProof = (url: string, name: string) => {
+    setActiveProofUrl(url)
+    setActiveTenantName(name)
+    setProofDialogOpen(true)
+  }
+
+  const handleUpdateStatus = async (paymentId: string, newStatus: 'paid' | 'rejected') => {
+    const actionLabel = newStatus === 'paid' ? 'mengonfirmasi' : 'menolak'
+    if (!confirm(`Apakah Anda yakin ingin ${actionLabel} pembayaran ini?`)) return
+    
+    setUpdatingStatus(true)
+    try {
+      const res = await fetch(`/api/payments/${paymentId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      })
+      if (!res.ok) {
+        const errData = await res.json()
+        throw new Error(errData.error || 'Gagal mengubah status')
+      }
+      refetch()
+    } catch (err: any) {
+      alert('Gagal mengubah status pembayaran: ' + err.message)
+    } finally {
+      setUpdatingStatus(false)
+    }
+  }
+
   const { data: payments, loading, refetch } = useQuery({
     queryFn: () => api.payments.list(),
     cacheKey: 'payments.list',
@@ -335,20 +371,65 @@ function PaymentsPage() {
                       <TableCell className="font-extrabold text-emerald-600">{formatRupiah(payment.amount)}</TableCell>
                       <TableCell className="text-slate-500 font-medium">{payment.notes || '-'}</TableCell>
                       <TableCell>
-                        <Badge variant={payment.status === 'recorded' ? 'success' : 'destructive'} className="px-2 py-0.5 rounded-md font-extrabold text-[10px] uppercase border">
-                          {payment.status === 'recorded' ? 'Tercatat' : 'Dibatalkan'}
+                        <Badge
+                          variant={
+                            payment.status === 'paid' || payment.status === 'recorded' ? 'success' :
+                            payment.status === 'pending' ? 'warning' : 'destructive'
+                          }
+                          className="px-2 py-0.5 rounded-md font-extrabold text-[10px] uppercase border"
+                        >
+                          {
+                            payment.status === 'paid' ? 'Lunas' :
+                            payment.status === 'recorded' ? 'Tercatat' :
+                            payment.status === 'pending' ? 'Pending' :
+                            payment.status === 'rejected' ? 'Ditolak' : 'Dibatalkan'
+                          }
                         </Badge>
                       </TableCell>
                       {!isBulkMode && (
                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-slate-600 hover:text-rose-600 rounded-lg cursor-pointer"
-                            onClick={() => handleDeletePayment(payment.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            {payment.status === 'pending' && (
+                              <>
+                                {payment.proofImage && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-bold text-xs rounded-lg cursor-pointer"
+                                    onClick={() => handleViewProof(payment.proofImage, payment.tenantName)}
+                                  >
+                                    Bukti
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 px-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 font-bold text-xs rounded-lg cursor-pointer"
+                                  onClick={() => handleUpdateStatus(payment.id, 'paid')}
+                                  disabled={updatingStatus}
+                                >
+                                  Konfirmasi
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 px-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50 font-bold text-xs rounded-lg cursor-pointer"
+                                  onClick={() => handleUpdateStatus(payment.id, 'rejected')}
+                                  disabled={updatingStatus}
+                                >
+                                  Tolak
+                                </Button>
+                              </>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-slate-600 hover:text-rose-600 rounded-lg cursor-pointer"
+                              onClick={() => handleDeletePayment(payment.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       )}
                     </TableRow>
@@ -391,6 +472,27 @@ function PaymentsPage() {
           </div>
         </div>
       )}
+      {/* Proof Preview Dialog */}
+      <Dialog open={proofDialogOpen} onOpenChange={setProofDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Bukti Transfer - {activeTenantName}</DialogTitle>
+            <DialogDescription>
+              Pratinjau berkas bukti transfer pembayaran dari penghuni
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center items-center p-4 bg-slate-50 rounded-xl border border-slate-100 overflow-hidden">
+            <img
+              src={activeProofUrl}
+              alt="Bukti Transfer"
+              className="max-h-[60vh] object-contain rounded-lg shadow-sm"
+            />
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setProofDialogOpen(false)}>Tutup</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
     </DashboardBootstrap>
   )

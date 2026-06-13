@@ -55,8 +55,8 @@ const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`)
 
-    // Hashed, immutable client assets are served directly.
-    if (req.method === 'GET' && url.pathname.startsWith('/assets/')) {
+    // Hashed, immutable client assets and user uploads are served directly.
+    if (req.method === 'GET' && (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/uploads/'))) {
       if (await tryServeStatic(res, url.pathname)) return
     }
 
