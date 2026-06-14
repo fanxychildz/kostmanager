@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { Plus, Loader2, CreditCard, Trash2 } from 'lucide-react'
 import { useState, useMemo } from 'react'
 import { Card, CardContent } from '~/components/ui/card'
@@ -9,12 +9,13 @@ import { Badge } from '~/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog'
+import { Tabs, TabsList, TabsTrigger } from '~/components/ui/tabs'
 import { formatRupiah, formatDate } from '~/lib/utils'
 import { api } from '~/lib/api'
 import { useQuery, useMutation } from '~/lib/hooks'
 import { DashboardBootstrap } from '~/lib/dashboard-bootstrap'
 
-export const Route = createFileRoute('/dashboard/payments')({
+export const Route = createFileRoute('/dashboard/payments/')({
   component: PaymentsPage,
 })
 
@@ -78,6 +79,14 @@ function PaymentsPage() {
     if ('items' in (payments as any) && Array.isArray((payments as any).items)) return (payments as any).items
     return []
   }, [payments])
+
+  const pendingPayments = useMemo(() => {
+    return paymentList
+      .filter((p: any) => p.status === 'pending')
+      .sort((a: any, b: any) => new Date(b.createdAt || b.paidAt).getTime() - new Date(a.createdAt || a.paidAt).getTime())
+  }, [paymentList])
+
+  const pendingCount = pendingPayments.length
 
   // Re-use cached bills — avoids a duplicate network request
   const { data: billsCache, loading: loadingBillsCache } = useQuery({
@@ -166,11 +175,145 @@ function PaymentsPage() {
   const totalAmount = paymentList.reduce((sum: number, p: any) => sum + p.amount, 0) || 0
   const avgAmount = paymentList.length > 0 ? Math.round(totalAmount / paymentList.length) : 0
 
-  if (loading) {
+  const renderPaymentsTable = (list: any[]) => {
+    if (list.length === 0) {
+      return (
+        <Card className="bg-white border border-slate-200 rounded-2xl shadow-xs">
+          <CardContent className="p-12 text-center">
+            <CreditCard className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-slate-800 mb-2">Belum ada pembayaran</h3>
+            <p className="text-sm text-slate-400">Catat pembayaran pertama Anda</p>
+          </CardContent>
+        </Card>
+      )
+    }
+
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <Card className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {isBulkMode && (
+                  <TableHead className="w-[50px]">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.length > 0 && selectedIds.length === list.length}
+                      onChange={handleSelectAll}
+                      className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
+                  </TableHead>
+                )}
+                <TableHead>Tanggal</TableHead>
+                <TableHead>Penghuni</TableHead>
+                <TableHead>Unit</TableHead>
+                <TableHead>Metode</TableHead>
+                <TableHead>Jumlah</TableHead>
+                <TableHead>Catatan</TableHead>
+                <TableHead>Status</TableHead>
+                {!isBulkMode && <TableHead className="text-right">Aksi</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {list.map((payment: any) => {
+                const isSelected = selectedIds.includes(payment.id)
+                return (
+                  <TableRow 
+                    key={payment.id}
+                    onClick={() => handleRowClick(payment.id)}
+                    className={`transition-colors ${
+                      isBulkMode ? 'cursor-pointer hover:bg-slate-50/80' : ''
+                    } ${isSelected && isBulkMode ? 'bg-blue-50/40 hover:bg-blue-50/60' : ''}`}
+                  >
+                    {isBulkMode && (
+                      <TableCell className="w-[50px]" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleRowClick(payment.id)}
+                          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        />
+                      </TableCell>
+                    )}
+                    <TableCell className="text-slate-600 font-semibold">{formatDate(payment.paidAt)}</TableCell>
+                    <TableCell className="font-bold text-slate-800">{payment.tenantName || 'Unknown'}</TableCell>
+                    <TableCell className="font-bold text-slate-900">Unit {payment.unitNumber || 'N/A'}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="px-2 py-0.5 rounded-md font-extrabold text-[10px] uppercase border bg-slate-50/50 text-slate-700 border-slate-200">
+                        {methodLabels[payment.paymentMethod]}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-extrabold text-emerald-600">{formatRupiah(payment.amount)}</TableCell>
+                    <TableCell className="text-slate-500 font-medium">{payment.notes || '-'}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          payment.status === 'paid' || payment.status === 'recorded' ? 'success' :
+                          payment.status === 'pending' ? 'warning' : 'destructive'
+                        }
+                        className="px-2 py-0.5 rounded-md font-extrabold text-[10px] uppercase border"
+                      >
+                        {
+                          payment.status === 'paid' ? 'Lunas' :
+                          payment.status === 'recorded' ? 'Tercatat' :
+                          payment.status === 'pending' ? 'Pending' :
+                          payment.status === 'rejected' ? 'Ditolak' : 'Dibatalkan'
+                        }
+                      </Badge>
+                    </TableCell>
+                    {!isBulkMode && (
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {payment.status === 'pending' && (
+                            <>
+                              {payment.proofImage && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-bold text-xs rounded-lg cursor-pointer"
+                                  onClick={() => handleViewProof(payment.proofImage, payment.tenantName)}
+                                >
+                                  Bukti
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 font-bold text-xs rounded-lg cursor-pointer"
+                                onClick={() => handleUpdateStatus(payment.id, 'paid')}
+                                disabled={updatingStatus}
+                              >
+                                Konfirmasi
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50 font-bold text-xs rounded-lg cursor-pointer"
+                                onClick={() => handleUpdateStatus(payment.id, 'rejected')}
+                                disabled={updatingStatus}
+                              >
+                                Tolak
+                              </Button>
+                            </>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-slate-600 hover:text-rose-600 rounded-lg cursor-pointer"
+                            onClick={() => handleDeletePayment(payment.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     )
   }
 
@@ -192,14 +335,7 @@ function PaymentsPage() {
               }}
               className="rounded-xl font-bold text-xs h-9"
             >
-              {isBulkMode ? (
-                'Batal'
-              ) : (
-                <>
-                  <Trash2 className="mr-1.5 h-4 w-4" />
-                  Delete
-                </>
-              )}
+              {isBulkMode ? 'Batal' : <><Trash2 className="mr-1.5 h-4 w-4" />Delete</>}
             </Button>
           )}
 
@@ -305,141 +441,29 @@ function PaymentsPage() {
         </Card>
       </div>
 
-      {paymentList.length === 0 ? (
-        <Card className="bg-white border border-slate-200 rounded-2xl shadow-xs">
-          <CardContent className="p-12 text-center">
-            <CreditCard className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-slate-800 mb-2">Belum ada pembayaran</h3>
-            <p className="text-sm text-slate-400">Catat pembayaran pertama Anda</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {isBulkMode && (
-                    <TableHead className="w-[50px]">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.length > 0 && selectedIds.length === paymentList.length}
-                        onChange={handleSelectAll}
-                        className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                      />
-                    </TableHead>
-                  )}
-                  <TableHead>Tanggal</TableHead>
-                  <TableHead>Penghuni</TableHead>
-                  <TableHead>Unit</TableHead>
-                  <TableHead>Metode</TableHead>
-                  <TableHead>Jumlah</TableHead>
-                  <TableHead>Catatan</TableHead>
-                  <TableHead>Status</TableHead>
-                  {!isBulkMode && <TableHead className="text-right">Aksi</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paymentList.map((payment: any) => {
-                  const isSelected = selectedIds.includes(payment.id)
-                  return (
-                    <TableRow 
-                      key={payment.id}
-                      onClick={() => handleRowClick(payment.id)}
-                      className={`transition-colors ${
-                        isBulkMode ? 'cursor-pointer hover:bg-slate-50/80' : ''
-                      } ${isSelected && isBulkMode ? 'bg-blue-50/40 hover:bg-blue-50/60' : ''}`}
-                    >
-                      {isBulkMode && (
-                        <TableCell className="w-[50px]" onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => handleRowClick(payment.id)}
-                            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                          />
-                        </TableCell>
-                      )}
-                      <TableCell className="text-slate-600 font-semibold">{formatDate(payment.paidAt)}</TableCell>
-                      <TableCell className="font-bold text-slate-800">{payment.tenantName || 'Unknown'}</TableCell>
-                      <TableCell className="font-bold text-slate-900">Unit {payment.unitNumber || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="px-2 py-0.5 rounded-md font-extrabold text-[10px] uppercase border bg-slate-50/50 text-slate-700 border-slate-200">
-                          {methodLabels[payment.paymentMethod]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-extrabold text-emerald-600">{formatRupiah(payment.amount)}</TableCell>
-                      <TableCell className="text-slate-500 font-medium">{payment.notes || '-'}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            payment.status === 'paid' || payment.status === 'recorded' ? 'success' :
-                            payment.status === 'pending' ? 'warning' : 'destructive'
-                          }
-                          className="px-2 py-0.5 rounded-md font-extrabold text-[10px] uppercase border"
-                        >
-                          {
-                            payment.status === 'paid' ? 'Lunas' :
-                            payment.status === 'recorded' ? 'Tercatat' :
-                            payment.status === 'pending' ? 'Pending' :
-                            payment.status === 'rejected' ? 'Ditolak' : 'Dibatalkan'
-                          }
-                        </Badge>
-                      </TableCell>
-                      {!isBulkMode && (
-                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-end gap-1.5">
-                            {payment.status === 'pending' && (
-                              <>
-                                {payment.proofImage && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-bold text-xs rounded-lg cursor-pointer"
-                                    onClick={() => handleViewProof(payment.proofImage, payment.tenantName)}
-                                  >
-                                    Bukti
-                                  </Button>
-                                )}
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 px-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 font-bold text-xs rounded-lg cursor-pointer"
-                                  onClick={() => handleUpdateStatus(payment.id, 'paid')}
-                                  disabled={updatingStatus}
-                                >
-                                  Konfirmasi
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 px-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50 font-bold text-xs rounded-lg cursor-pointer"
-                                  onClick={() => handleUpdateStatus(payment.id, 'rejected')}
-                                  disabled={updatingStatus}
-                                >
-                                  Tolak
-                                </Button>
-                              </>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-slate-600 hover:text-rose-600 rounded-lg cursor-pointer"
-                              onClick={() => handleDeletePayment(payment.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
+      <Tabs defaultValue="all" className="space-y-6">
+        <TabsList className="bg-slate-100/80 p-1 grid grid-cols-2 h-auto w-full md:inline-flex md:h-10 md:w-auto gap-1">
+          <TabsTrigger value="all" asChild>
+            <Link to="/dashboard/payments" className="text-xs font-semibold py-1.5 md:py-2 md:text-sm cursor-pointer justify-center flex items-center">
+              Semua Pembayaran
+            </Link>
+          </TabsTrigger>
+          <TabsTrigger value="pending" asChild>
+            <Link to="/dashboard/payments/incoming" className="text-xs font-semibold py-1.5 md:py-2 md:text-sm cursor-pointer justify-center flex items-center relative">
+              Pembayaran Masuk (Pending)
+              {pendingCount > 0 && (
+                <span className="ml-2 bg-amber-500 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full animate-pulse">
+                  {pendingCount}
+                </span>
+              )}
+            </Link>
+          </TabsTrigger>
+        </TabsList>
+
+        <div className="space-y-4">
+          {renderPaymentsTable(paymentList)}
+        </div>
+      </Tabs>
 
       {isBulkMode && (
         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 border border-slate-800">
