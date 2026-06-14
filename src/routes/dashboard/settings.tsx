@@ -211,12 +211,12 @@ function SettingsPage() {
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="profile">Profil</TabsTrigger>
-          <TabsTrigger value="business">Bisnis</TabsTrigger>
-          <TabsTrigger value="notifications">Notifikasi</TabsTrigger>
-          <TabsTrigger value="security">Keamanan</TabsTrigger>
-          <TabsTrigger value="billing">Billing</TabsTrigger>
+        <TabsList className="bg-slate-100/80 p-1 grid grid-cols-6 h-auto w-full md:inline-flex md:h-10 md:w-auto gap-1">
+          <TabsTrigger value="profile" className="col-span-2 text-xs font-semibold text-center justify-center py-1.5 md:py-2 md:text-sm">Profil</TabsTrigger>
+          <TabsTrigger value="business" className="col-span-2 text-xs font-semibold text-center justify-center py-1.5 md:py-2 md:text-sm">Bisnis</TabsTrigger>
+          <TabsTrigger value="notifications" className="col-span-2 text-xs font-semibold text-center justify-center py-1.5 md:py-2 md:text-sm">Notifikasi</TabsTrigger>
+          <TabsTrigger value="security" className="col-span-3 text-xs font-semibold text-center justify-center py-1.5 md:py-2 md:text-sm">Keamanan</TabsTrigger>
+          <TabsTrigger value="billing" className="col-span-3 text-xs font-semibold text-center justify-center py-1.5 md:py-2 md:text-sm">Billing</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
