@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useMemo } from 'react'
-import { ArrowLeft, Phone, Mail, Calendar, CreditCard, Building2, Loader2, Trash2 } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { ArrowLeft, Phone, Mail, Calendar, CreditCard, Building2, Loader2, Trash2, Pencil } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
 import { Badge } from '~/components/ui/badge'
@@ -10,8 +10,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import { formatRupiah, formatDate } from '~/lib/utils'
 import { api } from '~/lib/api'
 import { selectCache } from '~/lib/cache'
-import { useQuery } from '~/lib/hooks'
+import { useQuery, useMutation } from '~/lib/hooks'
 import { DashboardBootstrap } from '~/lib/dashboard-bootstrap'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '~/components/ui/dialog'
+import { Input } from '~/components/ui/input'
+import { Label } from '~/components/ui/label'
 
 export const Route = createFileRoute('/dashboard/tenants/$tenantId')({
   component: TenantDetailPage,
@@ -21,7 +24,7 @@ function TenantDetailPage() {
   const { tenantId } = Route.useParams()
   const navigate = useNavigate()
 
-  const { data: tenant, loading: loadingTenant, error } = useQuery({
+  const { data: tenant, loading: loadingTenant, error, refetch: refetchTenant } = useQuery({
     queryFn: () => api.tenants.get(tenantId),
     deps: [tenantId],
   })
@@ -34,6 +37,77 @@ function TenantDetailPage() {
     } catch (err) {
       alert('Gagal menghapus penghuni: ' + err)
     }
+  }
+
+  const [open, setOpen] = useState(false)
+  const [fullName, setFullName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
+  const [ktpNumber, setKtpNumber] = useState('')
+  const [occupation, setOccupation] = useState('')
+  const [checkInDate, setCheckInDate] = useState('')
+  const [depositAmount, setDepositAmount] = useState('')
+  const [status, setStatus] = useState<'active' | 'inactive' | 'blacklisted'>('active')
+  const [saveError, setSaveError] = useState('')
+
+  const handleOpenEdit = () => {
+    if (!tenant) return
+    const t = tenant as any
+    setFullName(t.fullName || '')
+    setPhone(t.phone || '')
+    setEmail(t.email || '')
+    setKtpNumber(t.ktpNumber || '')
+    setOccupation(t.occupation || '')
+    if (t.checkInDate) {
+      const date = new Date(t.checkInDate)
+      const yyyy = date.getFullYear()
+      const mm = String(date.getMonth() + 1).padStart(2, '0')
+      const dd = String(date.getDate()).padStart(2, '0')
+      setCheckInDate(`${yyyy}-${mm}-${dd}`)
+    } else {
+      setCheckInDate('')
+    }
+    setDepositAmount(String(t.depositAmount || 0))
+    setStatus(t.status || 'active')
+    setSaveError('')
+    setOpen(true)
+  }
+
+  const updateMutation = useMutation({
+    mutationFn: (variables: {
+      fullName: string
+      phone: string
+      email: string
+      ktpNumber: string
+      occupation: string
+      checkInDate: string
+      depositAmount: number
+      status: string
+    }) => api.tenants.update(tenantId, variables),
+    onSuccess: () => {
+      setOpen(false)
+      refetchTenant()
+    },
+    onError: (err) => setSaveError(err),
+  })
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaveError('')
+    if (!fullName.trim() || !phone.trim() || !email.trim() || !ktpNumber.trim() || !checkInDate) {
+      setSaveError('Nama lengkap, kontak, KTP, email, dan tanggal masuk harus diisi.')
+      return
+    }
+    updateMutation.mutate({
+      fullName,
+      phone,
+      email,
+      ktpNumber,
+      occupation,
+      checkInDate: new Date(checkInDate).toISOString(),
+      depositAmount: Number(depositAmount) || 0,
+      status,
+    })
   }
   const { data: units, loading: loadingUnits } = selectCache.units(() => api.units.list())
   const { data: properties, loading: loadingProperties } = selectCache.properties(() => api.properties.list())
@@ -110,6 +184,14 @@ function TenantDetailPage() {
           <Badge variant={t.status === 'active' ? 'success' : 'secondary'}>
             {t.status === 'active' ? 'Aktif' : 'Nonaktif'}
           </Badge>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleOpenEdit}
+            className="rounded-xl font-bold text-xs h-9 px-3 cursor-pointer"
+          >
+            <Pencil className="mr-1.5 h-4 w-4" /> Edit Data
+          </Button>
           <Button
             variant="destructive"
             size="sm"
@@ -210,6 +292,126 @@ function TenantDetailPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-[500px] bg-white text-slate-800 rounded-3xl p-6 shadow-xl border border-slate-200">
+          <form onSubmit={handleSaveEdit} className="space-y-4">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-slate-900">Edit Data Penghuni</DialogTitle>
+              <DialogDescription className="text-xs text-slate-500">
+                Ubah data pribadi, tanggal masuk, dan informasi sewa untuk penghuni ini.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-1.5">
+                <Label htmlFor="fullName" className="text-xs font-bold text-slate-700">Nama Lengkap</Label>
+                <Input
+                  id="fullName"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Nama sesuai KTP"
+                  className="rounded-xl border-slate-250 text-xs px-3 py-2 bg-slate-50/50"
+                  required
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="ktpNumber" className="text-xs font-bold text-slate-700">Nomor KTP</Label>
+                <Input
+                  id="ktpNumber"
+                  value={ktpNumber}
+                  onChange={(e) => setKtpNumber(e.target.value)}
+                  placeholder="16 digit nomor KTP"
+                  maxLength={16}
+                  className="rounded-xl border-slate-250 text-xs px-3 py-2 bg-slate-50/50"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="phone" className="text-xs font-bold text-slate-700">No. HP</Label>
+                  <Input
+                    id="phone"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="08xxxxxxxxxx"
+                    className="rounded-xl border-slate-250 text-xs px-3 py-2 bg-slate-50/50"
+                    required
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="email" className="text-xs font-bold text-slate-700">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="email@contoh.com"
+                    className="rounded-xl border-slate-250 text-xs px-3 py-2 bg-slate-50/50"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="occupation" className="text-xs font-bold text-slate-700">Pekerjaan</Label>
+                <Input
+                  id="occupation"
+                  value={occupation}
+                  onChange={(e) => setOccupation(e.target.value)}
+                  placeholder="Contoh: Karyawan Swasta"
+                  className="rounded-xl border-slate-250 text-xs px-3 py-2 bg-slate-50/50"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="checkInDate" className="text-xs font-bold text-slate-700">Tanggal Masuk</Label>
+                  <Input
+                    id="checkInDate"
+                    type="date"
+                    value={checkInDate}
+                    onChange={(e) => setCheckInDate(e.target.value)}
+                    className="rounded-xl border-slate-250 text-xs px-3 py-2 bg-slate-50/50"
+                    required
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="depositAmount" className="text-xs font-bold text-slate-700">Uang Deposit (Rp)</Label>
+                  <Input
+                    id="depositAmount"
+                    type="number"
+                    value={depositAmount}
+                    onChange={(e) => setDepositAmount(e.target.value)}
+                    placeholder="Contoh: 1500000"
+                    className="rounded-xl border-slate-250 text-xs px-3 py-2 bg-slate-50/50"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="status" className="text-xs font-bold text-slate-700">Status Penghuni</Label>
+                <select
+                  id="status"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as any)}
+                  className="flex h-9 w-full rounded-xl border border-slate-250 bg-white text-slate-800 px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="active">Aktif</option>
+                  <option value="inactive">Nonaktif</option>
+                  <option value="blacklisted">Daftar Hitam (Blacklist)</option>
+                </select>
+              </div>
+            </div>
+            {saveError && <p className="text-xs text-destructive font-medium">{saveError}</p>}
+            <DialogFooter className="gap-2">
+              <DialogClose asChild>
+                <Button type="button" variant="outline" className="rounded-xl text-xs py-2 px-4 cursor-pointer">Batal</Button>
+              </DialogClose>
+              <Button type="submit" disabled={updateMutation.loading} className="rounded-xl text-xs py-2 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold cursor-pointer">
+                {updateMutation.loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Simpan Perubahan
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
     </DashboardBootstrap>
   )
