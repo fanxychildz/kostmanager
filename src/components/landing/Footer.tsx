@@ -1,4 +1,4 @@
-import { Building2, Mail, MapPin, Shield, HelpCircle } from "lucide-react";
+import { Mail, MapPin, Shield, HelpCircle } from "lucide-react";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -30,20 +30,10 @@ export default function Footer() {
           <div className="space-y-4 md:col-span-5 text-left">
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              className="flex items-center gap-2.5 text-left group cursor-pointer border-0 bg-transparent p-0"
+              className="flex items-center text-left group cursor-pointer border-0 bg-transparent p-0 hover:opacity-95 transition-opacity"
               id="footer-logo-btn"
             >
-              <div className="bg-blue-600 text-white p-2.5 rounded-xl transition-all duration-300 group-hover:scale-105 group-hover:bg-blue-700 shadow-lg shadow-blue-500/10 flex items-center justify-center">
-                <Building2 className="w-5 h-5" />
-              </div>
-              <div>
-                <span className="font-extrabold text-xl tracking-tight text-white group-hover:text-blue-500 transition-colors duration-200">
-                  Kost<span className="text-blue-400 font-semibold">Manager</span>
-                </span>
-                <p className="text-[10px] text-slate-500 font-semibold tracking-wider uppercase -mt-0.5">
-                  SaaS Indonesia
-                </p>
-              </div>
+              <img src="/logo-horizontal-white.png?v=6" alt="KeKost" className="h-10 w-auto object-contain" />
             </button>
             
             <p className="text-xs sm:text-sm text-slate-400 max-w-sm font-medium leading-relaxed">
@@ -57,7 +47,7 @@ export default function Footer() {
               </div>
               <div className="flex items-center gap-2 text-slate-500">
                 <Mail className="w-4 h-4 text-slate-600 shrink-0" />
-                <span>info@kostmanager.com</span>
+                <span>info@kekost.com</span>
               </div>
             </div>
           </div>
