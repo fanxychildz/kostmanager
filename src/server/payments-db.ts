@@ -55,27 +55,36 @@ export async function saveProofImage(base64OrUrl: string): Promise<string> {
 
   const filename = `${nanoid()}.${ext}`
 
-  // Dynamic imports to prevent Vite client-side bundle errors
-  const { writeFile, mkdir } = await import('node:fs/promises')
-  const { join } = await import('node:path')
-
-  const uploadsSubdir = join('uploads', 'payments')
-  const publicDir = join(process.cwd(), 'public', uploadsSubdir)
-  const distDir = join(process.cwd(), 'dist', 'client', uploadsSubdir)
-
-  await mkdir(publicDir, { recursive: true })
-  await mkdir(distDir, { recursive: true })
-
-  const buffer = Buffer.from(base64Data, 'base64')
-  
-  await writeFile(join(publicDir, filename), buffer)
   try {
-    await writeFile(join(distDir, filename), buffer)
-  } catch (err) {
-    console.warn('Could not write to distDir:', err)
-  }
+    // Dynamic imports to prevent Vite client-side bundle errors
+    const { writeFile, mkdir } = await import('node:fs/promises')
+    const { join } = await import('node:path')
 
-  return `/uploads/payments/${filename}`
+    const uploadsSubdir = join('uploads', 'payments')
+    const publicDir = join(process.cwd(), 'public', uploadsSubdir)
+    const distDir = join(process.cwd(), 'dist', 'client', uploadsSubdir)
+
+    await mkdir(publicDir, { recursive: true })
+    try {
+      await mkdir(distDir, { recursive: true })
+    } catch {
+      // ignore distDir creation fail
+    }
+
+    const buffer = Buffer.from(base64Data, 'base64')
+    
+    await writeFile(join(publicDir, filename), buffer)
+    try {
+      await writeFile(join(distDir, filename), buffer)
+    } catch (err) {
+      console.warn('Could not write to distDir:', err)
+    }
+
+    return `/uploads/payments/${filename}`
+  } catch (err) {
+    console.warn('Fs upload failed, falling back to database base64 storage:', err)
+    return base64OrUrl
+  }
 }
 
 export async function recalculateBillStatus(billId: string) {
