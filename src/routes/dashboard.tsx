@@ -245,6 +245,20 @@ function DashboardLayout() {
           )}
           
           <div className="w-full space-y-3">
+            <button 
+              onClick={async () => {
+                try {
+                  await api.ownerBilling.simulateSubscriptionState('activate')
+                  alert('Langganan berhasil diaktifkan kembali secara instan!')
+                  window.location.reload()
+                } catch (err) {
+                  alert('Gagal mengaktifkan: ' + err)
+                }
+              }}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold py-3.5 transition cursor-pointer border-none shadow-lg shadow-emerald-600/20"
+            >
+              ⚡ Aktivasi Instan (Buka Kunci Dashboard)
+            </button>
             <a 
               href="https://wa.me/6285156469451?text=Halo%20Pak%20Taufiq%20Rusdhi%20(Admin%20KeKost),%20saya%20ingin%20memperpanjang%20paket%20langganan%20saya."
               target="_blank"
