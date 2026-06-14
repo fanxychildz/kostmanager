@@ -25,7 +25,7 @@ export default function FAQ() {
     {
       id: "4",
       question: "Apakah aplikasi ini bisa diakses dengan baik lewat HP?",
-      answer: "Ya! Aplikasi web KostManager dirancang penuh secara 'fully responsive'. Anda bisa mengakses dashboard, mengisi penyewa baru, merekap kas, maupun memicu notifikasi WhatsApp penagihan dengan lancar lewat browser HP (Safari/Chrome/Firefox), tablet, maupun PC."
+      answer: "Ya! Aplikasi web KeKost dirancang penuh secara 'fully responsive'. Anda bisa mengakses dashboard, mengisi penyewa baru, merekap kas, maupun memicu notifikasi WhatsApp penagihan dengan lancar lewat browser HP (Safari/Chrome/Firefox), tablet, maupun PC."
     },
     {
       id: "5",
@@ -51,7 +51,7 @@ export default function FAQ() {
             Pertanyaan Umum (FAQ)
           </h2>
           <p className="text-slate-600 font-medium text-base md:text-lg">
-            Temukan jawaban langsung atas ragam pertanyaan mendasar yang kerap ditanyakan calon mitra pengelola seputar KostManager.
+            Temukan jawaban langsung atas ragam pertanyaan mendasar yang kerap ditanyakan calon mitra pengelola seputar KeKost.
           </p>
         </div>
 
@@ -115,7 +115,7 @@ export default function FAQ() {
             </div>
           </div>
           <a
-            href="mailto:support@kostmanager.com?subject=Tanya KostManager"
+            href="mailto:support@kekost.com?subject=Tanya KeKost"
             className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs px-5 py-3 rounded-xl shadow-md transition-all shrink-0 cursor-pointer decoration-none text-center"
             id="faq-whatsapp-support"
           >

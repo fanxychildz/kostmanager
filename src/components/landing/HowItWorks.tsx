@@ -69,7 +69,7 @@ export default function HowItWorks() {
             Panduan Memulai
           </span>
           <h2 className="text-3xl md:text-5xl font-extrabold text-slate-1000 tracking-tight mb-4 text-slate-950">
-            Cara Kerja KostManager
+            Cara Kerja KeKost
           </h2>
           <p className="text-slate-600 font-medium text-base md:text-lg">
             Mulai kelola properti kos dan kontrakan Anda secara profesional hanya dalam 4 langkah mudah dan cepat.

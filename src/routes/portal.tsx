@@ -173,7 +173,7 @@ function PortalLayout() {
       <footer className="border-t border-slate-200 bg-white py-6 mt-12 text-xs text-slate-400">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <div>
-            <p className="font-semibold text-slate-500">KostManager Portal Penghuni • Koneksi Enklav Lokal</p>
+            <p className="font-semibold text-slate-500">KeKost Portal Penghuni • Koneksi Enklav Lokal</p>
           </div>
           <div className="flex items-center gap-2">
             <span>v1.0.2</span>

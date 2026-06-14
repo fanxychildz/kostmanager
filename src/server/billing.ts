@@ -78,7 +78,7 @@ export const generateMonthlyBills = createServerFn({ method: 'POST' }).handler(a
         userId: tenant.userId,
         propertyId: tenant.propertyId,
         senderId: session?.user?.id || 'system',
-        senderName: session?.user?.name || 'Sistem KostManager',
+        senderName: session?.user?.name || 'Sistem KeKost',
         recipientType: 'tenant',
         recipientPropertyId: tenant.propertyId,
         recipientTenantId: tenant.id,

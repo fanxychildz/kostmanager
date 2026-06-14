@@ -119,7 +119,7 @@ function BillDetailPage() {
       })
 
       // 2. Logo & Brand
-      drawText('KostManager', 40, 785, 18, true, rgb(0.12, 0.35, 0.8))
+      drawText('KeKost', 40, 785, 18, true, rgb(0.12, 0.35, 0.8))
       drawText('Sistem Manajemen Hunian Pintar', 40, 772, 8, false, rgb(0.5, 0.5, 0.5))
 
       // 3. Invoice Title
@@ -453,7 +453,7 @@ function BillDetailPage() {
         {/* Brand Header */}
         <div className="flex justify-between items-start border-b-2 border-blue-600 pb-4 mb-6">
           <div>
-            <h1 className="text-2xl font-black text-blue-600 tracking-tight leading-none">KostManager</h1>
+            <h1 className="text-2xl font-black text-blue-600 tracking-tight leading-none">KeKost</h1>
             <p className="text-[8px] text-slate-400 font-bold tracking-widest uppercase mt-1">Sistem Hunian Kost Pintar</p>
           </div>
           <div className="text-right">
@@ -552,7 +552,7 @@ function BillDetailPage() {
           {/* Left Column: Notes & Terms */}
           <div className="col-span-3 text-[10px] text-slate-500 leading-relaxed font-medium">
             <h5 className="font-bold text-slate-700 mb-1">Catatan Keuangan:</h5>
-            <p>• Kuitansi ini diterbitkan secara sah oleh sistem manajemen hunian KostManager.</p>
+            <p>• Kuitansi ini diterbitkan secara sah oleh sistem manajemen hunian KeKost.</p>
             <p>• Jatuh tempo pembayaran tagihan ini adalah tanggal {formatDate(bill.dueDate)}.</p>
             <p>• Simpan bukti kuitansi digital ini sebagai bukti pelunasan sewa yang sah.</p>
             <p className="font-bold text-slate-800 mt-2.5">

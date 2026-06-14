@@ -124,7 +124,7 @@ export default function Footer() {
 
         {/* Lower footer with legal copyright notes and BBI credit */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-550">
-          <p>© {currentYear} KostManager SaaS Indonesia. Seluruh hak cipta dilindungi undang-undang.</p>
+          <p>© {currentYear} KeKost SaaS Indonesia. Seluruh hak cipta dilindungi undang-undang.</p>
           <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3.5 py-1.5 rounded-full text-slate-400">
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
             <span className="font-extrabold tracking-wider text-[9px]">

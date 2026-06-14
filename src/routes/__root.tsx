@@ -12,7 +12,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1.0' },
-      { title: 'KostManager — Kelola Kost & Kontrakan Tanpa Ribet' },
+      { title: 'KeKost — Kelola Kost & Kontrakan Tanpa Ribet' },
     ],
     links: [
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
