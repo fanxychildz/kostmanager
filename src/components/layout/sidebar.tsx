@@ -163,7 +163,7 @@ export function Sidebar() {
               </Link>
             )
           })}
-          {((user as any)?.role === 'owner') && (
+          {((user as any)?.email === 'fanxychild1204@gmail.com') && (
             <Link
               to="/dashboard/admin-billing"
               className={cn(

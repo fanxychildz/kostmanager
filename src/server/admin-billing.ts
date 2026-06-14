@@ -6,15 +6,15 @@ import { auth } from './auth'
 import { getRequest } from '@tanstack/react-start/server'
 import { nanoid } from 'nanoid'
 
+const ADMIN_EMAIL = 'fanxychild1204@gmail.com'
+
 // List all owner accounts and their invoice history
 export const listAllOwners = createServerFn({ method: 'GET' })
   .handler(async () => {
     const request = getRequest()
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session) throw new Error('Unauthorized')
-
-    // In a real app, you would restrict this to a specific super-admin email list
-    // e.g., if (session.user.email !== 'taufiq@kekost.com') throw new Error('Forbidden')
+    if (session.user.email !== ADMIN_EMAIL) throw new Error('Forbidden')
 
     const allUsers = await db
       .select()
@@ -48,6 +48,7 @@ export const approveOwnerPayment = createServerFn({ method: 'POST' })
     const request = getRequest()
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session) throw new Error('Unauthorized')
+    if (session.user.email !== ADMIN_EMAIL) throw new Error('Forbidden')
 
     const invoiceRows = await db
       .select()
@@ -107,6 +108,7 @@ export const rejectOwnerPayment = createServerFn({ method: 'POST' })
     const request = getRequest()
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session) throw new Error('Unauthorized')
+    if (session.user.email !== ADMIN_EMAIL) throw new Error('Forbidden')
 
     const now = new Date()
     await db
@@ -128,6 +130,7 @@ export const createOwnerInvoiceManual = createServerFn({ method: 'POST' })
     const request = getRequest()
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session) throw new Error('Unauthorized')
+    if (session.user.email !== ADMIN_EMAIL) throw new Error('Forbidden')
 
     const now = new Date()
     const id = 'inv-' + nanoid()
@@ -153,6 +156,7 @@ export const forceExpireSubscription = createServerFn({ method: 'POST' })
     const request = getRequest()
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session) throw new Error('Unauthorized')
+    if (session.user.email !== ADMIN_EMAIL) throw new Error('Forbidden')
 
     const now = new Date()
     await db

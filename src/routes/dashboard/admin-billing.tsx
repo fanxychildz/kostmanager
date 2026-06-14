@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import { Check, X, FileText, Lock, Unlock, Loader2, ShieldAlert, DollarSign, Users, CheckCircle2, ChevronRight, AlertCircle, Sparkles } from 'lucide-react'
 import { useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '~/components/ui/card'
@@ -14,6 +14,15 @@ import { useQuery, useMutation } from '~/lib/hooks'
 import { DashboardBootstrap } from '~/lib/dashboard-bootstrap'
 
 export const Route = createFileRoute('/dashboard/admin-billing')({
+  beforeLoad: async () => {
+    const session = await api.auth.getSession()
+    if (!session) {
+      throw redirect({ to: '/login' })
+    }
+    if (session.user.email !== 'fanxychild1204@gmail.com') {
+      throw redirect({ to: '/dashboard' })
+    }
+  },
   component: AdminBillingPage,
 })
 
