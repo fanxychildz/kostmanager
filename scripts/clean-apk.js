@@ -3,6 +3,11 @@ import path from 'path';
 
 const apkPath = path.join('dist', 'client', 'KeKost.apk');
 
+if (process.env.VERCEL === '1' || process.env.VERCEL === 'true') {
+  console.log("Running on Vercel, keeping KeKost.apk for download.");
+  process.exit(0);
+}
+
 if (fs.existsSync(apkPath)) {
   try {
     fs.unlinkSync(apkPath);
