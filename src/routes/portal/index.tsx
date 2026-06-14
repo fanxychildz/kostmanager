@@ -485,12 +485,34 @@ function PortalDashboard() {
     leasePercent = total > 0 ? Math.max(0, Math.min(100, Math.round((elapsed / total) * 100))) : 0
   }
 
-  // Handle Payment proof submission (Mocked client-side overlay)
+  // Handle Payment proof submission (Real API integration)
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!payingBill || !tenant?.id || isSubmittingPayment) return
     setIsSubmittingPayment(true)
     try {
+      // 1. Submit the payment to `/api/payments` endpoint
+      const response = await fetch('/api/payments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          billId: payingBill.id,
+          amount: payingBill.totalAmount,
+          paymentMethod: paymentMethod,
+          paidAt: new Date().toISOString().split('T')[0],
+          proofImage: receiptBase64 || undefined,
+          notes: paymentMemo.trim() || undefined,
+        }),
+      })
+
+      if (!response.ok) {
+        const errData = await response.json()
+        throw new Error(errData.error || 'Gagal mengirim pembayaran')
+      }
+
+      // 2. Also send the chat message so that the chat log has a record and notifies the owner
       let finalMessage = `🔔 PEMBERITAHUAN BAYAR: Saya telah mengirim bukti transfer untuk sewa periode ${payingBill.periodMonth}/${payingBill.periodYear} sebesar ${formatRupiah(payingBill.totalAmount)}. Metode: ${paymentMethod === 'bank_transfer' ? 'Transfer Bank' : paymentMethod === 'qris_manual' ? 'QRIS Manual' : 'Metode Lain'}.`
       
       if (paymentMemo.trim()) {
@@ -516,8 +538,9 @@ function PortalDashboard() {
       setReceiptBase64('')
       setPaymentMemo('')
       refetchBills()
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
+      alert(err.message || 'Terjadi kesalahan saat mengunggah bukti pembayaran.')
     } finally {
       setIsSubmittingPayment(false)
     }

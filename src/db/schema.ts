@@ -302,3 +302,17 @@ export const inbox = sqliteTable('inbox', {
 })
 
 export { meterReadings } from '../lib/meter-schema'
+
+export const ownerInvoices = sqliteTable('owner_invoices', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  amount: integer('amount').notNull(),
+  periodMonth: integer('period_month').notNull(),
+  periodYear: integer('period_year').notNull(),
+  dueDate: integer('due_date', { mode: 'timestamp' }).notNull(),
+  status: text('status', { enum: ['pending', 'paid', 'pending_verification'] }).notNull().default('pending'),
+  proofImage: text('proof_image'),
+  paidAt: integer('paid_at', { mode: 'timestamp' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+})

@@ -14,6 +14,7 @@ import * as maintenanceActions from '~/server/maintenance'
 import * as announcementsActions from '~/server/announcements'
 import * as meterReadingsActions from '~/server/meter-readings'
 import * as inboxActions from '~/server/inbox'
+import * as ownerBillingActions from '~/server/owner-billing'
 
 export const api = {
   auth: {
@@ -228,4 +229,10 @@ export const api = {
       unitId: string
     }) => meterReadingsActions.createMeterReading({ data }),
   },
+  ownerBilling: {
+    listInvoices: () => ownerBillingActions.listInvoices(),
+    submitPaymentProof: (data: { invoiceId: string; proofImage: string }) => ownerBillingActions.submitPaymentProof({ data }),
+    simulateSubscriptionState: (action: 'expire' | 'activate') => ownerBillingActions.simulateSubscriptionState({ data: action }),
+  },
 }
+

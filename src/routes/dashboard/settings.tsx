@@ -11,9 +11,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Badge } from '~/components/ui/badge'
 import { api } from '~/lib/api'
 import { useAuth } from '~/lib/auth-context'
-import { useMutation } from '~/lib/hooks'
+import { useQuery, useMutation } from '~/lib/hooks'
 import { authClient } from '~/lib/auth-client'
 import { DashboardBootstrap } from '~/lib/dashboard-bootstrap'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '~/components/ui/dialog'
 
 export const Route = createFileRoute('/dashboard/settings')({
   component: SettingsPage,
@@ -113,6 +114,68 @@ function BackupButton() {
 
 function SettingsPage() {
   const { user, refreshSession } = useAuth()
+
+  const { data: invoices, loading: loadingInvoices, refetch: refetchInvoices } = useQuery({
+    queryFn: () => api.ownerBilling.listInvoices(),
+    cacheKey: 'ownerBilling.listInvoices',
+  })
+
+  const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = useState<any>(null)
+  const [proofImageBase64, setProofImageBase64] = useState('')
+  const [uploadError, setUploadError] = useState('')
+  const [uploadSuccess, setUploadSuccess] = useState(false)
+
+  const handleProofFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 2 * 1024 * 1024) {
+      setUploadError('Gagal: Ukuran file foto maksimal 2MB')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      setProofImageBase64(reader.result as string)
+      setUploadError('')
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const submitProofMutation = useMutation({
+    mutationFn: (variables: { invoiceId: string; proofImage: string }) =>
+      api.ownerBilling.submitPaymentProof(variables),
+    onSuccess: () => {
+      setUploadSuccess(true)
+      setSelectedInvoiceForPayment(null)
+      setProofImageBase64('')
+      refetchInvoices()
+      setTimeout(() => setUploadSuccess(false), 5000)
+    },
+    onError: (err) => setUploadError(err),
+  })
+
+  const handleUploadProofSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setUploadError('')
+    if (!selectedInvoiceForPayment) return
+    if (!proofImageBase64) {
+      setUploadError('Silakan pilih foto/gambar bukti transfer terlebih dahulu.')
+      return
+    }
+    submitProofMutation.mutate({
+      invoiceId: selectedInvoiceForPayment.id,
+      proofImage: proofImageBase64,
+    })
+  }
+
+  const getIndonesianMonthName = (monthNum: number) => {
+    const months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ]
+    return months[monthNum - 1] || 'Bulan'
+  }
 
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -343,36 +406,215 @@ function SettingsPage() {
 
         <TabsContent value="billing">
           <Card>
-            <CardHeader><CardTitle>Langganan</CardTitle><CardDescription>Kelola paket langganan Anda</CardDescription></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 rounded-lg border-2 border-primary">
-                <div>
-                  <div className="flex items-center gap-2"><p className="font-bold">Paket Pro</p><Badge>Aktif</Badge></div>
-                  <p className="text-sm text-muted-foreground">Rp 99.000/bulan &middot; Hingga 100 unit</p>
-                  <p className="text-xs text-muted-foreground mt-1">Perpanjangan berikutnya: 1 Juli 2026</p>
+            <CardHeader>
+              <CardTitle>Langganan</CardTitle>
+              <CardDescription>Kelola paket langganan dan tagihan akun Anda</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {uploadSuccess && (
+                <div className="flex items-start gap-2 rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-xs text-emerald-800 font-medium">
+                  <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-emerald-600" />
+                  <span>Bukti pembayaran berhasil diunggah! Mohon tunggu verifikasi oleh Administrator untuk memperpanjang paket Anda.</span>
                 </div>
-                <Button variant="outline">Kelola</Button>
+              )}
+
+              {/* Developer tools for testing */}
+              <div className="p-4 rounded-xl border border-dashed border-amber-300 bg-amber-50/50 space-y-2.5">
+                <p className="text-xs font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>🛠️</span> Developer Simulator (Pengujian Billing & Lock Screen)
+                </p>
+                <p className="text-[11px] text-amber-700 leading-normal font-medium">
+                  Gunakan tombol di bawah untuk menyimulasikan masa kedaluwarsa paket (expired) untuk menguji layar pemblokiran dashboard dan invoice tertunggak, atau aktifkan kembali akun Anda secara instan.
+                </p>
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={async () => {
+                      if (confirm('Simulasikan status langganan kedaluwarsa? Ini akan memblokir dashboard dan membuat invoice tagihan baru di database.')) {
+                        try {
+                          await api.ownerBilling.simulateSubscriptionState('expire')
+                          alert('Masa aktif berhasil diset kedaluwarsa! Silakan refresh halaman untuk melihat layar pemblokiran.')
+                          window.location.reload()
+                        } catch (err) {
+                          alert('Gagal: ' + err)
+                        }
+                      }
+                    }}
+                    className="border-amber-300 bg-white text-amber-850 hover:bg-amber-100 hover:text-amber-900 rounded-xl text-[10px] font-bold py-1 h-8 cursor-pointer shadow-sm"
+                  >
+                    Simulasi Expired (Lock)
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={async () => {
+                      try {
+                        await api.ownerBilling.simulateSubscriptionState('activate')
+                        alert('Paket berhasil diaktifkan kembali dan semua tagihan dilunasi!')
+                        window.location.reload()
+                      } catch (err) {
+                        alert('Gagal: ' + err)
+                      }
+                    }}
+                    className="border-emerald-300 bg-white text-emerald-850 hover:bg-emerald-100 hover:text-emerald-950 rounded-xl text-[10px] font-bold py-1 h-8 cursor-pointer shadow-sm"
+                  >
+                    Simulasi Aktif (Unlock)
+                  </Button>
+                </div>
               </div>
-              <Separator />
-              <div>
-                <h4 className="font-medium mb-2">Riwayat Pembayaran</h4>
-                <div className="space-y-2">
-                  {[
-                    { date: '1 Juni 2026', amount: 'Rp 99.000', status: 'Akan datang' },
-                    { date: '1 Mei 2026', amount: 'Rp 99.000', status: 'Lunas' },
-                    { date: '1 April 2026', amount: 'Rp 99.000', status: 'Lunas' },
-                  ].map((item) => (
-                    <div key={item.date} className="flex items-center justify-between text-sm p-2 rounded border">
-                      <span>{item.date}</span><span className="font-medium">{item.amount}</span>
-                      <Badge variant={item.status === 'Lunas' ? 'success' : 'warning'}>{item.status}</Badge>
-                    </div>
-                  ))}
+
+              <div className="flex items-center justify-between p-4 rounded-lg border-2 border-primary bg-slate-50/50">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-slate-800">Paket Pro</p>
+                    <Badge variant={(user as any)?.subscriptionStatus === 'active' ? 'success' : 'destructive'}>
+                      {(user as any)?.subscriptionStatus === 'active' ? 'Aktif' : 'Expired'}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">Rp 99.000/bulan &middot; Hingga 100 unit</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {(user as any)?.subscriptionExpiresAt ? (
+                      `Perpanjangan berikutnya: ${new Date((user as any).subscriptionExpiresAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                    ) : (
+                      'Masa Aktif: Tidak Terbatas'
+                    )}
+                  </p>
                 </div>
+                <Button variant="outline" asChild>
+                  <a 
+                    href="https://wa.me/6285156469451?text=Halo%20Pak%20Taufiq%20Rusdhi%20(Admin%20KeKost),%20saya%20ingin%20memperpanjang%20paket%20langganan%20saya."
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Hubungi Admin
+                  </a>
+                </Button>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h4 className="font-semibold text-sm mb-3">Tagihan & Riwayat Pembayaran</h4>
+                {loadingInvoices ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : !invoices || invoices.length === 0 ? (
+                  <div className="text-center py-8 text-xs text-slate-400 font-medium bg-slate-50 rounded-xl border border-dashed">
+                    Belum ada riwayat tagihan langganan KeKost untuk akun Anda.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {invoices.map((inv: any) => (
+                      <div key={inv.id} className="flex flex-col sm:flex-row sm:items-center justify-between text-xs p-3.5 rounded-xl border border-slate-200 bg-white gap-3 font-semibold">
+                        <div className="space-y-1">
+                          <span className="text-slate-800 font-extrabold text-sm block">
+                            Periode {getIndonesianMonthName(inv.periodMonth)} {inv.periodYear}
+                          </span>
+                          <span className="text-slate-400 text-[10px] block">
+                            Jatuh Tempo: {new Date(inv.dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 self-end sm:self-auto">
+                          <span className="font-black text-slate-900 text-sm">
+                            Rp {inv.amount.toLocaleString('id-ID')}
+                          </span>
+                          <Badge variant={
+                            inv.status === 'paid' ? 'success' :
+                            inv.status === 'pending_verification' ? 'warning' : 'destructive'
+                          }>
+                            {inv.status === 'paid' ? 'Lunas' :
+                             inv.status === 'pending_verification' ? 'Menunggu Verifikasi' : 'Belum Dibayar'}
+                          </Badge>
+                          
+                          {inv.status === 'pending' && (
+                            <Button 
+                              size="sm" 
+                              onClick={() => {
+                                setSelectedInvoiceForPayment(inv)
+                                setProofImageBase64('')
+                                setUploadError('')
+                              }}
+                              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold py-1 h-7 cursor-pointer"
+                            >
+                              Bayar & Upload Bukti
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Upload Payment Proof Dialog */}
+      <Dialog open={!!selectedInvoiceForPayment} onOpenChange={(isOpen) => { if (!isOpen) setSelectedInvoiceForPayment(null); }}>
+        <DialogContent className="sm:max-w-[450px] bg-white text-slate-800 rounded-3xl p-6 shadow-xl border border-slate-200">
+          <form onSubmit={handleUploadProofSubmit} className="space-y-4">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-bold text-slate-900">Konfirmasi Pembayaran</DialogTitle>
+              <DialogDescription className="text-xs text-slate-500">
+                Silakan lakukan transfer bank ke rekening admin di bawah ini dan unggah foto bukti transfernya.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs space-y-2.5 font-semibold text-slate-700">
+              <div className="flex justify-between">
+                <span className="text-slate-400 font-medium">Bank Tujuan:</span>
+                <span className="text-slate-800 font-extrabold">Bank BCA</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400 font-medium">No. Rekening:</span>
+                <span className="text-slate-800 font-extrabold select-all">085156469451</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400 font-medium">Atas Nama:</span>
+                <span className="text-slate-800 font-extrabold">Taufiq Rusdhi</span>
+              </div>
+              <div className="flex justify-between border-t pt-2 border-slate-150">
+                <span className="text-slate-400 font-medium">Jumlah Transfer:</span>
+                <span className="text-slate-900 font-black text-sm">
+                  Rp {selectedInvoiceForPayment?.amount.toLocaleString('id-ID')}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="proofFile" className="text-xs font-bold text-slate-700">Pilih Foto/Gambar Bukti Transfer</Label>
+              <Input
+                id="proofFile"
+                type="file"
+                accept="image/*"
+                onChange={handleProofFileChange}
+                className="rounded-xl border-slate-250 text-xs px-3 py-2 bg-slate-50/50"
+                required
+              />
+              {proofImageBase64 && (
+                <div className="mt-2 border rounded-xl overflow-hidden max-h-36 flex items-center justify-center bg-slate-100">
+                  <img src={proofImageBase64} alt="Bukti Transfer" className="object-contain max-h-36" />
+                </div>
+              )}
+            </div>
+
+            {uploadError && <p className="text-xs text-destructive font-medium">{uploadError}</p>}
+
+            <DialogFooter className="gap-2">
+              <Button type="button" variant="outline" onClick={() => setSelectedInvoiceForPayment(null)} className="rounded-xl text-xs py-2 px-4 cursor-pointer">
+                Batal
+              </Button>
+              <Button type="submit" disabled={submitProofMutation.loading} className="rounded-xl text-xs py-2 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold cursor-pointer">
+                {submitProofMutation.loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Kirim Bukti Pembayaran
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
     </DashboardBootstrap>
   )
