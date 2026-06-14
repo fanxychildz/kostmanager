@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { 
   Home, FileText, Wrench, MessageSquare, CreditCard, Camera, Info, 
   Sparkles, CheckCircle2, AlertCircle, Clock, Send, Mail, Phone, Calendar, ArrowUpRight, HelpCircle, Loader2,
@@ -113,14 +113,21 @@ function generateAISuggestion(messages: PortalChatMessage[], respondent: 'Tenant
 }
 
 function PortalDashboard() {
-  const { user: authUser, refreshSession } = useAuth()
+  const navigate = useNavigate()
+  const { user: authUser, refreshSession, signOut } = useAuth()
   const [activeTab, setActiveTab] = useState<TenantTab>('lease')
 
   const {
     data: profile,
     loading: loadingProfile,
     refetch: refetchProfile,
+    error: errorProfile,
   } = useQuery<PortalProfile>({ queryFn: () => api.portal.profile() })
+
+  const handleSignOut = async () => {
+    await signOut()
+    navigate({ to: '/portal/login' })
+  }
 
   const {
     data: bills,
@@ -427,6 +434,34 @@ function PortalDashboard() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (errorProfile || !profile?.tenant) {
+    return (
+      <div className="max-w-md mx-auto my-12 p-8 bg-white border border-slate-200 rounded-3xl shadow-sm text-center">
+        <div className="w-12 h-12 bg-amber-50 border border-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <AlertCircle className="w-6 h-6 text-amber-500" />
+        </div>
+        <h3 className="text-lg font-bold text-slate-900 mb-2">Akun Belum Terhubung</h3>
+        <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+          {errorProfile || 'Akun Anda belum terhubung dengan data penghuni aktif di kost ini. Silakan hubungi pemilik kost Anda untuk mendaftarkan email Anda.'}
+        </p>
+        <div className="space-y-3">
+          <button 
+            onClick={() => refetchProfile()} 
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold py-3 transition cursor-pointer"
+          >
+            Muat Ulang Halaman
+          </button>
+          <button 
+            onClick={handleSignOut} 
+            className="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold py-3 transition cursor-pointer border border-rose-100"
+          >
+            Keluar dari Akun
+          </button>
+        </div>
       </div>
     )
   }

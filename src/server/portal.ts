@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, isNull } from 'drizzle-orm'
 import { db } from '../db'
 import { tenants, units, properties, bills, users, maintenanceRequests, maintenanceUpdates, notifications } from '../db/schema'
 import { auth } from './auth'
@@ -18,7 +18,23 @@ async function requireTenant(headers: Headers) {
   if (!session) throw new Error('Unauthorized')
 
   const result = await db.select().from(tenants).where(eq(tenants.userId, session.user.id))
-  if (result.length === 0) throw new Error('Akun ini bukan penghuni')
+  if (result.length === 0) {
+    // Check if there is an unlinked tenant record with the same email
+    const unlinked = await db
+      .select()
+      .from(tenants)
+      .where(and(eq(tenants.email, session.user.email), isNull(tenants.userId)))
+      .limit(1)
+
+    if (unlinked.length > 0) {
+      const now = new Date()
+      // Automatically link the existing active session user to the new tenant record
+      await db.update(tenants).set({ userId: session.user.id, updatedAt: now }).where(eq(tenants.id, unlinked[0].id))
+      return { ...unlinked[0], userId: session.user.id }
+    }
+
+    throw new Error('Akun ini bukan penghuni')
+  }
 
   return result[0]
 }
@@ -39,19 +55,39 @@ export const portalRegister = createServerFn({ method: 'POST' })
     }
 
     const tenant = existingTenant[0]
+    let userId: string
 
-    const { headers, response } = await auth.api.signUpEmail({
-      body: {
-        email: data.email,
-        password: data.password,
-        name: tenant.fullName,
-      },
-      headers: request.headers,
-      returnHeaders: true,
-    })
-    forwardAuthCookies(headers)
-
-    const userId = response.user.id
+    const existingUser = await db.select().from(users).where(eq(users.email, data.email)).limit(1)
+    if (existingUser.length > 0) {
+      // User already exists, try to authenticate with the provided password
+      try {
+        const { headers, response } = await auth.api.signInEmail({
+          body: {
+            email: data.email,
+            password: data.password,
+          },
+          headers: request.headers,
+          returnHeaders: true,
+        })
+        forwardAuthCookies(headers)
+        userId = response.user.id
+      } catch (err) {
+        throw new Error('Email sudah terdaftar. Silakan masukkan password yang benar untuk menghubungkan akun Anda.')
+      }
+    } else {
+      // User doesn't exist, create a new one
+      const { headers, response } = await auth.api.signUpEmail({
+        body: {
+          email: data.email,
+          password: data.password,
+          name: tenant.fullName,
+        },
+        headers: request.headers,
+        returnHeaders: true,
+      })
+      forwardAuthCookies(headers)
+      userId = response.user.id
+    }
 
     const now = new Date()
     // Mark the account as a tenant (role defaults to 'owner' on sign-up) and
