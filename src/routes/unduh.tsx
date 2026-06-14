@@ -59,7 +59,7 @@ function UnduhPage() {
                 {/* Download Actions */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-3">
                   <a 
-                    href="/KeKost.apk" 
+                    href="/KeKost.apk?v=3" 
                     download
                     className="bg-slate-900 hover:bg-slate-950 text-white font-bold text-sm px-6 py-4 rounded-2xl flex items-center justify-center gap-2.5 transition shadow-md hover:shadow-lg group"
                   >
