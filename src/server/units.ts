@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, sql } from 'drizzle-orm'
 import { db } from '../db'
-import { units, properties } from '../db/schema'
+import { units, properties, users } from '../db/schema'
 import { auth } from './auth'
 import { nanoid } from 'nanoid'
 import { getRequest } from '@tanstack/react-start/server'
@@ -79,6 +79,29 @@ export const createUnit = createServerFn({ method: 'POST' })
       .where(and(eq(properties.id, data.propertyId), eq(properties.ownerId, session.user.id)))
 
     if (prop.length === 0) throw new Error('Property not found')
+
+    // Enforce pricing plan unit limits
+    const owner = await db.select().from(users).where(eq(users.id, session.user.id)).then(r => r[0])
+    if (!owner) throw new Error('Owner profile not found')
+
+    const existingUnitsCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(units)
+      .innerJoin(properties, eq(properties.id, units.propertyId))
+      .where(eq(properties.ownerId, session.user.id))
+      .then(r => r[0]?.count || 0)
+
+    if (!owner.subscriptionExpiresAt) {
+      // Free / Gratis Plan: limit 10 units
+      if (existingUnitsCount >= 10) {
+        throw new Error('Batas Unit Terlampaui: Paket Gratis hanya mendukung maksimal 10 unit kamar. Silakan lakukan upgrade ke Paket Pro pada menu Pengaturan > Billing untuk mengelola hingga 100 unit.')
+      }
+    } else {
+      // Pro Plan: limit 100 units
+      if (existingUnitsCount >= 100) {
+        throw new Error('Batas Unit Terlampaui: Paket Pro hanya mendukung maksimal 100 unit kamar. Silakan hubungi Sales untuk upgrade ke Paket Bisnis.')
+      }
+    }
 
     const now = new Date()
     const result = await db.insert(units).values({

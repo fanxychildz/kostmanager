@@ -37,7 +37,7 @@ function AdminBillingPage() {
   
   // Invoice form state
   const [newInvoiceData, setNewInvoiceData] = useState({
-    amount: '99000',
+    amount: '49000',
     periodMonth: new Date().getMonth() + 1,
     periodYear: new Date().getFullYear(),
   })

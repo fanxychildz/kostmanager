@@ -124,7 +124,7 @@ function LoginPage() {
 
               <p className="text-center text-sm text-muted-foreground">
                 Belum punya akun?{' '}
-                <Link to="/register" className="text-primary hover:underline font-medium">
+                <Link to="/register" search={{ plan: undefined }} className="text-primary hover:underline font-medium">
                   Daftar sekarang
                 </Link>
               </p>

@@ -155,6 +155,15 @@ function SettingsPage() {
     onError: (err) => setUploadError(err),
   })
 
+  const upgradeMutation = useMutation({
+    mutationFn: () => api.ownerBilling.requestUpgrade(),
+    onSuccess: () => {
+      refetchInvoices()
+      alert('Permintaan upgrade berhasil! Tagihan Paket Pro baru berstatus pending telah dibuat di bawah. Silakan klik tombol "Bayar & Upload Bukti" untuk menyelesaikan pembayaran dan mengirim struk transfer ke Admin.')
+    },
+    onError: (err) => alert('Gagal meminta upgrade: ' + err),
+  })
+
   const handleUploadProofSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setUploadError('')
@@ -420,12 +429,16 @@ function SettingsPage() {
               <div className="flex items-center justify-between p-4 rounded-lg border-2 border-primary bg-slate-50/50">
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="font-bold text-slate-800">Paket Pro</p>
+                    <p className="font-bold text-slate-800">
+                      {(user as any)?.subscriptionExpiresAt ? 'Paket Pro' : 'Paket Gratis'}
+                    </p>
                     <Badge variant={(user as any)?.subscriptionStatus === 'active' ? 'success' : 'destructive'}>
                       {(user as any)?.subscriptionStatus === 'active' ? 'Aktif' : 'Expired'}
                     </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">Rp 99.000/bulan &middot; Hingga 100 unit</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {(user as any)?.subscriptionExpiresAt ? 'Rp 49.000/bulan · Hingga 100 unit' : 'Rp 0 · Hingga 10 unit'}
+                  </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {(user as any)?.subscriptionExpiresAt ? (
                       `Perpanjangan berikutnya: ${new Date((user as any).subscriptionExpiresAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`
@@ -434,15 +447,30 @@ function SettingsPage() {
                     )}
                   </p>
                 </div>
-                <Button variant="outline" asChild>
-                  <a 
-                    href="https://wa.me/6285156469451?text=Halo%20Pak%20Taufiq%20Rusdhi%20(Admin%20KeKost),%20saya%20ingin%20memperpanjang%20paket%20langganan%20saya."
-                    target="_blank"
-                    rel="noopener noreferrer"
+                {(user as any)?.subscriptionExpiresAt ? (
+                  <Button variant="outline" asChild>
+                    <a 
+                      href="https://wa.me/6285156469451?text=Halo%20Pak%20Taufiq%20Rusdhi%20(Admin%20KeKost),%20saya%20ingin%20memperpanjang%20paket%20langganan%20saya."
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Hubungi Admin
+                    </a>
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={() => {
+                      if (confirm('Apakah Anda yakin ingin melakukan upgrade ke Paket Pro? Ini akan menerbitkan invoice baru sebesar Rp 49.000 untuk bulan ini.')) {
+                        upgradeMutation.mutate()
+                      }
+                    }}
+                    disabled={upgradeMutation.loading}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl cursor-pointer shadow-md shadow-blue-500/10 border-none"
                   >
-                    Hubungi Admin
-                  </a>
-                </Button>
+                    {upgradeMutation.loading && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
+                    Upgrade ke Paket Pro
+                  </Button>
+                )}
               </div>
 
               <Separator />

@@ -123,6 +123,7 @@ export default function Navigation({ activeSection }: NavigationProps) {
               </Link>
               <Link
                 to="/register"
+                search={{ plan: undefined }}
                 className="bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-bold px-5 py-2 rounded-xl shadow-md hover:shadow-lg hover:shadow-blue-500/15 transition-all flex items-center gap-1.5 cursor-pointer decoration-none"
                 id="btn-nav-cta"
               >
@@ -208,6 +209,7 @@ export default function Navigation({ activeSection }: NavigationProps) {
                 </Link>
                 <Link
                   to="/register"
+                  search={{ plan: undefined }}
                   onClick={() => setMobileMenuOpen(false)}
                   className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-blue-500/10 transition-all cursor-pointer decoration-none"
                   id="mobile-btn-cta"

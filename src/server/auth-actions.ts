@@ -1,6 +1,9 @@
 import { createServerFn } from '@tanstack/react-start'
 import { auth } from './auth'
 import { getRequest, setResponseHeader } from '@tanstack/react-start/server'
+import { db } from '../db'
+import { users } from '../db/schema'
+import { eq } from 'drizzle-orm'
 
 // better-auth issues the session cookie via a Set-Cookie header. When we call
 // it through `auth.api.*` inside a server function, that header is discarded
@@ -34,7 +37,7 @@ export const signIn = createServerFn({ method: 'POST' })
   })
 
 export const signUp = createServerFn({ method: 'POST' })
-  .inputValidator((d: { email: string; password: string; name: string }) => d)
+  .inputValidator((d: { email: string; password: string; name: string; plan?: 'gratis' | 'pro' }) => d)
   .handler(async ({ data }) => {
     const request = getRequest()
     const { headers, response } = await auth.api.signUpEmail({
@@ -47,6 +50,27 @@ export const signUp = createServerFn({ method: 'POST' })
       returnHeaders: true,
     })
     forwardAuthCookies(headers)
+
+    if (response && response.user) {
+      const now = new Date()
+      if (data.plan === 'pro') {
+        // 14 days free trial for Pro
+        const expiry = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000)
+        await db.update(users).set({
+          subscriptionStatus: 'active',
+          subscriptionExpiresAt: expiry,
+          updatedAt: now,
+        }).where(eq(users.id, response.user.id))
+      } else {
+        // Free / Gratis plan: unlimited expiry, but capped to 10 rooms in createUnit
+        await db.update(users).set({
+          subscriptionStatus: 'active',
+          subscriptionExpiresAt: null,
+          updatedAt: now,
+        }).where(eq(users.id, response.user.id))
+      }
+    }
+
     return response
   })
 

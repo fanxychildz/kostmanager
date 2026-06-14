@@ -25,7 +25,7 @@ interface AuthContextType {
   session: Session | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<any>
-  signUp: (email: string, password: string, name: string) => Promise<void>
+  signUp: (email: string, password: string, name: string, plan?: 'gratis' | 'pro') => Promise<void>
   signOut: () => Promise<void>
   refreshSession: () => Promise<any>
 }
@@ -75,8 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return await refreshSession()
   }
 
-  const signUp = async (email: string, password: string, name: string) => {
-    const data = await api.auth.signUp({ email, password, name })
+  const signUp = async (email: string, password: string, name: string, plan?: 'gratis' | 'pro') => {
+    const data = await api.auth.signUp({ email, password, name, plan })
     if (data && data.user) {
       setUser(data.user as User)
       if (data.token) {

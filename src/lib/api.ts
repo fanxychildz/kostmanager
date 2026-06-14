@@ -20,7 +20,7 @@ import * as adminBillingActions from '~/server/admin-billing'
 
 export const api = {
   auth: {
-    signUp: (data: { email: string; password: string; name: string }) =>
+    signUp: (data: { email: string; password: string; name: string; plan?: 'gratis' | 'pro' }) =>
       authActions.signUp({ data }),
     signIn: (data: { email: string; password: string }) =>
       authActions.signIn({ data }),
@@ -235,6 +235,7 @@ export const api = {
     listInvoices: () => ownerBillingActions.listInvoices(),
     submitPaymentProof: (data: { invoiceId: string; proofImage: string }) => ownerBillingActions.submitPaymentProof({ data }),
     simulateSubscriptionState: (action: 'expire' | 'activate') => ownerBillingActions.simulateSubscriptionState({ data: action }),
+    requestUpgrade: () => ownerBillingActions.requestUpgradeToPro(),
   },
   adminBilling: {
     listOwners: () => adminBillingActions.listAllOwners(),

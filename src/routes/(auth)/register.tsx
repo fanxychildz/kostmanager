@@ -10,11 +10,17 @@ import { useAuth } from '~/lib/auth-context'
 import { api } from '~/lib/api'
 
 export const Route = createFileRoute('/(auth)/register')({
+  validateSearch: (search: Record<string, unknown>): { plan?: 'gratis' | 'pro' } => {
+    return {
+      plan: (search.plan as 'gratis' | 'pro') || undefined,
+    }
+  },
   component: RegisterPage,
 })
 
 function RegisterPage() {
   const navigate = useNavigate()
+  const { plan } = Route.useSearch()
   const { signUp } = useAuth()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -27,7 +33,7 @@ function RegisterPage() {
     setError('')
     setLoading(true)
     try {
-      await signUp(email, password, name)
+      await signUp(email, password, name, plan)
       navigate({ to: '/dashboard' })
     } catch (err) {
       setError('Gagal mendaftar. Silakan coba lagi.')
@@ -58,8 +64,12 @@ function RegisterPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Daftar Akun</CardTitle>
-              <CardDescription>Buat akun KeKost gratis</CardDescription>
+              <CardTitle>Daftar Akun {plan === 'pro' ? 'Paket Pro' : 'Paket Gratis'}</CardTitle>
+              <CardDescription>
+                {plan === 'pro'
+                  ? 'Coba Paket Pro gratis selama 14 hari, tanpa kartu kredit.'
+                  : 'Mulai kelola hingga 10 unit kamar gratis selamanya.'}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <form onSubmit={handleSubmit} className="space-y-4">

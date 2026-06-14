@@ -26,8 +26,8 @@ export default function Pricing() {
     },
     {
       name: "Pro",
-      priceMonthly: 99000,
-      priceYearly: 79000,
+      priceMonthly: 49000,
+      priceYearly: 39000,
       periodLabel: "bulan",
       description: "Untuk pengelola aktif yang ingin serba otomatis & cepat.",
       features: [
@@ -44,8 +44,8 @@ export default function Pricing() {
     },
     {
       name: "Bisnis",
-      priceMonthly: 249000,
-      priceYearly: 199000,
+      priceMonthly: 149000,
+      priceYearly: 119000,
       periodLabel: "bulan",
       description: "Pilihan terbaik bagi korporasi atau agen properti berskala besar.",
       features: [
@@ -199,7 +199,9 @@ export default function Pricing() {
                 <div className="pt-8">
                   {plan.name === "Bisnis" ? (
                     <a
-                      href="mailto:sales@kostmanager.com?subject=Tanya Paket Bisnis KostManager"
+                      href="https://wa.me/6285156469451?text=Halo%20Pak%20Taufiq%20Rusdhi%20(KeKost),%20saya%20tertarik%20dengan%20Paket%20Bisnis%20KeKost."
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="w-full flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm py-3.5 px-4 rounded-xl transition-all shadow-md cursor-pointer decoration-none"
                       id="pricing-cta-bisnis"
                     >
@@ -209,6 +211,7 @@ export default function Pricing() {
                   ) : (
                     <Link
                       to="/register"
+                      search={{ plan: plan.name.toLowerCase() as any }}
                       className={`w-full block py-3.5 px-4 rounded-xl font-extrabold text-sm text-center transition-all shadow-xs cursor-pointer decoration-none ${
                         plan.isPopular
                           ? "bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/15"

@@ -88,7 +88,7 @@ export const simulateSubscriptionState = createServerFn({ method: 'POST' })
         await db.insert(ownerInvoices).values({
           id: 'inv-' + nanoid(),
           userId: session.user.id,
-          amount: 99000,
+          amount: 49000,
           periodMonth: currentMonth,
           periodYear: currentYear,
           dueDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
@@ -120,4 +120,50 @@ export const simulateSubscriptionState = createServerFn({ method: 'POST' })
     }
 
     return { success: true }
+  })
+
+export const requestUpgradeToPro = createServerFn({ method: 'POST' })
+  .handler(async () => {
+    const request = getRequest()
+    const session = await auth.api.getSession({ headers: request.headers })
+    if (!session || session.user.role !== 'owner') throw new Error('Unauthorized')
+
+    const owner = await db.select().from(users).where(eq(users.id, session.user.id)).then(r => r[0])
+    if (!owner) throw new Error('Owner not found')
+    if (owner.subscriptionExpiresAt) throw new Error('Akun Anda sudah menggunakan Paket Pro.')
+
+    const now = new Date()
+    const currentMonth = now.getMonth() + 1
+    const currentYear = now.getFullYear()
+
+    // Check if there is already a pending invoice
+    const existing = await db
+      .select()
+      .from(ownerInvoices)
+      .where(
+        and(
+          eq(ownerInvoices.userId, session.user.id),
+          eq(ownerInvoices.status, 'pending')
+        )
+      )
+      .limit(1)
+
+    if (existing.length > 0) {
+      return { success: true, invoiceId: existing[0].id }
+    }
+
+    const id = 'inv-' + nanoid()
+    await db.insert(ownerInvoices).values({
+      id,
+      userId: session.user.id,
+      amount: 49000,
+      periodMonth: currentMonth,
+      periodYear: currentYear,
+      dueDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+      status: 'pending',
+      createdAt: now,
+      updatedAt: now,
+    })
+
+    return { success: true, invoiceId: id }
   })
