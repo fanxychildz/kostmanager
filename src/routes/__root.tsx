@@ -15,7 +15,7 @@ export const Route = createRootRoute({
       { title: 'KeKost' },
     ],
     links: [
-      { rel: 'icon', type: 'image/png', href: '/favicon.png?v=2' },
+      { rel: 'icon', type: 'image/png', href: '/favicon.png?v=3' },
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
       { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: 'anonymous' },
       {
