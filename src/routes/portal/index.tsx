@@ -789,7 +789,7 @@ function PortalDashboard() {
                     </div>
                     <div className="flex items-center gap-2 text-slate-650">
                       <Phone className="w-4 h-4 text-slate-400 shrink-0" />
-                      <span>+62 821-5555-0909</span>
+                      <span>+62 851-5646-9451</span>
                     </div>
                   </div>
                   <button

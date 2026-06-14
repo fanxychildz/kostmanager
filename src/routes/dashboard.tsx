@@ -130,12 +130,12 @@ function DashboardLayout() {
           
           <div className="w-full space-y-3">
             <a 
-              href="https://wa.me/6282155550909?text=Halo%20Admin%20KeKost,%20saya%20ingin%20memperpanjang%20paket%20langganan%20saya."
+              href="https://wa.me/6285156469451?text=Halo%20Pak%20Taufiq%20Rusdhi%20(Admin%20KeKost),%20saya%20ingin%20memperpanjang%20paket%20langganan%20saya."
               target="_blank"
               rel="noopener noreferrer"
               className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold py-3.5 transition block text-center cursor-pointer shadow-lg shadow-blue-600/20"
             >
-              Hubungi Admin (WhatsApp)
+              Hubungi Pak Taufiq Rusdhi (WhatsApp)
             </a>
             <button 
               onClick={async () => {
