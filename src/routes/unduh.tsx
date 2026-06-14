@@ -13,7 +13,7 @@ function UnduhPage() {
       <header className="sticky top-0 z-50 bg-white/85 backdrop-blur-md shadow-sm border-b border-slate-100 py-3.5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
           <Link to="/" className="flex items-center group">
-            <img src="/logo-horizontal.png?v=6" alt="KeKost" className="h-9 md:h-10 w-auto object-contain" />
+            <img src="/logo-horizontal.png?v=7" alt="KeKost" className="h-9 md:h-10 w-auto object-contain" />
           </Link>
           
           <div className="flex items-center gap-3">
@@ -96,7 +96,7 @@ function UnduhPage() {
                   <div className="flex-1 bg-white rounded-[32px] overflow-hidden flex flex-col relative z-10 pt-6">
                     {/* Mock App Header */}
                     <div className="bg-slate-950 px-4 py-3 flex items-center justify-between">
-                      <img src="/logo-horizontal-white.png?v=6" alt="KeKost" className="h-5 w-auto object-contain" />
+                      <img src="/logo-horizontal-white.png?v=7" alt="KeKost" className="h-5 w-auto object-contain" />
                       <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse"></div>
                     </div>
 

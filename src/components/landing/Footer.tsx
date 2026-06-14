@@ -33,7 +33,7 @@ export default function Footer() {
               className="flex items-center text-left group cursor-pointer border-0 bg-transparent p-0 hover:opacity-95 transition-opacity"
               id="footer-logo-btn"
             >
-              <img src="/logo-horizontal-white.png?v=6" alt="KeKost" className="h-10 w-auto object-contain" />
+              <img src="/logo-horizontal-white.png?v=7" alt="KeKost" className="h-10 w-auto object-contain" />
             </button>
             
             <p className="text-xs sm:text-sm text-slate-400 max-w-sm font-medium leading-relaxed">

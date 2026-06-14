@@ -132,7 +132,7 @@ function DashboardLayout() {
             transition={{ type: 'spring', stiffness: 200, damping: 20 }}
             className="mb-8 flex items-center justify-center"
           >
-            <img src="/logo-stacked-white.png?v=4" alt="KeKost" className="h-20 w-auto object-contain" />
+            <img src="/logo-stacked-white.png?v=7" alt="KeKost" className="h-20 w-auto object-contain" />
           </motion.div>
 
           <h2 className="text-xl font-bold tracking-tight mb-2">Mempersiapkan KeKost</h2>
