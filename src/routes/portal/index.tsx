@@ -852,7 +852,11 @@ function PortalDashboard() {
                     return (
                       <div key={bill.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 font-semibold text-xs md:text-sm">
                         <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-xl border ${bill.status === 'paid' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-rose-50 border-rose-100 text-rose-600'}`}>
+                          <div className={`p-2 rounded-xl border ${
+                            bill.status === 'paid' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' :
+                            bill.hasPendingPayment ? 'bg-blue-50 border-blue-100 text-blue-600' :
+                            'bg-rose-50 border-rose-100 text-rose-600'
+                          }`}>
                             <CreditCard className="w-4.5 h-4.5" />
                           </div>
                           <div>
@@ -870,20 +874,31 @@ function PortalDashboard() {
                           <div className="flex items-center gap-2">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                               bill.status === 'paid' ? 'bg-emerald-100 text-emerald-800' :
+                              bill.hasPendingPayment ? 'bg-blue-100 text-blue-800' :
                               bill.status === 'overdue' ? 'bg-rose-100 text-rose-800' :
                               'bg-amber-100 text-amber-800'
                             }`}>
                               {bill.status === 'paid' ? 'Lunas' :
+                               bill.hasPendingPayment ? 'Pending (Dicek)' :
                                bill.status === 'overdue' ? 'Jatuh Tempo' : 'Belum Bayar'}
                             </span>
 
                             {bill.status !== 'paid' && (
-                              <button
-                                onClick={() => setPayingBill(bill)}
-                                className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-[10px] md:text-xs px-3.5 py-1.5 rounded-xl transition cursor-pointer"
-                              >
-                                Bayar Sewa
-                              </button>
+                              bill.hasPendingPayment ? (
+                                <button
+                                  disabled
+                                  className="bg-slate-100 text-slate-400 font-bold text-[10px] md:text-xs px-3.5 py-1.5 rounded-xl cursor-not-allowed border border-slate-200"
+                                >
+                                  Diproses
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => setPayingBill(bill)}
+                                  className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-[10px] md:text-xs px-3.5 py-1.5 rounded-xl transition cursor-pointer"
+                                >
+                                  Bayar Sewa
+                                </button>
+                              )
                             )}
                           </div>
                         </div>

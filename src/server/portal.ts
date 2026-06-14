@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { eq, and, isNull } from 'drizzle-orm'
 import { db } from '../db'
-import { tenants, units, properties, bills, users, maintenanceRequests, maintenanceUpdates, notifications } from '../db/schema'
+import { tenants, units, properties, bills, users, maintenanceRequests, maintenanceUpdates, notifications, payments } from '../db/schema'
 import { auth } from './auth'
 import { nanoid } from 'nanoid'
 import { getRequest, setResponseHeader } from '@tanstack/react-start/server'
@@ -131,7 +131,27 @@ export const getPortalBills = createServerFn({ method: 'GET' }).handler(async ()
 
   const result = await db.select().from(bills).where(eq(bills.tenantId, tenant.id))
 
-  return result.sort((a, b) => {
+  const billsWithPaymentStatus = await Promise.all(
+    result.map(async (bill) => {
+      const pendingPayment = await db
+        .select({ id: payments.id })
+        .from(payments)
+        .where(
+          and(
+            eq(payments.billId, bill.id),
+            eq(payments.status, 'pending')
+          )
+        )
+        .limit(1)
+
+      return {
+        ...bill,
+        hasPendingPayment: pendingPayment.length > 0,
+      }
+    })
+  )
+
+  return billsWithPaymentStatus.sort((a, b) => {
     if (b.periodYear !== a.periodYear) return b.periodYear - a.periodYear
     return b.periodMonth - a.periodMonth
   })
