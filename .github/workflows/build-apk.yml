@@ -39,6 +39,9 @@ jobs:
           DATABASE_URL: libsql://dummy-database.turso.io
           DATABASE_AUTH_TOKEN: dummy-token
 
+      - name: Create Dummy Web Dir
+        run: mkdir -p dist/client
+
       - name: Capacitor Sync
         run: pnpm cap sync
 
