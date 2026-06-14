@@ -163,6 +163,18 @@ export function Sidebar() {
               </Link>
             )
           })}
+          {((user as any)?.role === 'owner') && (
+            <Link
+              to="/dashboard/admin-billing"
+              className={cn(
+                'flex items-center gap-3 rounded-xl px-4 py-2.5 text-xs md:text-sm font-semibold transition-all border border-dashed border-blue-200 bg-blue-50/10 text-blue-700 hover:bg-blue-50 hover:text-blue-900',
+                location.pathname === '/dashboard/admin-billing' && 'bg-blue-600 text-white border-solid border-blue-600 hover:bg-blue-650 hover:text-white shadow-md shadow-blue-600/10'
+              )}
+            >
+              <CreditCard className="h-4 w-4 shrink-0 animate-pulse text-blue-500" />
+              Admin Billing (Platform)
+            </Link>
+          )}
           <Button 
             variant="ghost" 
             className="w-full justify-start gap-3 rounded-xl px-4 py-2.5 text-xs md:text-sm font-semibold text-slate-600 hover:bg-rose-50 hover:text-rose-600 cursor-pointer"

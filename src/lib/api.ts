@@ -15,6 +15,8 @@ import * as announcementsActions from '~/server/announcements'
 import * as meterReadingsActions from '~/server/meter-readings'
 import * as inboxActions from '~/server/inbox'
 import * as ownerBillingActions from '~/server/owner-billing'
+import * as adminBillingActions from '~/server/admin-billing'
+
 
 export const api = {
   auth: {
@@ -234,5 +236,13 @@ export const api = {
     submitPaymentProof: (data: { invoiceId: string; proofImage: string }) => ownerBillingActions.submitPaymentProof({ data }),
     simulateSubscriptionState: (action: 'expire' | 'activate') => ownerBillingActions.simulateSubscriptionState({ data: action }),
   },
+  adminBilling: {
+    listOwners: () => adminBillingActions.listAllOwners(),
+    approvePayment: (invoiceId: string) => adminBillingActions.approveOwnerPayment({ data: invoiceId }),
+    rejectPayment: (invoiceId: string) => adminBillingActions.rejectOwnerPayment({ data: invoiceId }),
+    createInvoice: (data: { userId: string; amount: number; periodMonth: number; periodYear: number }) => adminBillingActions.createOwnerInvoiceManual({ data }),
+    forceExpire: (userId: string) => adminBillingActions.forceExpireSubscription({ data: userId }),
+  },
 }
+
 
