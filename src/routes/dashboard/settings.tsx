@@ -417,53 +417,6 @@ function SettingsPage() {
                   <span>Bukti pembayaran berhasil diunggah! Mohon tunggu verifikasi oleh Administrator untuk memperpanjang paket Anda.</span>
                 </div>
               )}
-
-              {/* Developer tools for testing */}
-              <div className="p-4 rounded-xl border border-dashed border-amber-300 bg-amber-50/50 space-y-2.5">
-                <p className="text-xs font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
-                  <span>🛠️</span> Developer Simulator (Pengujian Billing & Lock Screen)
-                </p>
-                <p className="text-[11px] text-amber-700 leading-normal font-medium">
-                  Gunakan tombol di bawah untuk menyimulasikan masa kedaluwarsa paket (expired) untuk menguji layar pemblokiran dashboard dan invoice tertunggak, atau aktifkan kembali akun Anda secara instan.
-                </p>
-                <div className="flex gap-2">
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={async () => {
-                      if (confirm('Simulasikan status langganan kedaluwarsa? Ini akan memblokir dashboard dan membuat invoice tagihan baru di database.')) {
-                        try {
-                          await api.ownerBilling.simulateSubscriptionState('expire')
-                          alert('Masa aktif berhasil diset kedaluwarsa! Silakan refresh halaman untuk melihat layar pemblokiran.')
-                          window.location.reload()
-                        } catch (err) {
-                          alert('Gagal: ' + err)
-                        }
-                      }
-                    }}
-                    className="border-amber-300 bg-white text-amber-850 hover:bg-amber-100 hover:text-amber-900 rounded-xl text-[10px] font-bold py-1 h-8 cursor-pointer shadow-sm"
-                  >
-                    Simulasi Expired (Lock)
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={async () => {
-                      try {
-                        await api.ownerBilling.simulateSubscriptionState('activate')
-                        alert('Paket berhasil diaktifkan kembali dan semua tagihan dilunasi!')
-                        window.location.reload()
-                      } catch (err) {
-                        alert('Gagal: ' + err)
-                      }
-                    }}
-                    className="border-emerald-300 bg-white text-emerald-850 hover:bg-emerald-100 hover:text-emerald-950 rounded-xl text-[10px] font-bold py-1 h-8 cursor-pointer shadow-sm"
-                  >
-                    Simulasi Aktif (Unlock)
-                  </Button>
-                </div>
-              </div>
-
               <div className="flex items-center justify-between p-4 rounded-lg border-2 border-primary bg-slate-50/50">
                 <div>
                   <div className="flex items-center gap-2">
