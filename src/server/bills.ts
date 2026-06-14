@@ -325,6 +325,35 @@ export const autoGenerateUpcomingBills = createServerFn({ method: 'POST' })
         createdAt: now,
         updatedAt: now,
       })
+
+      // Kirim notifikasi inbox ke penyewa (tenant) jika memiliki userId
+      if (draft.tenantUserId) {
+        const dueDateFormatted = new Date(draft.dueDate).toLocaleDateString('id-ID', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        })
+        await db.insert(inbox).values({
+          id: nanoid(),
+          createdAt: now,
+          updatedAt: now,
+          userId: draft.tenantUserId,
+          propertyId: draft.propertyId,
+          senderId: draft.ownerId,
+          senderName: 'Sistem KeKost',
+          recipientType: 'tenant',
+          recipientPropertyId: draft.propertyId,
+          recipientTenantId: draft.tenantId,
+          subject: 'Tagihan Baru Diterbitkan',
+          body: `Tagihan baru untuk periode ${draft.periodMonth}/${draft.periodYear} sebesar Rp ${draft.rentAmount.toLocaleString('id-ID')} telah diterbitkan secara otomatis. Jatuh tempo: ${dueDateFormatted}.`,
+          category: 'pembayaran',
+          isRead: false,
+          readAt: null,
+          priority: 'normal',
+          status: 'unread',
+        })
+      }
+
       count++
     }
 

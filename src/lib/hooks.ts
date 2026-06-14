@@ -56,6 +56,13 @@ export function preloadQuery(cacheKey: string, queryFn: () => Promise<any>) {
 
 /** Preload all dashboard queries and select caches concurrently */
 export async function preloadDashboardData() {
+  // Pemicu otomatis pembuatan tagihan H-7 sebelum preloading query lain
+  try {
+    await api.bills.autoGenerateUpcoming()
+  } catch (err) {
+    console.error('Auto-generate upcoming bills failed:', err)
+  }
+
   await Promise.all([
     // Populate selectCache (properties, tenants, units)
     selectCache.refreshAll(),

@@ -61,6 +61,7 @@ export const api = {
     update: (id: string, data: any) => billsActions.updateBill({ data: { id, ...data } }),
     delete: (id: string) => billsActions.deleteBill({ data: { id } }),
     deleteMultiple: (ids: string[]) => billsActions.deleteMultipleBills({ data: { ids } }),
+    autoGenerateUpcoming: (data?: { date?: string }) => billsActions.autoGenerateUpcomingBills({ data }),
   },
   payments: {
     list: () => paymentsActions.listPayments(),
