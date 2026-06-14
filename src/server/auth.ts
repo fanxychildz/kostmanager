@@ -42,6 +42,8 @@ export const auth = betterAuth({
       // role is assigned server-side (owner on signup, tenant via portal register).
       // input: false prevents clients from setting it during sign-up.
       role: { type: 'string', required: false, defaultValue: 'owner', input: false },
+      subscriptionStatus: { type: 'string', required: false, defaultValue: 'active', input: false },
+      subscriptionExpiresAt: { type: 'date', required: false, input: false },
     },
   },
   session: {

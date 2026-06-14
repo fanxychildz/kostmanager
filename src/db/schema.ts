@@ -84,6 +84,8 @@ export const users = sqliteTable('users', {
   phone: text('phone'),
   image: text('image'),
   role: text('role', { enum: ['owner', 'manager', 'tenant'] }).notNull().default('owner'),
+  subscriptionStatus: text('subscription_status', { enum: ['active', 'expired', 'trial'] }).notNull().default('active'),
+  subscriptionExpiresAt: integer('subscription_expires_at', { mode: 'timestamp' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 })
